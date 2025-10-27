@@ -3,14 +3,14 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "wikimolgen"
+name = "WikiMolGen"
 version = "1.0.0"
-description = "Unified molecular structure generator for 2D and 3D visualizations"
+description = "Unified molecular structure generator for 2D and 3D visualizations. Originally built for Wikipedia"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = "3.12"
 license = {text = "MIT"}
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "Wolren", email = "wolrenn@outlook.com"}
 ]
 keywords = ["chemistry", "cheminformatics", "molecules", "visualization", "rdkit", "pymol"]
 classifiers = [
@@ -29,6 +29,7 @@ dependencies = [
     "rdkit>=2023.3.1",
     "pubchempy>=1.0.4",
     "numpy>=1.24.0",
+    "Pillow>=10.0.0",
 ]
 
 [project.optional-dependencies]
@@ -54,7 +55,7 @@ packages = ["wikimolgen"]
 
 [tool.black]
 line-length = 100
-target-version = ["py310"]
+target-version = ["py312"]
 
 [tool.mypy]
 python_version = "3.10"
@@ -64,5 +65,5 @@ disallow_untyped_defs = true
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py312"
 select = ["E", "F", "W", "I", "N", "UP"]

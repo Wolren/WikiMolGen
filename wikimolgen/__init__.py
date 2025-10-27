@@ -1,8 +1,8 @@
 """
-wikimolgen - Molecular Structure Generator for Wikipedia
+WikiMolGen - Unified Molecular Structure Generator
 ===================================================
-A Python package for generating 2D and 3D molecular visualizations for Wikipedia
-from PubChem compounds or SMILES strings.
+A Python package for generating 2D and 3D molecular visualizations
+from PubChem compounds or SMILES strings. Originally built for Wikipedia.
 
 Features:
   - 2D SVG generation with customizable rotation and styling
@@ -16,8 +16,10 @@ License: MIT
 """
 
 __version__ = "1.0.0"
-__all__ = ["MoleculeGenerator2D", "MoleculeGenerator3D", "fetch_compound"]
+
+__all__ = ["MoleculeGenerator2D", "MoleculeGenerator3D", "TemplateLoader", "ColorStyleTemplate", "SettingsTemplate", "list_predefined_templates",]
 
 from .core import fetch_compound, validate_smiles
+from .templates import TemplateLoader, ColorStyleTemplate, SettingsTemplate, list_predefined_templates
 from .wikimol2d import MoleculeGenerator2D
 from .wikimol3d import MoleculeGenerator3D

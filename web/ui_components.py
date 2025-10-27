@@ -1,0 +1,510 @@
+"""
+web/ui_components.py
+=====================
+Reusable UI components for WikiMolGen web interface with ORIGINAL sidebar layout.
+"""
+
+import streamlit as st
+import json
+from datetime import datetime
+from typing import List, Tuple
+from wikimolgen.templates import list_predefined_templates
+from web.template_utils import (
+    export_current_settings_as_template,
+    export_color_template,
+    load_custom_template,
+    save_template_to_session
+)
+from web.session_state import reset_to_defaults
+
+
+def render_compound_input() -> str:
+    """
+    Render compound input field - ORIGINAL style.
+
+    Returns
+    -------
+    str
+        Compound identifier (CID, name, or SMILES)
+    """
+    return st.text_input("Name/CID/SMILES", "24802108", help="").strip()
+
+
+def render_original_template_manager() -> None:
+    """
+    Render ORIGINAL template management UI - matches wiki_web_optimized.py exactly.
+    """
+    with st.expander("📁 Templates", expanded=False):
+        st.markdown("**Manage Templates:**")
+        tab1, tab2, tab3 = st.tabs(["Predefined", "Upload", "Save"])
+
+        with tab1:
+            predefined = list_predefined_templates()
+
+            # Combine predefined + custom templates - ORIGINAL way
+            all_color_templates = (
+                ["None"] +
+                predefined['color_templates'] +
+                list(st.session_state.custom_color_templates.keys())
+            )
+            all_settings_templates = (
+                ["None"] +
+                predefined['settings_templates'] +
+                list(st.session_state.custom_settings_templates.keys())
+            )
+
+            col1, col2 = st.columns(2)  # Original had columns
+
+            st.markdown("**Color Templates**")
+            color_template_choice = st.selectbox(
+                "Select Color Template:",
+                all_color_templates,
+                key="color_template_selector",
+                label_visibility="collapsed"
+            )
+
+            st.markdown("**Settings Templates**")
+            settings_template_choice = st.selectbox(
+                "Select Settings Template:",
+                all_settings_templates,
+                key="settings_template_selector",
+                label_visibility="collapsed"
+            )
+
+            # Remove custom template buttons
+            if color_template_choice in st.session_state.custom_color_templates:
+                if st.button(f"🗑️ Remove '{color_template_choice}'", key="remove_color"):
+                    del st.session_state.custom_color_templates[color_template_choice]
+                    st.rerun()
+
+            if settings_template_choice in st.session_state.custom_settings_templates:
+                if st.button(f"🗑️ Remove '{settings_template_choice}'", key="remove_settings"):
+                    del st.session_state.custom_settings_templates[settings_template_choice]
+                    st.rerun()
+
+        with tab2:
+            st.markdown("**Upload Color Template (JSON)**")
+            uploaded_color = st.file_uploader(
+                "Upload Color Template",
+                type=['json'],
+                key="color_uploader",
+                label_visibility="collapsed"
+            )
+
+            if uploaded_color:
+                try:
+                    template_data = json.load(uploaded_color)
+                    template_name = template_data.get('name', f'Custom_{datetime.now().strftime("%H%M%S")}')
+
+                    # Store in cookie session - ORIGINAL way
+                    st.session_state.custom_color_templates[template_name] = template_data
+                    st.session_state.uploaded_color_template = template_data
+                    st.success(f"✓ Loaded & saved: {template_name}")
+                    st.info("💡 Now available in 'Predefined' tab dropdown")
+                except Exception as e:
+                    st.error(f"Error: {e}")
+
+            st.markdown("**Upload Settings Template (JSON)**")
+            uploaded_settings = st.file_uploader(
+                "Upload Settings Template",
+                type=['json'],
+                key="settings_uploader",
+                label_visibility="collapsed"
+            )
+
+            if uploaded_settings:
+                try:
+                    template_data = json.load(uploaded_settings)
+                    template_name = template_data.get('name', f'Custom_{datetime.now().strftime("%H%M%S")}')
+
+                    # Store in cookie session - ORIGINAL way
+                    st.session_state.custom_settings_templates[template_name] = template_data
+                    st.session_state.uploaded_settings_template = template_data
+
+                    # Sync to sliders - ORIGINAL behavior
+                    for key, value in template_data.get("settings", {}).items():
+                        if key in st.session_state:
+                            st.session_state[key] = value
+                    st.session_state.template_applied_once = True
+                    st.success(f"✓ Loaded & saved: {template_name}")
+                    st.info("💡 Now available in 'Predefined' tab dropdown")
+                except Exception as e:
+                    st.error(f"Error: {e}")
+
+            # Reset button (only when template loaded) - ORIGINAL
+            if (
+                st.session_state.get("uploaded_color_template") is not None or
+                st.session_state.get("uploaded_settings_template") is not None
+            ):
+                st.divider()
+                if st.button("🔄 Reset Loaded Template", use_container_width=True):
+                    st.session_state.uploaded_color_template = None
+                    st.session_state.uploaded_settings_template = None
+                    st.session_state.template_applied_once = False
+
+                    # Reset to defaults - ORIGINAL values
+                    defaults = {
+                        "auto_orient_2d": True,
+                        "scale": 30.0,
+                        "margin": 0.5,
+                        "bond_length": 45.0,
+                        "min_font_size": 36,
+                        "padding": 0.03,
+                        "use_bw": True,
+                        "transparent": True,
+                        "auto_orient_3d": True,
+                        "stick_radius": 0.2,
+                        "sphere_scale": 0.3,
+                        "stick_ball_ratio": 1.8,
+                        "ambient": 0.25,
+                        "specular": 1.0,
+                        "direct": 0.45,
+                        "reflect": 0.45,
+                        "shininess": 30,
+                        "width": 1320,
+                        "height": 990,
+                    }
+                    for key, value in defaults.items():
+                        st.session_state[key] = value
+                    st.success("✅ Reset to default style settings")
+
+        with tab3:
+            st.markdown("**Save Current Settings as Template**")
+            gen_type = st.session_state.get("structure_type", "2D")
+
+            # Custom filename input - ORIGINAL
+            save_filename = st.text_input(
+                "Template Filename",
+                value=st.session_state.get("save_filename", f"{gen_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"),
+                help="Enter desired filename (without .json extension)",
+                key="save_filename"
+            )
+
+            col1, col2 = st.columns(2)
+
+            template_dict = export_current_settings_as_template(gen_type)
+            template_json = json.dumps(template_dict, indent=2)
+            color_dict = export_color_template()
+            color_json = json.dumps(color_dict, indent=2)
+
+            # Download buttons - ORIGINAL style
+            with col1:
+                st.download_button(
+                    label="Download Settings Template",
+                    data=template_json,
+                    file_name=f"{st.session_state.get('save_filename', save_filename)}.json" if st.session_state.get('save_filename') else f"{save_filename}.json",
+                    mime="application/json",
+                    use_container_width=True,
+                    key="dl_settings"
+                )
+
+            with col2:
+                st.download_button(
+                    label="Download Color Template",
+                    data=color_json,
+                    file_name=f"{st.session_state.get('save_filename', save_filename)}.json" if st.session_state.get('save_filename') else f"{save_filename}.json",
+                    mime="application/json",
+                    use_container_width=True,
+                    key="dl_colors"
+                )
+
+
+def render_mode_selector() -> str:
+    """
+    Render 2D/3D mode selector - ORIGINAL style.
+
+    Returns
+    -------
+    str
+        Selected mode: "2D" or "3D"
+    """
+    structure_type = st.radio(
+        "Mode",
+        ["2D", "3D"],
+        horizontal=True,
+        label_visibility="collapsed"
+    )
+    st.session_state.structure_type = structure_type
+    return structure_type
+
+
+def render_original_2d_settings() -> None:
+    """Render 2D-specific settings controls - ORIGINAL layout."""
+    st.markdown("#### **2D Display**", unsafe_allow_html=True)
+
+    # Auto-orient checkbox - ORIGINAL
+    auto_orient_2d = st.checkbox(
+        "Auto-Orient",
+        value=True,
+        key="auto_orient_2d",
+        help="Automatically find optimal viewing angle"
+    )
+
+    # Manual rotation (if not auto-orient) - ORIGINAL
+    if not auto_orient_2d:
+        angle_degrees = st.slider(
+            "Rotation (°)",
+            0, 360, 180, 15,
+            key="angle_2d",
+            help="Rotation angle in degrees"
+        )
+    else:
+        angle_degrees = 180
+
+    # Advanced 2D settings - ORIGINAL expander
+    with st.expander("2D Settings", expanded=False):
+        st.markdown("**Sizing & Spacing**")
+        col1, col2 = st.columns(2)
+
+        with col1:
+            scale = st.slider(
+                "Scale", 20.0, 40.0, 30.0, 1.0,
+                key="scale",
+                help="Pixels per coordinate unit"
+            )
+            margin = st.slider(
+                "Margin", 0.1, 1.0, 0.5, 0.1,
+                key="margin",
+                help="Canvas margin"
+            )
+
+        with col2:
+            bond_length = st.slider(
+                "Bond Length", 30.0, 70.0, 45.0, 5.0,
+                key="bond_length",
+                help="Fixed bond length in pixels"
+            )
+            padding = st.slider(
+                "Padding", 0.01, 0.10, 0.03, 0.01,
+                key="padding",
+                help="Padding around drawing"
+            )
+
+        st.markdown("**Typography & Colors**")
+        col1, col2 = st.columns(2)
+
+        with col1:
+            min_font_size = st.slider(
+                "Font Size", 24, 60, 36, 2,
+                key="min_font_size",
+                help="Minimum font size for labels"
+            )
+
+        with col2:
+            use_bw = st.checkbox(
+                "B/W Palette", value=True,
+                key="use_bw",
+                help="Use black and white atom palette"
+            )
+            transparent = st.checkbox(
+                "Transparent Background", value=True,
+                key="transparent",
+                help="Use transparent background (no white fill)"
+            )
+
+
+def render_original_3d_settings() -> None:
+    """Render 3D-specific settings controls - ORIGINAL layout."""
+    # Auto-orient checkbox - ORIGINAL
+    auto_orient_3d = st.checkbox(
+        "Auto-Orient",
+        value=True,
+        key="auto_orient_3d",
+        help="Automatically optimize 3D orientation"
+    )
+
+    # Manual rotation sliders (if not auto-orient) - ORIGINAL
+    if not auto_orient_3d:
+        x_rot = st.slider(
+            "X Rotation", 0.0, 360.0, 0.0, 5.0,
+            key="x_rot_slider",
+            help="Rotation around X-axis"
+        )
+        y_rot = st.slider(
+            "Y Rotation", 0.0, 360.0, 200.0, 5.0,
+            key="y_rot_slider",
+            help="Rotation around Y-axis"
+        )
+        z_rot = st.slider(
+            "Z Rotation", 0.0, 360.0, 0.0, 5.0,
+            key="z_rot_slider",
+            help="Rotation around Z-axis"
+        )
+    else:
+        x_rot, y_rot, z_rot = 0.0, 200.0, 0.0
+
+
+def render_original_canvas_settings() -> None:
+    """Render canvas/dimension settings - ORIGINAL layout."""
+    with st.expander("📐 Canvas", expanded=False):
+        st.markdown("**Image Dimensions**")
+        col1, col2 = st.columns(2)
+
+        with col1:
+            width = st.number_input("Width (pixels)", 800, 4000, 1320, 100, key="width")
+            height = st.number_input("Height (pixels)", 600, 3000, 990, 100, key="height")
+
+        with col2:
+            crop_margin = st.slider("Crop Margin", 5, 50, 10, 5, key="crop_margin")
+
+
+def render_original_rendering_settings() -> None:
+    """Render rendering quality settings - ORIGINAL layout."""
+    with st.expander("🎨 Rendering", expanded=True):
+        st.markdown("**Molecular Representation**")
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            stick_radius = st.slider(
+                "Stick Radius", 0.1, 0.5, 0.2, 0.05,
+                key="stick_radius",
+                help="Thickness of bond sticks"
+            )
+
+        with col2:
+            sphere_scale = st.slider(
+                "Atom Size", 0.15, 0.5, 0.3, 0.05,
+                key="sphere_scale",
+                help="Sphere scale factor for atoms"
+            )
+
+        with col3:
+            stick_ball_ratio = st.slider(
+                "Ball Ratio", 1.2, 3.0, 1.8, 0.1,
+                key="stick_ball_ratio",
+                help="Stick-to-ball proportion"
+            )
+
+        st.markdown("**Quality Settings**")
+        col1, col2 = st.columns(2)
+
+        with col1:
+            ray_trace = st.checkbox(
+                "Ray Tracing", value=False,
+                key="ray_trace",
+                help="Enable ray tracing for photorealistic rendering"
+            )
+            ray_shadows = st.checkbox(
+                "Shadows", value=False,
+                key="ray_shadows",
+                help="Enable shadows (slower, requires ray tracing)"
+            )
+
+        with col2:
+            antialias = st.selectbox(
+                "Antialiasing", [0, 1, 2, 3, 4], 2,
+                key="antialias",
+                help="0=Off, 1=On, 2-4=Multisample levels"
+            )
+
+
+def render_original_lighting_settings() -> None:
+    """Render lighting control settings - ORIGINAL layout."""
+    with st.expander("💡 Lighting", expanded=True):
+        st.markdown("**Light Intensity & Quality**")
+        col1, col2 = st.columns(2)
+
+        with col1:
+            ambient = st.slider(
+                "Ambient", 0.0, 1.0, 0.25, 0.05,
+                key="ambient",
+                help="Ambient light intensity (global brightness)"
+            )
+            specular = st.slider(
+                "Specular", 0.0, 2.0, 1.0, 0.1,
+                key="specular",
+                help="Specular reflection intensity (shininess)"
+            )
+
+        with col2:
+            direct = st.slider(
+                "Direct Light", 0.0, 1.0, 0.45, 0.05,
+                key="direct",
+                help="Direct light source intensity"
+            )
+            reflect = st.slider(
+                "Reflection", 0.0, 1.0, 0.45, 0.05,
+                key="reflect",
+                help="Environmental reflection intensity"
+            )
+
+        shininess = st.slider(
+            "Shininess", 10, 100, 30, 5,
+            key="shininess",
+            help="Surface shininess level (higher = more glossy)"
+        )
+
+
+def render_original_effects_settings() -> None:
+    """Render special effects settings - ORIGINAL layout."""
+    with st.expander("🌫️ Effects", expanded=False):
+        st.markdown("**Transparency & Special Effects**")
+        col1, col2 = st.columns(2)
+
+        with col1:
+            stick_transparency = st.slider(
+                "Stick Transparency", 0.0, 1.0, 0.0, 0.1,
+                key="stick_transparency",
+                help="Bond transparency level"
+            )
+            sphere_transparency = st.slider(
+                "Sphere Transparency", 0.0, 1.0, 0.0, 0.1,
+                key="sphere_transparency",
+                help="Atom transparency level"
+            )
+
+        with col2:
+            valence = st.slider(
+                "Valence Visibility", 0.0, 0.3, 0.0, 0.05,
+                key="valence",
+                help="Show valence bonds (0=off)"
+            )
+            depth_cue = st.checkbox(
+                "Depth Cueing", value=False,
+                key="depth_cue",
+                help="Enable fog effect for depth perception"
+            )
+
+
+def render_auto_generate_checkbox() -> bool:
+    """
+    Render auto-generate checkbox - ORIGINAL style.
+
+    Returns
+    -------
+    bool
+        True if auto-generate is enabled
+    """
+    return st.checkbox(
+        "Auto-update",
+        value=True,
+        help="Re-render as you change settings"
+    )
+
+
+def render_generate_button(auto_generate: bool) -> bool:
+    """
+    Render manual generate button - ORIGINAL style.
+
+    Parameters
+    ----------
+    auto_generate : bool
+        Whether auto-generate is enabled
+
+    Returns
+    -------
+    bool
+        True if button was clicked
+    """
+    generate_btn_enabled = not auto_generate
+    clicked = st.button(
+        "Generate Now",
+        type="primary",
+        use_container_width=True,
+        disabled=not generate_btn_enabled
+    )
+
+    if clicked:
+        st.session_state.manual_generate = True
+
+    return clicked

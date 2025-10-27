@@ -6,7 +6,10 @@ Shared utilities for molecular structure fetching and validation.
 
 import pubchempy as pcp
 from rdkit import Chem
+from rdkit import RDLogger
 from rdkit.Chem import Descriptors
+
+RDLogger.DisableLog('rdApp.*')
 
 
 class CompoundFetchError(Exception):
@@ -21,57 +24,72 @@ class SMILESValidationError(Exception):
 
 def fetch_compound(identifier: str) -> tuple[str, str]:
     """
-    Fetch compound SMILES and name from PubChem.
-    
+    Fetch compound SMILES and name from PubChem or validate SMILES.
+
+    Auto-detects input type in this order:
+    1. PubChem CID (if numeric)
+    2. PubChem compound name (if text lookup succeeds)
+    3. Direct SMILES string (if valid chemical structure)
+
     Parameters
     ----------
     identifier : str
         PubChem CID (numeric), compound name, or SMILES string
-        
+
     Returns
     -------
     tuple[str, str]
         (smiles, compound_name)
-        
+
     Raises
     ------
     CompoundFetchError
-        If compound cannot be found or fetched from PubChem
+        If identifier is not a valid CID, compound name, or SMILES
     """
-    # Try direct SMILES validation first
+    # Strategy 1: Try PubChem CID if identifier is numeric
+    if identifier.isdigit():
+        try:
+            compound = pcp.Compound.from_cid(int(identifier))
+            smiles = getattr(compound, 'smiles', None) or compound.canonical_smiles
+            return smiles, compound.iupac_name or f"CID_{identifier}"
+        except Exception as e:
+            raise CompoundFetchError(f"Failed to fetch PubChem CID {identifier}: {e}")
+
+    # Strategy 2: Try PubChem compound name lookup
+    try:
+        compounds = pcp.get_compounds(identifier, 'name')
+        if compounds:
+            compound = compounds[0]
+            smiles = getattr(compound, 'smiles', None) or compound.canonical_smiles
+            return smiles, compound.iupac_name or identifier
+    except Exception:
+        pass  # Not a valid compound name, continue to SMILES check
+
+    # Strategy 3: Try as direct SMILES string
     mol = Chem.MolFromSmiles(identifier)
     if mol is not None:
         return identifier, "custom_smiles"
-    
-    # Try PubChem lookup
-    try:
-        if identifier.isdigit():
-            compound = pcp.Compound.from_cid(int(identifier))
-            return compound.canonical_smiles, compound.iupac_name or f"CID_{identifier}"
-        else:
-            compounds = pcp.get_compounds(identifier, 'name')
-            if not compounds:
-                raise CompoundFetchError(f"No compound found for name: {identifier}")
-            compound = compounds[0]
-            return compound.canonical_smiles, compound.iupac_name or identifier
-    except Exception as e:
-        raise CompoundFetchError(f"Failed to fetch compound '{identifier}': {e}")
+
+    # All strategies failed
+    raise CompoundFetchError(
+        f"Could not interpret '{identifier}' as PubChem CID, compound name, or valid SMILES"
+    )
 
 
 def validate_smiles(smiles: str) -> Chem.Mol:
     """
     Validate and parse a SMILES string.
-    
+
     Parameters
     ----------
     smiles : str
         SMILES representation of molecule
-        
+
     Returns
     -------
     Chem.Mol
         RDKit molecule object
-        
+
     Raises
     ------
     SMILESValidationError
@@ -86,12 +104,12 @@ def validate_smiles(smiles: str) -> Chem.Mol:
 def get_molecular_properties(mol: Chem.Mol) -> dict[str, float]:
     """
     Calculate basic molecular properties.
-    
+
     Parameters
     ----------
     mol : Chem.Mol
         RDKit molecule object
-        
+
     Returns
     -------
     dict[str, float]
