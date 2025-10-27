@@ -1,19 +1,18 @@
-# wikimolgen
+# WikiMolGen
 
-**Unified Molecular Structure Generator** - Generate publication-quality 2D and 3D molecular visualizations from PubChem or SMILES.
+**Unified Molecular Structure Generator** - Generate publication-quality 2D and 3D molecular visualizations from PubChem or SMILES. Originally built for wikipedia
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Features
 
-- 🎨 **2D SVG Generation** - Publication-ready vector graphics with customizable styling
-- 🧊 **3D Conformer Generation** - ETKDG-based 3D structure generation with force field optimization
-- 🖼️ **PyMOL Rendering** - High-quality ray-traced molecular images
-- 🔍 **Flexible Input** - Supports PubChem CID, compound names, or direct SMILES
-- 🎯 **Class-Based API** - Modern, type-annotated Python API with dataclasses
-- 🖥️ **CLI Interface** - Comprehensive command-line tool for batch processing
-
+- **2D SVG Generation**: Publication-ready vector graphics with customizable styling
+- **3D Conformer Generation**: High quality ETKDG-based 3D structure generation with force field optimization
+- **PyMOL Rendering** - High-quality ray-traced molecular images
+- **Flexible Input** - Supports PubChem CID, compound names, or direct SMILES
+- **Class-Based API** - Type-annotated Python API with dataclasses
+- **CLI Interface** - Command-line tool for batch processing
 ## Installation
 
 ### Basic Installation
@@ -21,14 +20,13 @@
 pip install rdkit pubchempy numpy
 ```
 
-### With PyMOL Support (for 3D rendering)
+### PyMOL Support (for 3D rendering)
 ```bash
 conda install -c conda-forge rdkit pubchempy pymol-open-source
 ```
-
 ### Development Installation
 ```bash
-git clone https://github.com/yourusername/wikimolgen.git
+git clone https://github.com/Wolren/wikimolgen.git
 cd wikimolgen
 pip install -e .
 ```
@@ -112,14 +110,14 @@ wikimolgen/
 Generate 2D molecular structure diagrams.
 
 **Parameters:**
-- `identifier` (str): PubChem CID, compound name, or SMILES
-- `angle` (float): Rotation angle in radians (default: π)
-- `scale` (float): Pixels per coordinate unit (default: 30.0)
-- `margin` (float): Canvas margin (default: 0.5)
-- `bond_length` (float): Fixed bond length in pixels (default: 35.0)
-- `min_font_size` (int): Minimum atom label font size (default: 36)
-- `use_bw_palette` (bool): Use black/white palette (default: True)
-- `transparent_background` (bool): Transparent background (default: True)
+- `identifier`(str): PubChem CID, compound name, or SMILES
+- `angle`(float): Rotation angle in radians (default: π)
+- `scale`(float): Pixels per coordinate unit (default: 30.0)
+- `margin`(float): Canvas margin (default: 0.5)
+- `bond_length`(float): Fixed bond length in pixels (default: 35.0)
+- `min_font_size`(int): Minimum atom label font size (default: 36)
+- `use_bw_palette`(bool): Use black/white palette (default: True)
+- `transparent_background`(bool): Transparent background (default: True)
 
 **Methods:**
 - `generate(output: str) -> Path`: Generate and save SVG
@@ -136,7 +134,7 @@ Generate 3D molecular structures with conformer optimization.
 - `generate(optimize: bool, force_field: str, render: bool, output_base: str) -> tuple[Path, Path | None]`
 - `configure_rendering(**kwargs)`: Update PyMOL rendering settings
 
-### `fetch_compound(identifier: str) -> tuple[str, str]`
+#### `fetch_compound(identifier: str) -> tuple[str, str]`
 
 Fetch compound SMILES and name from PubChem.
 
@@ -157,7 +155,7 @@ Customize via `RenderConfig` dataclass or `configure_rendering()`:
 - Stick/sphere properties (radius, scale, quality)
 - Lighting (ambient, specular, shininess)
 - Camera rotation (x, y, z)
-- Element colors (C, N, O, H)
+- Element colors
 
 ## Dependencies
 
@@ -166,9 +164,7 @@ Customize via `RenderConfig` dataclass or `configure_rendering()`:
 - rdkit
 - pubchempy
 - numpy
-
-**Optional:**
-- pymol2 (for 3D rendering)
+- pymol2
 
 ## Examples
 
@@ -208,7 +204,7 @@ gen.generate(render=True, output_base="custom_render")
 
 ## Contributing
 
-Contributions welcome! Please:
+Contributions are welcome! Please:
 1. Fork the repository
 2. Create a feature branch
 3. Add tests for new functionality
@@ -224,16 +220,11 @@ If you use wikimolgen in your research, please cite:
 
 ```bibtex
 @software{wikimolgen2025,
-  author = {Your Name},
+  author = {Wolren},
   title = {wikimolgen: Unified Molecular Structure Generator},
   year = {2025},
   version = {1.0.0},
-  url = {https://github.com/yourusername/wikimolgen}
+  url = {https://github.com/Wolren/wikimolgen}
 }
 ```
 
-## Acknowledgments
-
-- RDKit for cheminformatics functionality
-- PubChemPy for compound data access
-- PyMOL for high-quality molecular rendering
