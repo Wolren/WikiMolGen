@@ -1,5 +1,5 @@
 """
-web/ui_components.py
+web/components.py
 =====================
 Reusable UI components for WikiMolGen web interface with sidebar layout.
 """
@@ -9,11 +9,11 @@ from datetime import datetime
 
 import streamlit as st
 
-from web.template_utils import (
+from web.template.utils import (
     export_current_settings_as_template,
     export_color_template
 )
-from wikimolgen.templates import list_predefined_templates
+from wikimolgen.predefined_templates import list_predefined_templates
 
 
 def render_compound_input() -> str:
@@ -39,7 +39,7 @@ def render_template_manager() -> None:
         with tab1:
             template_list = list_predefined_templates()
 
-            # Predefined + custom templates combined
+            # Predefined + custom template combined
             all_color_templates = (
                     ["None"] +
                     template_list['color_templates'] +

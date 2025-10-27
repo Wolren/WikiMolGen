@@ -36,8 +36,9 @@ pip install -e .
 ### Python API
 
 #### 2D Structures
+
 ```python
-from wikimolgen import MoleculeGenerator2D
+from examples import MoleculeGenerator2D
 
 # From PubChem CID
 gen = MoleculeGenerator2D("24802108")
@@ -53,8 +54,9 @@ gen.generate("custom.svg")
 ```
 
 #### 3D Structures
+
 ```python
-from wikimolgen import MoleculeGenerator3D
+from examples import MoleculeGenerator3D
 
 # Generate and optimize 3D structure
 gen = MoleculeGenerator3D("24802108")
@@ -169,8 +171,9 @@ Customize via `RenderConfig` dataclass or `configure_rendering()`:
 ## Examples
 
 ### Batch Processing
+
 ```python
-from wikimolgen import MoleculeGenerator2D, MoleculeGenerator3D
+from examples import MoleculeGenerator2D, MoleculeGenerator3D
 
 compounds = ["psilocin", "DMT", "mescaline", "LSD"]
 
@@ -186,8 +189,9 @@ for name in compounds:
 ```
 
 ### Custom Styling
+
 ```python
-from wikimolgen import MoleculeGenerator3D
+from examples import MoleculeGenerator3D
 
 gen = MoleculeGenerator3D("24802108")
 gen.configure_rendering(

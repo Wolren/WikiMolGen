@@ -1,5 +1,5 @@
 """
-web/template_utils.py
+web/utils.py
 ======================
 Template management utilities for WikiMolGen web interface.
 Handles template export, import, and application to generators.
@@ -11,7 +11,7 @@ from typing import Dict, Any, Optional, Union
 
 import streamlit as st
 
-from wikimolgen.templates import ColorStyleTemplate, SettingsTemplate
+from wikimolgen.predefined_templates import ColorStyleTemplate, SettingsTemplate
 
 
 def export_current_settings_as_template(gen_type: str) -> Dict[str, Any]:
@@ -170,12 +170,12 @@ def apply_templates_to_generator(
         gen_type: str
 ) -> bool:
     """
-    Apply selected templates to a molecule generator.
+    Apply selected template to a molecule generator.
 
     Parameters
     ----------
     gen : MoleculeGenerator2D or MoleculeGenerator3D
-        Generator instance to apply templates to
+        Generator instance to apply template to
     gen_type : str
         Generator type: "2D" or "3D"
 

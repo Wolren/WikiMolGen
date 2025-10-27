@@ -8,21 +8,22 @@ Extended element colors and RDKit configuration options.
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Literal, Dict, Union
-import numpy as np
+
 from PIL import ImageEnhance
 from rdkit import Chem
 from rdkit.Chem import AllChem, rdmolfiles
 
-from .core import fetch_compound, validate_smiles
+from wikimolgen.core import fetch_compound, validate_smiles
 
 try:
-    from .optimization import find_optimal_3d_orientation, optimize_zoom_buffer
+    from examples.optimization import find_optimal_3d_orientation, optimize_zoom_buffer
+
     HAS_OPTIMIZATION = True
 except ImportError:
     HAS_OPTIMIZATION = False
 
-
 ForceFieldType = Literal["MMFF94", "UFF"]
+
 
 def color_name_to_rgb(color_name: str) -> tuple:
     """Convert color name to RGB tuple for PyMOL."""
@@ -50,7 +51,6 @@ def color_name_to_rgb(color_name: str) -> tuple:
         "forest": (0.133, 0.545, 0.133),
     }
     return color_map.get(color_name.lower(), (0.5, 0.5, 0.5))
-
 
 
 @dataclass
@@ -108,44 +108,44 @@ class RenderConfig:
     # Comprehensive element colors (CPK-based with adjustments for clarity)
     element_colors: Dict[str, str] = field(default_factory=lambda: {
         # Common organic elements
-        "C": "gray25",          # Carbon - dark gray
-        "H": "gray85",          # Hydrogen - light gray
-        "N": "blue",            # Nitrogen - blue
-        "O": "red",             # Oxygen - red
-        "S": "yellow",          # Sulfur - yellow
-        "P": "orange",          # Phosphorus - orange
+        "C": "gray25",  # Carbon - dark gray
+        "H": "gray85",  # Hydrogen - light gray
+        "N": "blue",  # Nitrogen - blue
+        "O": "red",  # Oxygen - red
+        "S": "yellow",  # Sulfur - yellow
+        "P": "orange",  # Phosphorus - orange
 
         # Halogens
-        "F": "palegreen",       # Fluorine - pale green
-        "Cl": "green",          # Chlorine - green
-        "Br": "firebrick",      # Bromine - dark red/brown
-        "I": "purple",          # Iodine - purple
+        "F": "palegreen",  # Fluorine - pale green
+        "Cl": "green",  # Chlorine - green
+        "Br": "firebrick",  # Bromine - dark red/brown
+        "I": "purple",  # Iodine - purple
 
         # Metals (alkali & alkaline earth)
-        "Li": "violet",         # Lithium
-        "Na": "slate",          # Sodium
-        "K": "violet",          # Potassium
-        "Mg": "forest",         # Magnesium
-        "Ca": "forest",         # Calcium
+        "Li": "violet",  # Lithium
+        "Na": "slate",  # Sodium
+        "K": "violet",  # Potassium
+        "Mg": "forest",  # Magnesium
+        "Ca": "forest",  # Calcium
 
         # Transition metals (common in organometallics)
-        "Fe": "darkorange",     # Iron
-        "Cu": "chocolate",      # Copper
-        "Zn": "brown",          # Zinc
-        "Ni": "forest",         # Nickel
-        "Co": "salmon",         # Cobalt
-        "Mn": "violet",         # Manganese
-        "Cr": "gray50",         # Chromium
-        "Pd": "forest",         # Palladium
-        "Pt": "gray50",         # Platinum
-        "Au": "gold",           # Gold
-        "Ag": "gray70",         # Silver
+        "Fe": "darkorange",  # Iron
+        "Cu": "chocolate",  # Copper
+        "Zn": "brown",  # Zinc
+        "Ni": "forest",  # Nickel
+        "Co": "salmon",  # Cobalt
+        "Mn": "violet",  # Manganese
+        "Cr": "gray50",  # Chromium
+        "Pd": "forest",  # Palladium
+        "Pt": "gray50",  # Platinum
+        "Au": "gold",  # Gold
+        "Ag": "gray70",  # Silver
 
         # Other common elements
-        "B": "salmon",          # Boron
-        "Si": "goldenrod",      # Silicon
-        "Se": "orange",         # Selenium
-        "As": "violet",         # Arsenic
+        "B": "salmon",  # Boron
+        "Si": "goldenrod",  # Silicon
+        "Se": "orange",  # Selenium
+        "As": "violet",  # Arsenic
 
         "He": "cyan",
         "Ne": "cyan",
@@ -211,9 +211,9 @@ class MoleculeGenerator3D:
     """
 
     def __init__(
-        self,
-        identifier: str,
-        random_seed: int = 1,
+            self,
+            identifier: str,
+            random_seed: int = 1,
     ):
         """
         Initialize 3D molecule generator.
@@ -465,12 +465,12 @@ class MoleculeGenerator3D:
         return output_path
 
     def generate(
-        self,
-        optimize: bool = True,
-        force_field: ForceFieldType = "MMFF94",
-        max_iterations: int = 200,
-        render: bool = False,
-        output_base: Optional[str] = None,
+            self,
+            optimize: bool = True,
+            force_field: ForceFieldType = "MMFF94",
+            max_iterations: int = 200,
+            render: bool = False,
+            output_base: Optional[str] = None,
     ) -> tuple[Path, Optional[Path]]:
         """
         Generate 3D structure with optional rendering.
@@ -494,7 +494,8 @@ class MoleculeGenerator3D:
             (sdf_path, png_path) - PNG path is None if render=False
         """
         if output_base is None:
-            output_base = self.compound_name.replace(" ", "_") if self.compound_name != "custom_smiles" else "molecule_3d"
+            output_base = self.compound_name.replace(" ",
+                                                     "_") if self.compound_name != "custom_smiles" else "molecule_3d"
 
         # Generate conformer
         self._embed_conformer()
@@ -666,11 +667,11 @@ class MoleculeGenerator3D:
                 setattr(self.render_config, key, value)
 
     def configure_conformer(
-        self,
-        num_conformers: Optional[int] = None,
-        max_iterations: Optional[int] = None,
-        enforce_chirality: Optional[bool] = None,
-        **kwargs,
+            self,
+            num_conformers: Optional[int] = None,
+            max_iterations: Optional[int] = None,
+            enforce_chirality: Optional[bool] = None,
+            **kwargs,
     ) -> None:
         """
         Update conformer generation configuration.
@@ -697,7 +698,6 @@ class MoleculeGenerator3D:
             if hasattr(self.conformer_config, key):
                 setattr(self.conformer_config, key, value)
 
-
     def load_color_template(self, template: Union[str, Path, 'ColorStyleTemplate']) -> None:
         """
         Apply a color style template to the 3D generator.
@@ -713,7 +713,7 @@ class MoleculeGenerator3D:
         >>> gen.load_color_template("cpk_standard")  # Predefined template
         >>> gen.load_color_template("my_colors.json")  # From file
         """
-        from .templates import TemplateLoader, ColorStyleTemplate, get_predefined_color_template, TemplateError
+        from wikimolgen.predefined_templates import TemplateLoader, ColorStyleTemplate, get_predefined_color_template, TemplateError
 
         # Load template if needed
         if isinstance(template, str):
@@ -755,7 +755,7 @@ class MoleculeGenerator3D:
         >>> gen.load_settings_template("high_quality_3d")  # Predefined template
         >>> gen.load_settings_template("my_settings.json")  # From file
         """
-        from .templates import TemplateLoader, SettingsTemplate, get_predefined_settings_template, TemplateError
+        from wikimolgen.predefined_templates import TemplateLoader, SettingsTemplate, get_predefined_settings_template, TemplateError
 
         # Load template if needed
         if isinstance(template, str):
@@ -781,7 +781,6 @@ class MoleculeGenerator3D:
         print(f"✓ Applied settings template: {template.name}")
         if template.description:
             print(f"  {template.description}")
-
 
     def __repr__(self) -> str:
         return (

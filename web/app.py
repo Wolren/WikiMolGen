@@ -12,9 +12,9 @@ from pathlib import Path
 
 import streamlit as st
 
-from web.rendering import render_structure_dynamic
-from web.session_state import initialize_session_state
-from web.ui_components import (
+from web.rendering.base import render_structure_dynamic
+from web.session.state import initialize_session_state
+from web.ui.components import (
     render_compound_input,
     render_template_manager,
     render_mode_selector,
@@ -27,7 +27,7 @@ from web.ui_components import (
     render_auto_generate_checkbox,
     render_generate_button,
 )
-from web.wikipedia_boxes import render_wikipedia_metadata_section
+from web.wikipedia.boxes import render_wikipedia_metadata_section
 
 
 def configure_page() -> None:
@@ -41,7 +41,7 @@ def configure_page() -> None:
 
 
 # Apply theme
-from theme_css import apply_theme
+from template.themes_css import apply_theme
 
 apply_theme()
 
