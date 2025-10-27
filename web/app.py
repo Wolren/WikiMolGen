@@ -8,37 +8,30 @@ Usage:
     streamlit run web/app.py
 """
 
-import streamlit as st
 from pathlib import Path
 
-# Import web components
+import streamlit as st
+
+from web.rendering import render_structure_dynamic
 from web.session_state import initialize_session_state
 from web.ui_components import (
     render_compound_input,
-    render_original_template_manager,
+    render_template_manager,
     render_mode_selector,
-    render_original_2d_settings,
-    render_original_3d_settings,
-    render_original_canvas_settings,
-    render_original_rendering_settings,
-    render_original_lighting_settings,
-    render_original_effects_settings,
+    render_2d_settings,
+    render_3d_settings,
+    render_canvas_settings,
+    render_rendering_settings,
+    render_lighting_settings,
+    render_effects_settings,
     render_auto_generate_checkbox,
     render_generate_button,
 )
-from web.rendering import render_structure_dynamic
 from web.wikipedia_boxes import render_wikipedia_metadata_section
-
-# Optional theme support
-try:
-    from theme import apply_theme
-    THEME_AVAILABLE = True
-except ImportError:
-    THEME_AVAILABLE = False
 
 
 def configure_page() -> None:
-    """Configure Streamlit page settings - ORIGINAL."""
+    """Configure Streamlit page settings"""
     st.set_page_config(
         page_title="WikiMolGen",
         page_icon="media/wikimolgen_logo.png",
@@ -46,24 +39,24 @@ def configure_page() -> None:
         initial_sidebar_state="expanded"
     )
 
-    # Apply custom theme if available - ORIGINAL behavior
-    if THEME_AVAILABLE:
-        try:
-            apply_theme()
-        except:
-            pass  # Silently fail like original
+
+# Apply theme
+from theme_css import apply_theme
+
+apply_theme()
 
 
+# Render header of the main section
 def render_header() -> None:
-    """Render application header - ORIGINAL."""
+    """Render application header"""
     st.title("⌬ WikiMolGen")
     st.markdown("**Chemical structure generator for Wikipedia & Wikimedia Commons**")
     st.divider()
 
 
-def render_original_sidebar() -> tuple:
+def render_sidebar() -> tuple:
     """
-    Render complete sidebar with ORIGINAL layout and structure.
+    Render complete sidebar with layout and structure.
 
     Returns
     -------
@@ -74,41 +67,40 @@ def render_original_sidebar() -> tuple:
         st.markdown("<div class='sidebar-main-header'>🛠️ Configuration</div>", unsafe_allow_html=True)
         st.divider()
 
-        # Compound input - ORIGINAL
+        # Compound input
         compound = render_compound_input()
         st.divider()
 
-        # Template management - ORIGINAL
-        render_original_template_manager()
+        # Template management
+        render_template_manager()
         st.divider()
 
-        # Auto-generate toggle - ORIGINAL position
+        # Auto-generate toggle
         auto_generate = render_auto_generate_checkbox()
         st.divider()
 
-        # Mode selector (2D/3D) - ORIGINAL
+        # Mode selector (2D/3D)
         structure_type = render_mode_selector()
         st.divider()
 
-        # Mode-specific settings - ORIGINAL structure
+        # Mode-specific settings
         if structure_type == "2D":
-            render_original_2d_settings()
-        else:  # 3D
-            render_original_3d_settings()
+            render_2d_settings()
+        else:
+            render_3d_settings()
             st.divider()
 
-            # 3D specific sections - ORIGINAL order
-            render_original_canvas_settings()
-            render_original_rendering_settings()
-            render_original_lighting_settings()
-            render_original_effects_settings()
+            render_canvas_settings()
+            render_rendering_settings()
+            render_lighting_settings()
+            render_effects_settings()
 
     return compound, structure_type, auto_generate
 
 
 def render_main_content(compound: str, structure_type: str, auto_generate: bool) -> None:
     """
-    Render main content area - ORIGINAL layout.
+    Render main content area.
 
     Parameters
     ----------
@@ -119,31 +111,17 @@ def render_main_content(compound: str, structure_type: str, auto_generate: bool)
     auto_generate : bool
         Whether auto-generate is enabled
     """
-    # Manual generate button - ORIGINAL position
+    # Manual generation button
     render_generate_button(auto_generate)
 
-    # Interactive 3D info - ORIGINAL CSS (ready for future enhancements)
-    if structure_type == "3D" and not st.session_state.get("auto_orient_3d", True):
-        st.markdown("""
-        <style>
-        .structure-preview {
-            cursor: grab;
-            user-select: none;
-        }
-        .structure-preview:active {
-            cursor: grabbing;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-
-    # Preview area - ORIGINAL structure
+    # Placeholder for the structure image
     preview_placeholder = st.empty()
 
-    # Check if we should render - ORIGINAL logic
+    # Check if image should be rendered at the momement
     should_render = (
-        auto_generate or
-        st.session_state.get("manual_generate", False) or
-        st.session_state.get("last_compound") != compound
+            auto_generate or
+            st.session_state.get("manual_generate", False) or
+            st.session_state.get("last_compound") != compound
     )
 
     if should_render and compound:
@@ -157,24 +135,23 @@ def render_main_content(compound: str, structure_type: str, auto_generate: bool)
         if image_html:
             preview_placeholder.markdown(image_html, unsafe_allow_html=True)
     elif st.session_state.get("last_image_html"):
-        # Show cached image - ORIGINAL behavior
+        # Show cached image
         preview_placeholder.markdown(
             st.session_state.last_image_html,
             unsafe_allow_html=True
         )
     else:
-        # ORIGINAL info message
-        preview_placeholder.info("👆 Enter a compound and adjust settings, then click 'Generate Now' or enable auto-update.")
+        preview_placeholder.info(
+            "👆 Enter a compound and adjust settings, then click 'Generate Now' or enable auto-update.")
 
     st.divider()
 
-    # Download section - ORIGINAL with fixed rendering
     render_download_section()
 
 
 def render_download_section() -> None:
-    """Render download buttons - ORIGINAL style with proper file handling."""
-    # Only show download if we have file data in session
+    """Render download buttons"""
+    # Only show download if there is a file data in session
     if st.session_state.get("last_file_data"):
         file_data = st.session_state.last_file_data
         file_name = st.session_state.get("last_file_name", "structure.png")
@@ -188,12 +165,12 @@ def render_download_section() -> None:
             file_data,
             file_name=file_name,
             mime=mime_type,
-            use_container_width=True
+            width="stretch"
         )
 
 
 def main() -> None:
-    """Main application entry point - ORIGINAL flow."""
+    """Main application entry point"""
     # Initialize session state
     initialize_session_state()
 
@@ -203,17 +180,17 @@ def main() -> None:
     # Render header
     render_header()
 
-    # Render sidebar and get settings - ORIGINAL
-    compound, structure_type, auto_generate = render_original_sidebar()
+    # Render sidebar and get settings
+    compound, structure_type, auto_generate = render_sidebar()
 
-    # Render main content - ORIGINAL
+    # Render main content
     render_main_content(compound, structure_type, auto_generate)
 
-    # Wikipedia boxes section - ORIGINAL position and style
+    # Wikipedia boxes section
     if compound:
         render_wikipedia_metadata_section(compound, structure_type)
 
-    # Footer - ORIGINAL
+    # Footer
     st.divider()
     st.markdown("""
     <div style='text-align: center; color: #666; padding: 20px;'>

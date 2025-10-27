@@ -13,38 +13,6 @@ from typing import Dict, Any, Tuple, Optional
 from wikimolgen import MoleculeGenerator2D, MoleculeGenerator3D
 from web.template_utils import apply_templates_to_generator
 
-
-def get_adaptive_quality_settings(is_manual_rotation: bool) -> Dict[str, Any]:
-    """
-    Get adaptive quality settings for 3D rendering.
-
-    During manual rotation, uses lower quality for smoother preview.
-    For final rendering, uses full quality settings.
-
-    Parameters
-    ----------
-    is_manual_rotation : bool
-        True if user is manually rotating the structure
-
-    Returns
-    -------
-    Dict[str, Any]
-        Quality settings dictionary
-    """
-    if is_manual_rotation:
-        return {
-            "ray_trace_mode": 0,  # Disable ray tracing for speed
-            "ray_shadows": 0,      # Disable shadows
-            "antialias": 1,        # Minimal antialiasing
-        }
-    else:
-        return {
-            "ray_trace_mode": 1 if st.session_state.get("ray_trace", False) else 0,
-            "ray_shadows": 1 if st.session_state.get("ray_shadows", False) else 0,
-            "antialias": st.session_state.get("antialias", 2),
-        }
-
-
 def build_2d_config() -> Dict[str, Any]:
     """
     Build 2D generator configuration from session state.
@@ -80,15 +48,6 @@ def build_3d_config() -> Dict[str, Any]:
     """
     auto_orient = st.session_state.get("auto_orient_3d", True)
 
-    # Detect manual rotation mode for adaptive quality
-    is_manual_rotation = (
-        st.session_state.get("structure_type") == "3D"
-        and not auto_orient
-    )
-
-    # Get adaptive quality settings
-    quality_settings = get_adaptive_quality_settings(is_manual_rotation)
-
     config = {
         "auto_orient": auto_orient,
         "x_rotation": 0.0 if auto_orient else st.session_state.get("x_rot_slider", 0.0),
@@ -111,9 +70,6 @@ def build_3d_config() -> Dict[str, Any]:
         "auto_crop": True,
         "crop_margin": st.session_state.get("crop_margin", 10),
     }
-
-    # Merge adaptive quality settings
-    config.update(quality_settings)
 
     return config
 
@@ -163,32 +119,16 @@ def render_structure_dynamic(compound: str, structure_type: str) -> Optional[str
             output_base = Path(tmpdir) / f"{compound}_{structure_type}"
 
             if structure_type == "2D":
-                # Build 2D configuration
                 config = build_2d_config()
-
-                # Create generator
                 gen = MoleculeGenerator2D(compound, **config)
-
-                # Apply templates
                 apply_templates_to_generator(gen, "2D")
-
-                # Generate
                 output_path = gen.generate(str(output_base) + ".svg")
 
-            else:  # 3D
-                # Create generator
+            else:
                 gen = MoleculeGenerator3D(compound)
-
-                # Build 3D configuration
                 render_config = build_3d_config()
-
-                # Apply templates
                 apply_templates_to_generator(gen, "3D")
-
-                # Configure rendering
                 gen.configure_rendering(**render_config)
-
-                # Generate
                 gen.generate(optimize=True, render=True, output_base=str(output_base))
                 output_path = output_base.with_suffix(".png")
 
@@ -230,7 +170,6 @@ def render_structure_dynamic(compound: str, structure_type: str) -> Optional[str
         with st.expander("🔍 Error Details"):
             st.code(traceback.format_exc())
         return None
-
 
 def should_auto_render() -> bool:
     """

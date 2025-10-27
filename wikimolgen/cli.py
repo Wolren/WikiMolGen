@@ -7,7 +7,6 @@ Enhanced CLI with full template support and comprehensive parameter options.
 
 import argparse
 import sys
-import numpy as np
 
 from . import __version__
 from .wikimol2d import MoleculeGenerator2D

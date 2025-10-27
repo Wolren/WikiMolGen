@@ -16,6 +16,5 @@ __all__ = [
     "rendering",
     "wikipedia_boxes",
     "drugbox_generator",
-    "data_sources",
-    "theme",
+    "theme_css.py",
 ]
