@@ -5,10 +5,12 @@ Template management utilities for WikiMolGen web interface.
 Handles template export, import, and application to generators.
 """
 
-import streamlit as st
 import json
 from datetime import datetime
 from typing import Dict, Any, Optional, Union
+
+import streamlit as st
+
 from wikimolgen.templates import ColorStyleTemplate, SettingsTemplate
 
 
@@ -44,7 +46,7 @@ def export_current_settings_as_template(gen_type: str) -> Dict[str, Any]:
             "dimension": "2D",
             "settings": settings_dict
         }
-    else:  # 3D
+    else:
         settings_dict = {
             "auto_orient": st.session_state.get("auto_orient_3d", True),
             "x_rotation": st.session_state.get("x_rot_slider", 0.0),
@@ -102,8 +104,8 @@ def export_color_template() -> Dict[str, Any]:
 
 
 def load_custom_template(
-    uploaded_file, 
-    template_type: str
+        uploaded_file,
+        template_type: str
 ) -> Optional[Dict[str, Any]]:
     """
     Load a custom template from uploaded JSON file.
@@ -123,7 +125,7 @@ def load_custom_template(
     try:
         template_data = json.load(uploaded_file)
         template_name = template_data.get(
-            'name', 
+            'name',
             f'Custom_{datetime.now().strftime("%H%M%S")}'
         )
         return {"name": template_name, "data": template_data}
@@ -133,9 +135,9 @@ def load_custom_template(
 
 
 def save_template_to_session(
-    template_name: str, 
-    template_data: Dict[str, Any], 
-    template_type: str
+        template_name: str,
+        template_data: Dict[str, Any],
+        template_type: str
 ) -> None:
     """
     Save template to session state for persistence.
@@ -164,8 +166,8 @@ def save_template_to_session(
 
 
 def apply_templates_to_generator(
-    gen: Union['MoleculeGenerator2D', 'MoleculeGenerator3D'], 
-    gen_type: str
+        gen: Union['MoleculeGenerator2D', 'MoleculeGenerator3D'],
+        gen_type: str
 ) -> bool:
     """
     Apply selected templates to a molecule generator.

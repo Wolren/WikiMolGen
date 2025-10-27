@@ -1,59 +1,55 @@
 """
 web/ui_components.py
 =====================
-Reusable UI components for WikiMolGen web interface with ORIGINAL sidebar layout.
+Reusable UI components for WikiMolGen web interface with sidebar layout.
 """
 
-import streamlit as st
 import json
 from datetime import datetime
-from typing import List, Tuple
-from wikimolgen.templates import list_predefined_templates
+
+import streamlit as st
+
 from web.template_utils import (
     export_current_settings_as_template,
-    export_color_template,
-    load_custom_template,
-    save_template_to_session
+    export_color_template
 )
-from web.session_state import reset_to_defaults
+from wikimolgen.templates import list_predefined_templates
 
 
 def render_compound_input() -> str:
     """
-    Render compound input field - ORIGINAL style.
+    Render compound input field.
 
     Returns
     -------
     str
         Compound identifier (CID, name, or SMILES)
     """
-    return st.text_input("Name/CID/SMILES", "24802108", help="").strip()
+    return st.text_input("Name/CID/SMILES", "", help="").strip()
 
 
-def render_original_template_manager() -> None:
+def render_template_manager() -> None:
     """
-    Render ORIGINAL template management UI - matches wiki_web_optimized.py exactly.
+    Render template management UI
     """
     with st.expander("📁 Templates", expanded=False):
         st.markdown("**Manage Templates:**")
         tab1, tab2, tab3 = st.tabs(["Predefined", "Upload", "Save"])
 
         with tab1:
-            predefined = list_predefined_templates()
+            template_list = list_predefined_templates()
 
-            # Combine predefined + custom templates - ORIGINAL way
+            # Predefined + custom templates combined
             all_color_templates = (
-                ["None"] +
-                predefined['color_templates'] +
-                list(st.session_state.custom_color_templates.keys())
+                    ["None"] +
+                    template_list['color_templates'] +
+                    list(st.session_state.custom_color_templates.keys())
             )
             all_settings_templates = (
-                ["None"] +
-                predefined['settings_templates'] +
-                list(st.session_state.custom_settings_templates.keys())
+                    ["None"] +
+                    template_list['settings_templates'] +
+                    list(st.session_state.custom_settings_templates.keys())
             )
-
-            col1, col2 = st.columns(2)  # Original had columns
 
             st.markdown("**Color Templates**")
             color_template_choice = st.selectbox(
@@ -96,11 +92,11 @@ def render_original_template_manager() -> None:
                     template_data = json.load(uploaded_color)
                     template_name = template_data.get('name', f'Custom_{datetime.now().strftime("%H%M%S")}')
 
-                    # Store in cookie session - ORIGINAL way
+                    # Store in cookie session
                     st.session_state.custom_color_templates[template_name] = template_data
                     st.session_state.uploaded_color_template = template_data
                     st.success(f"✓ Loaded & saved: {template_name}")
-                    st.info("💡 Now available in 'Predefined' tab dropdown")
+                    st.info("💡 Now available in 'Template list' tab dropdown")
                 except Exception as e:
                     st.error(f"Error: {e}")
 
@@ -117,11 +113,11 @@ def render_original_template_manager() -> None:
                     template_data = json.load(uploaded_settings)
                     template_name = template_data.get('name', f'Custom_{datetime.now().strftime("%H%M%S")}')
 
-                    # Store in cookie session - ORIGINAL way
+                    # Store in cookie session
                     st.session_state.custom_settings_templates[template_name] = template_data
                     st.session_state.uploaded_settings_template = template_data
 
-                    # Sync to sliders - ORIGINAL behavior
+                    # Sync to sliders
                     for key, value in template_data.get("settings", {}).items():
                         if key in st.session_state:
                             st.session_state[key] = value
@@ -131,10 +127,10 @@ def render_original_template_manager() -> None:
                 except Exception as e:
                     st.error(f"Error: {e}")
 
-            # Reset button (only when template loaded) - ORIGINAL
+            # Reset button (only when template loaded)
             if (
-                st.session_state.get("uploaded_color_template") is not None or
-                st.session_state.get("uploaded_settings_template") is not None
+                    st.session_state.get("uploaded_color_template") is not None or
+                    st.session_state.get("uploaded_settings_template") is not None
             ):
                 st.divider()
                 if st.button("🔄 Reset Loaded Template", use_container_width=True):
@@ -142,7 +138,7 @@ def render_original_template_manager() -> None:
                     st.session_state.uploaded_settings_template = None
                     st.session_state.template_applied_once = False
 
-                    # Reset to defaults - ORIGINAL values
+                    # Reset to defaults
                     defaults = {
                         "auto_orient_2d": True,
                         "scale": 30.0,
@@ -172,7 +168,7 @@ def render_original_template_manager() -> None:
             st.markdown("**Save Current Settings as Template**")
             gen_type = st.session_state.get("structure_type", "2D")
 
-            # Custom filename input - ORIGINAL
+            # Custom filename input
             save_filename = st.text_input(
                 "Template Filename",
                 value=st.session_state.get("save_filename", f"{gen_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"),
@@ -187,12 +183,12 @@ def render_original_template_manager() -> None:
             color_dict = export_color_template()
             color_json = json.dumps(color_dict, indent=2)
 
-            # Download buttons - ORIGINAL style
             with col1:
                 st.download_button(
                     label="Download Settings Template",
                     data=template_json,
-                    file_name=f"{st.session_state.get('save_filename', save_filename)}.json" if st.session_state.get('save_filename') else f"{save_filename}.json",
+                    file_name=f"{st.session_state.get('save_filename', save_filename)}.json" if st.session_state.get(
+                        'save_filename') else f"{save_filename}.json",
                     mime="application/json",
                     use_container_width=True,
                     key="dl_settings"
@@ -202,7 +198,8 @@ def render_original_template_manager() -> None:
                 st.download_button(
                     label="Download Color Template",
                     data=color_json,
-                    file_name=f"{st.session_state.get('save_filename', save_filename)}.json" if st.session_state.get('save_filename') else f"{save_filename}.json",
+                    file_name=f"{st.session_state.get('save_filename', save_filename)}.json" if st.session_state.get(
+                        'save_filename') else f"{save_filename}.json",
                     mime="application/json",
                     use_container_width=True,
                     key="dl_colors"
@@ -211,7 +208,7 @@ def render_original_template_manager() -> None:
 
 def render_mode_selector() -> str:
     """
-    Render 2D/3D mode selector - ORIGINAL style.
+    Render 2D/3D mode selector.
 
     Returns
     -------
@@ -228,11 +225,11 @@ def render_mode_selector() -> str:
     return structure_type
 
 
-def render_original_2d_settings() -> None:
-    """Render 2D-specific settings controls - ORIGINAL layout."""
+def render_2d_settings() -> None:
+    """Render 2D-specific settings controls."""
     st.markdown("#### **2D Display**", unsafe_allow_html=True)
 
-    # Auto-orient checkbox - ORIGINAL
+    # Auto-orient checkbox
     auto_orient_2d = st.checkbox(
         "Auto-Orient",
         value=True,
@@ -240,7 +237,7 @@ def render_original_2d_settings() -> None:
         help="Automatically find optimal viewing angle"
     )
 
-    # Manual rotation (if not auto-orient) - ORIGINAL
+    # Manual rotation (if not auto-orient)
     if not auto_orient_2d:
         angle_degrees = st.slider(
             "Rotation (°)",
@@ -251,7 +248,7 @@ def render_original_2d_settings() -> None:
     else:
         angle_degrees = 180
 
-    # Advanced 2D settings - ORIGINAL expander
+    # Advanced 2D settings
     with st.expander("2D Settings", expanded=False):
         st.markdown("**Sizing & Spacing**")
         col1, col2 = st.columns(2)
@@ -303,9 +300,9 @@ def render_original_2d_settings() -> None:
             )
 
 
-def render_original_3d_settings() -> None:
-    """Render 3D-specific settings controls - ORIGINAL layout."""
-    # Auto-orient checkbox - ORIGINAL
+def render_3d_settings() -> None:
+    """Render 3D-specific settings controls."""
+    # Auto-orient checkbox
     auto_orient_3d = st.checkbox(
         "Auto-Orient",
         value=True,
@@ -313,7 +310,7 @@ def render_original_3d_settings() -> None:
         help="Automatically optimize 3D orientation"
     )
 
-    # Manual rotation sliders (if not auto-orient) - ORIGINAL
+    # Manual rotation sliders (if not auto-orient)
     if not auto_orient_3d:
         x_rot = st.slider(
             "X Rotation", 0.0, 360.0, 0.0, 5.0,
@@ -334,8 +331,8 @@ def render_original_3d_settings() -> None:
         x_rot, y_rot, z_rot = 0.0, 200.0, 0.0
 
 
-def render_original_canvas_settings() -> None:
-    """Render canvas/dimension settings - ORIGINAL layout."""
+def render_canvas_settings() -> None:
+    """Render canvas/dimension settings."""
     with st.expander("📐 Canvas", expanded=False):
         st.markdown("**Image Dimensions**")
         col1, col2 = st.columns(2)
@@ -348,8 +345,8 @@ def render_original_canvas_settings() -> None:
             crop_margin = st.slider("Crop Margin", 5, 50, 10, 5, key="crop_margin")
 
 
-def render_original_rendering_settings() -> None:
-    """Render rendering quality settings - ORIGINAL layout."""
+def render_rendering_settings() -> None:
+    """Render rendering quality settings."""
     with st.expander("🎨 Rendering", expanded=True):
         st.markdown("**Molecular Representation**")
         col1, col2, col3 = st.columns(3)
@@ -398,8 +395,8 @@ def render_original_rendering_settings() -> None:
             )
 
 
-def render_original_lighting_settings() -> None:
-    """Render lighting control settings - ORIGINAL layout."""
+def render_lighting_settings() -> None:
+    """Render lighting control settings."""
     with st.expander("💡 Lighting", expanded=True):
         st.markdown("**Light Intensity & Quality**")
         col1, col2 = st.columns(2)
@@ -435,8 +432,8 @@ def render_original_lighting_settings() -> None:
         )
 
 
-def render_original_effects_settings() -> None:
-    """Render special effects settings - ORIGINAL layout."""
+def render_effects_settings() -> None:
+    """Render special effects settings."""
     with st.expander("🌫️ Effects", expanded=False):
         st.markdown("**Transparency & Special Effects**")
         col1, col2 = st.columns(2)
@@ -468,7 +465,7 @@ def render_original_effects_settings() -> None:
 
 def render_auto_generate_checkbox() -> bool:
     """
-    Render auto-generate checkbox - ORIGINAL style.
+    Render auto-generate checkbox.
 
     Returns
     -------
@@ -484,7 +481,7 @@ def render_auto_generate_checkbox() -> bool:
 
 def render_generate_button(auto_generate: bool) -> bool:
     """
-    Render manual generate button - ORIGINAL style.
+    Render manual generate button .
 
     Parameters
     ----------

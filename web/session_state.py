@@ -4,8 +4,9 @@ web/session_state.py
 Centralized session state initialization and default values for WikiMolGen web interface.
 """
 
-import streamlit as st
 from typing import Dict, Any
+
+import streamlit as st
 
 
 def get_2d_defaults() -> Dict[str, Any]:

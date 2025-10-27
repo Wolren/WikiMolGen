@@ -182,7 +182,8 @@ DARK_FOREST_THEME_CSS = """
 </style>
 """
 
-def apply_theme():
+
+def apply_theme(theme_name: str = DARK_FOREST_THEME_CSS):
     """Apply the dark forest theme to the Streamlit app."""
     import streamlit as st
-    st.markdown(DARK_FOREST_THEME_CSS, unsafe_allow_html=True)
+    st.markdown(theme_name, unsafe_allow_html=True)
