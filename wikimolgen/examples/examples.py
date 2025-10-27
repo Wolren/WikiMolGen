@@ -6,7 +6,8 @@ Demonstrates both manual and auto-orientation for 2D and 3D structures.
 """
 
 import os
-from wikimolgen import MoleculeGenerator2D, MoleculeGenerator3D
+from wikimolgen.rendering.wikimol2d import MoleculeGenerator2D
+from wikimolgen.rendering.wikimol3d import MoleculeGenerator3D
 
 os.makedirs("examples/2D", exist_ok=True)
 os.makedirs("examples/3D", exist_ok=True)

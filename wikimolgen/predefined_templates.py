@@ -1,14 +1,14 @@
 """
-wikimolgen.templates - Template System with Organized Settings
+wikimolgen.template - Template System with Organized Settings
 ==============================================================
 
-Load and manage color style templates and settings templates for molecular rendering.
+Load and manage color style template and settings template for molecular rendering.
 Comprehensive element color organization by category and settings grouped by function.
 """
 
 import json
 from pathlib import Path
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Union
 
 
 class TemplateError(Exception):
@@ -421,7 +421,7 @@ def get_predefined_settings_template(name: str) -> SettingsTemplate:
 
 
 def list_predefined_templates() -> Dict[str, list]:
-    """List all predefined templates."""
+    """List all predefined template."""
     return {
         'color_templates': list(PREDEFINED_COLOR_TEMPLATES.keys()),
         'settings_templates': list(PREDEFINED_SETTINGS_TEMPLATES.keys()),

@@ -13,10 +13,10 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.Draw import rdMolDraw2D
 
-from .core import fetch_compound, validate_smiles
+from wikimolgen.core import fetch_compound, validate_smiles
 
 try:
-    from .optimization import find_optimal_2d_rotation
+    from examples.optimization import find_optimal_2d_rotation
 
     HAS_OPTIMIZATION = True
 except ImportError:
@@ -282,7 +282,7 @@ class MoleculeGenerator2D:
         >>> gen.load_color_template("minimal_bw")  # Predefined template
         >>> gen.load_color_template("my_template.json")  # From file
         """
-        from .templates import TemplateLoader, ColorStyleTemplate, get_predefined_color_template, TemplateError
+        from wikimolgen.predefined_templates import TemplateLoader, ColorStyleTemplate, get_predefined_color_template, TemplateError
 
         # Load template if needed
         if isinstance(template, str):
@@ -321,7 +321,7 @@ class MoleculeGenerator2D:
         >>> gen.load_settings_template("publication_2d")  # Predefined template
         >>> gen.load_settings_template("my_settings.json")  # From file
         """
-        from .templates import TemplateLoader, SettingsTemplate, get_predefined_settings_template, TemplateError
+        from wikimolgen.predefined_templates import TemplateLoader, SettingsTemplate, get_predefined_settings_template, TemplateError
 
         # Load template if needed
         if isinstance(template, str):

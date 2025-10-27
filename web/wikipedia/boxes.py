@@ -1,5 +1,5 @@
 """
-web/wikipedia_boxes.py
+web/boxes.py
 =======================
 Wikipedia boxes and metadata generation - EXACT ORIGINAL from wiki_web_optimized.py.
 Displays automatically when structure is rendered, with Wikimedia metadata and drugbox/chembox side-by-side.
@@ -9,7 +9,7 @@ from datetime import datetime
 
 import streamlit as st
 
-from web.drugbox_generator import fetch_pubchem_data, generate_drugbox_code, generate_chembox_code
+from web.wikipedia.generator import fetch_pubchem_data, generate_drugbox_code, generate_chembox_code
 
 
 def render_wikipedia_metadata_section(compound: str, structure_type: str) -> None:
@@ -112,4 +112,4 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
         else:
             st.warning("Not able to fetch compound data from PubChem.")
     else:
-        st.info("Generate a structure to see Wikipedia metadata and templates.")
+        st.info("Generate a structure to see Wikipedia metadata and template.")

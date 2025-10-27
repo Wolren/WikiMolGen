@@ -1,4 +1,4 @@
-"""
+""""
 WikiMolGen - Unified Molecular Structure Generator
 ===================================================
 A Python package for generating 2D and 3D molecular visualizations
@@ -17,10 +17,12 @@ License: MIT
 
 __version__ = "1.0.0"
 
-__all__ = ["MoleculeGenerator2D", "MoleculeGenerator3D", "TemplateLoader", "ColorStyleTemplate", "SettingsTemplate",
-           "list_predefined_templates", ]
+__all__ = [
+    "fetch_compound",
+    "validate_smiles",
+    "rendering",
+    "template",
+    "cli"
+]
 
 from .core import fetch_compound, validate_smiles
-from .templates import TemplateLoader, ColorStyleTemplate, SettingsTemplate, list_predefined_templates
-from .wikimol2d import MoleculeGenerator2D
-from .wikimol3d import MoleculeGenerator3D

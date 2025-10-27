@@ -1,5 +1,5 @@
 """
-web/rendering.py
+web/base.py
 =================
 Core rendering logic for WikiMolGen web interface.
 Handles 2D and 3D structure generation with adaptive quality settings.
@@ -10,8 +10,9 @@ import tempfile
 import base64
 from pathlib import Path
 from typing import Dict, Any, Tuple, Optional
-from wikimolgen import MoleculeGenerator2D, MoleculeGenerator3D
-from web.template_utils import apply_templates_to_generator
+from wikimolgen.rendering.wikimol2d import MoleculeGenerator2D
+from wikimolgen.rendering.wikimol3d import MoleculeGenerator3D
+from web.template.utils import apply_templates_to_generator
 
 def build_2d_config() -> Dict[str, Any]:
     """

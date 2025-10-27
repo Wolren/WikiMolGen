@@ -9,8 +9,8 @@ import argparse
 import sys
 
 from . import __version__
-from .wikimol2d import MoleculeGenerator2D
-from .wikimol3d import MoleculeGenerator3D
+from wikimolgen.rendering.wikimol2d import MoleculeGenerator2D
+from wikimolgen.rendering.wikimol3d import MoleculeGenerator3D
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -31,7 +31,7 @@ Examples:
   wikimolgen 3d --compound DMT --render --template high_quality_3d
   wikimolgen 3d --compound 5284583 --color-template cpk_standard
 
-# Using custom templates
+# Using custom template
   wikimolgen 2d --compound glucose --template my_settings.json
   wikimolgen 3d --compound caffeine --color-template my_colors.json --render
 
@@ -331,7 +331,7 @@ def run_2d(args: argparse.Namespace) -> None:
             auto_orient=args.auto_orient,
         )
 
-        # Apply templates if provided
+        # Apply template if provided
         if args.template:
             print(f"Loading settings template: {args.template}")
             gen.load_settings_template(args.template)
@@ -383,7 +383,7 @@ def run_3d(args: argparse.Namespace) -> None:
             crop_margin=args.crop_margin,
         )
 
-        # Apply templates if provided
+        # Apply template if provided
         if args.template:
             print(f"Loading settings template: {args.template}")
             gen.load_settings_template(args.template)
