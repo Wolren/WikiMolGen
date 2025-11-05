@@ -18,11 +18,8 @@ License: MIT
 __version__ = "1.0.0"
 
 __all__ = [
-    "fetch_compound",
-    "validate_smiles",
+    "core",
     "rendering",
-    "template",
+    "predefined_templates",
     "cli"
 ]
-
-from .core import fetch_compound, validate_smiles
