@@ -45,18 +45,16 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
         with col_dl1:
             st.subheader("ðŸ“‹ Wikimedia Metadata")
             metadata = f"""{{{{Information
-|description={{{{en|1=Chemical structure of {compound}}}}}
+|description={{{{en|1=Structure of {compound} generated using WikiMolGen}}}}
 |date={datetime.now().strftime('%Y-%m-%d')}
 |source={{{{Own work}}}}
-|author=[[User:YourUsername|Your Username]]
+|author=Wolren
 }}}}
 
 == License ==
-{{{{PD-chem}}}}
 {{{{Self|cc-by-sa-4.0}}}}
 
-[[Category:Chemical structures]]
-[[Category:{compound}]]"""
+[[Category:Chemical structures]]"""
             st.code(metadata, language="wiki")
 
         with col_dl2:

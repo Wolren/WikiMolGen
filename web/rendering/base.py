@@ -68,7 +68,7 @@ def build_3d_config() -> Dict[str, Any]:
         "depth_cue": 1 if st.session_state.get("depth_cue", False) else 0,
         "width": st.session_state.get("width", 1320),
         "height": st.session_state.get("height", 990),
-        "auto_crop": True,
+        "auto_crop": st.session_state.get("auto_crop", True),
         "crop_margin": st.session_state.get("crop_margin", 10),
     }
 

@@ -48,6 +48,7 @@ def get_3d_defaults() -> Dict[str, Any]:
         "depth_cue": False,
         "width": 1320,
         "height": 990,
+        "auto_crop": True,
         "crop_margin": 10,
     }
 
