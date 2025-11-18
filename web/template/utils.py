@@ -69,6 +69,7 @@ def export_current_settings_as_template(gen_type: str) -> Dict[str, Any]:
             "depth_cue": 1 if st.session_state.get("depth_cue", False) else 0,
             "width": st.session_state.get("width", 1320),
             "height": st.session_state.get("height", 990),
+            "auto_crop": st.session_state.get("auto_crop", True),
             "crop_margin": st.session_state.get("crop_margin", 10),
         }
         template_dict = {

@@ -14,13 +14,8 @@ from rdkit import Chem
 from rdkit.Chem import AllChem, rdmolfiles
 
 from wikimolgen.core import fetch_compound, validate_smiles
+from wikimolgen.rendering.optimization import find_optimal_3d_orientation, optimize_zoom_buffer
 
-try:
-    from examples.optimization import find_optimal_3d_orientation, optimize_zoom_buffer
-
-    HAS_OPTIMIZATION = True
-except ImportError:
-    HAS_OPTIMIZATION = False
 
 ForceFieldType = Literal["MMFF94", "UFF"]
 
@@ -65,8 +60,8 @@ class RenderConfig:
     auto_orient: bool = True  # Enable automatic 3D orientation
 
     # Canvas settings
-    width: int = 1320
-    height: int = 990
+    width: int = 1800
+    height: int = 1400
     auto_crop: bool = True
     crop_margin: int = 10
 
@@ -435,22 +430,22 @@ class MoleculeGenerator3D:
             cmd.set("ray_transparency_oblique", cfg.ray_transparency_oblique)
 
             # Position and orientation
-            if cfg.auto_orient and HAS_OPTIMIZATION:
+            if cfg.auto_orient:
                 x_opt, y_opt, z_opt = find_optimal_3d_orientation(self.mol)
                 zoom_opt = optimize_zoom_buffer(self.mol)
-                cmd.zoom("all", buffer=zoom_opt)
                 cmd.orient("all")
                 cmd.turn("x", x_opt)
                 cmd.turn("y", y_opt)
                 cmd.turn("z", z_opt)
+                cmd.zoom("all", buffer=zoom_opt)
                 print(f"  Auto-oriented: x={x_opt:.1f}°, y={y_opt:.1f}°, z={z_opt:.1f}°")
                 print(f"  Auto-zoom: {zoom_opt:.2f}")
             else:
-                cmd.zoom("all", buffer=cfg.zoom_buffer)
                 cmd.orient("all")
                 cmd.turn("x", cfg.x_rotation)
                 cmd.turn("y", cfg.y_rotation)
                 cmd.turn("z", cfg.z_rotation)
+                cmd.zoom("all", buffer=cfg.zoom_buffer)
 
             if cfg.ray_trace_mode > 0:
                 cmd.ray(width=cfg.width, height=cfg.height)

@@ -260,7 +260,7 @@ def render_2d_settings() -> None:
                 help="Pixels per coordinate unit"
             )
             margin = st.slider(
-                "Margin", 0.1, 1.0, 0.5, 0.1,
+                "Margin", 0.1, 3.0, 0.5, 0.1,
                 key="margin",
                 help="Canvas margin"
             )
@@ -343,6 +343,11 @@ def render_canvas_settings() -> None:
 
         with col2:
             crop_margin = st.slider("Crop Margin", 5, 50, 10, 5, key="crop_margin")
+            auto_crop = st.checkbox("Auto Crop", value=True,
+                key="auto_crop",
+                help="Enables automatic cropping"
+            )
+
 
 
 def render_rendering_settings() -> None:
