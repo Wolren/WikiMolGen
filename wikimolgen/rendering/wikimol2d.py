@@ -15,13 +15,7 @@ from rdkit.Chem.Draw import rdMolDraw2D
 
 from wikimolgen.core import fetch_compound, validate_smiles
 
-try:
-    from examples.optimization import find_optimal_2d_rotation
-
-    HAS_OPTIMIZATION = True
-except ImportError:
-    HAS_OPTIMIZATION = False
-
+from wikimolgen.rendering.optimization import find_optimal_2d_rotation
 
 @dataclass
 class DrawingConfig:
@@ -116,15 +110,8 @@ class MoleculeGenerator2D:
 
         # Determine angle (convert degrees to radians internally)
         if auto_orient:
-            if HAS_OPTIMIZATION:
-                computed_angle = find_optimal_2d_rotation(self.mol)
-                final_angle = computed_angle  # Already in radians
-            else:
-                print("Warning: optimization module not available, using default angle")
-                if angle_degrees is not None:
-                    final_angle = np.radians(angle_degrees)
-                else:
-                    final_angle = np.pi  # 180 degrees default
+            computed_angle = find_optimal_2d_rotation(self.mol)
+            final_angle = computed_angle  # Already in radians
         else:
             if angle_degrees is not None:
                 final_angle = np.radians(angle_degrees)  # Convert user input to radians
