@@ -12,9 +12,9 @@ from pathlib import Path
 
 import streamlit as st
 
-from web.rendering.base import render_structure_dynamic
-from web.session.state import initialize_session_state
-from web.ui.components import (
+from rendering.base import render_structure_dynamic
+from session.state import initialize_session_state
+from ui.components import (
     render_compound_input,
     render_template_manager,
     render_mode_selector,
@@ -27,7 +27,7 @@ from web.ui.components import (
     render_auto_generate_checkbox,
     render_generate_button,
 )
-from web.wikipedia.boxes import render_wikipedia_metadata_section
+from wikipedia.boxes import render_wikipedia_metadata_section
 
 
 def configure_page() -> None:
