@@ -1,0 +1,16 @@
+from setuptools import setup, find_packages
+
+setup(
+    name="wikimolgen",
+    version="1.0.0",
+    description="Unified Molecular Structure Generator for Wikipedia",
+    author="Your Name",
+    packages=find_packages(),
+    install_requires=[
+        "rdkit>=2022.09.1",
+        "pubchempy>=1.0.4",
+        "numpy>=1.20.0",
+        "streamlit>=1.28.0",
+    ],
+    python_requires=">=3.10",
+)
