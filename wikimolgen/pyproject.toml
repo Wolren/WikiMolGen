@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "WikiMolGen"
-version = "1.0.0"
+version = "0.1.0"
 description = "Unified molecular structure generator for 2D and 3D visualizations. Originally built for Wikipedia"
 readme = "README.md"
 requires-python = "3.12"
@@ -42,10 +42,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/wikimolgen"
-Documentation = "https://github.com/yourusername/wikimolgen#readme"
-Repository = "https://github.com/yourusername/wikimolgen"
-Issues = "https://github.com/yourusername/wikimolgen/issues"
+Homepage = "https://github.com/Wolren/WikiMolGen"
+Documentation = "https://github.com/Wolren/WikiMolGen#readme"
+Repository = "https://github.com/Wolren/WikiMolGen"
+Issues = "https://github.com/Wolren/WikiMolGen/issues"
 
 [project.scripts]
 wikimolgen = "wikimolgen.cli:main"
