@@ -194,7 +194,7 @@ def main() -> None:
     st.divider()
     st.markdown("""
     <div style='text-align: center; color: #666; padding: 20px;'>
-    <strong>WikiMolGen</strong> | Molecular rendering for Wikipedia<br>
+    <strong>WikiMolGen</strong> | Wolren<br>
     </div>
     """, unsafe_allow_html=True)
 

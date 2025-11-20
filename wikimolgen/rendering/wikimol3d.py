@@ -16,7 +16,6 @@ from rdkit.Chem import AllChem, rdmolfiles
 from wikimolgen.core import fetch_compound, validate_smiles
 from wikimolgen.rendering.optimization import find_optimal_3d_orientation, optimize_zoom_buffer
 
-
 ForceFieldType = Literal["MMFF94", "UFF"]
 
 

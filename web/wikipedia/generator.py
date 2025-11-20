@@ -78,9 +78,9 @@ def generate_drugbox_code(compound_data: Dict[str, Any], image_filename: str = "
     # Get primary name (first synonym or IUPAC)
     primary_name = compound_data['synonyms'][0] if compound_data['synonyms'] else compound_data['iupac_name']
 
-    drugbox_template = f"""{{{{Drugbox
-| Verifiedfields = changed
-| Watchedfields = changed
+    drugbox_template = f"""{{{{Infobox drug
+| Verifiedfields =
+| Watchedfields =
 | verifiedrevid = 
 | IUPAC_name = {compound_data.get('iupac_name', '')}
 | image = {image_filename if image_filename else 'Example.png'}

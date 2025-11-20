@@ -11,7 +11,6 @@ import streamlit as st
 
 from web.wikipedia.generator import fetch_pubchem_data, generate_drugbox_code, generate_chembox_code
 
-
 def render_wikipedia_metadata_section(compound: str, structure_type: str) -> None:
     """
     Render the EXACT ORIGINAL Wikipedia metadata and boxes section.
@@ -25,6 +24,7 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
     structure_type : str
         "2D" or "3D"
     """
+
     # ===== METADATA & FEATURES SECTION =====
     # Only show if structure has been rendered
     if st.session_state.get("rendered_structure"):
@@ -42,13 +42,23 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
         # Display metadata / cached info
         col_dl1, col_dl2 = st.columns(2)
 
+        pubchem_data = st.session_state.get("pubchem_data")
+
+        if pubchem_data:
+            synonyms = pubchem_data.get('synonyms', [])
+            cid = pubchem_data.get('cid', 'NA')
+            iupac = pubchem_data.get('iupac_name', '')
+            primary_name = synonyms[0] if synonyms else (iupac if iupac else f"Compound {cid}")
+        else:
+            primary_name = compound
+
         with col_dl1:
-            st.subheader("ðŸ“‹ Wikimedia Metadata")
+            st.subheader("🗃️ Wikimedia Metadata")
             metadata = f"""{{{{Information
-|description={{{{en|1=Structure of {compound} generated using WikiMolGen}}}}
+|description={{{{en|1=Structure of {primary_name} generated using WikiMolGen (RDKit and PyMOL-based tool)}}}}
 |date={datetime.now().strftime('%Y-%m-%d')}
 |source={{{{Own work}}}}
-|author=Wolren
+|author=
 }}}}
 
 == License ==
@@ -58,14 +68,14 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
             st.code(metadata, language="wiki")
 
         with col_dl2:
-            st.subheader("ðŸ§ª Chemical Links")
+            st.subheader("🔗 Chemical Links")
             identifiers_placeholder = st.empty()
 
         pubchem_data = st.session_state.get("pubchem_data")
 
         if pubchem_data:
             st.success(
-                f"ðŸ” Retrieved data for: {pubchem_data.get('synonyms', ['Unknown'])[0] if pubchem_data.get('synonyms') else 'Compound'}"
+                f"Retrieved data for: {pubchem_data.get('synonyms', ['Unknown'])[0] if pubchem_data.get('synonyms') else 'Compound'}"
             )
 
             cid = str(pubchem_data.get("cid", "N/A"))
@@ -91,22 +101,18 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
             col_drug, col_chem = st.columns(2)
 
             with col_drug:
-                st.markdown("#### ðŸ’‰ **Drugbox Template** (for pharmaceuticals)")
+                st.markdown("#### **Drugbox Template** (for pharmaceuticals)")
                 st.session_state.last_drugbox = generate_drugbox_code(
                     pubchem_data, f"{compound}_{structure_type}.png"
                 )
                 st.code(st.session_state.last_drugbox, language="wiki")
 
             with col_chem:
-                st.markdown("#### ðŸ”¬ **Chembox Template** (for chemicals)")
+                st.markdown("#### **Chembox Template** (for chemicals)")
                 st.session_state.last_chembox = generate_chembox_code(
                     pubchem_data, f"{compound}_{structure_type}.png"
                 )
                 st.code(st.session_state.last_chembox, language="wiki")
-
-            st.info(
-                "ðŸ’¡ **Tip**: Copy the appropriate template and paste into Wikipedia article source."
-            )
         else:
             st.warning("Not able to fetch compound data from PubChem.")
     else:
