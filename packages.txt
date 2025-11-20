@@ -1,10 +1,6 @@
 libxrender1
 libxext6
 libsm6
-libgl1-mesa-glx
-libglu1-mesa
-freeglut3
-xvfb
 libice6
 libglib2.0-0
 libfontconfig1
