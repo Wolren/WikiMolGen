@@ -157,8 +157,8 @@ def render_template_manager() -> None:
                         "direct": 0.45,
                         "reflect": 0.45,
                         "shininess": 30,
-                        "width": 1320,
-                        "height": 990,
+                        "width": 1800,
+                        "height": 1600,
                     }
                     for key, value in defaults.items():
                         st.session_state[key] = value
@@ -345,7 +345,6 @@ def render_canvas_settings() -> None:
             crop_margin = st.slider("Crop Margin", 5, 50, 10, 5, key="crop_margin")
             auto_crop = st.checkbox("Auto Crop", value=True,
                 key="auto_crop",
-                help="Enables automatic cropping"
             )
 
 
