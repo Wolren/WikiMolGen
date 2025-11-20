@@ -3,6 +3,5 @@ libxext6
 libsm6
 libgl1-mesa-glx
 libglu1-mesa
-freeglut3
 libxkbcommon0
 libdbus-1-3
