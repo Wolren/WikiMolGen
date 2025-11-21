@@ -188,16 +188,14 @@ def generate_chembox_code(compound_data: Dict[str, Any], image_filename: str = "
         return "<!-- Unable to generate Chembox: No compound data available -->"
 
     chembox_template = f"""{{{{Chembox
-| Verifiedfields = changed
-| Watchedfields = changed
-| verifiedrevid = 
 | Name = {compound_data.get('synonyms', [''])[0] if compound_data.get('synonyms') else ''}
 | ImageFile = {image_filename if image_filename else 'Example.png'}
+| ImageClass = skin-invert-image
 | ImageSize = 
 | ImageAlt = 
+| OtherNames = {'; '.join(compound_data.get('synonyms', [])[:3])}
 | IUPACName = {compound_data.get('iupac_name', '')}
 | SystematicName = 
-| OtherNames = {'; '.join(compound_data.get('synonyms', [])[:3])}
 
 |Section1={{{{Chembox Identifiers
 | CASNo_Ref = 
@@ -232,12 +230,6 @@ def generate_chembox_code(compound_data: Dict[str, Any], image_filename: str = "
 | MainHazards = 
 | FlashPt = 
 | AutoignitionPt = 
-}}}}
-
-|Section8={{{{Chembox Related
-| OtherFunction_label = 
-| OtherFunction = 
-| OtherCompounds = 
 }}}}
 }}}}"""
 
