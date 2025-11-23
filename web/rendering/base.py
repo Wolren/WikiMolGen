@@ -51,9 +51,6 @@ def build_3d_config() -> Dict[str, Any]:
 
     config = {
         "auto_orient": auto_orient,
-        "x_rotation": 0.0 if auto_orient else st.session_state.get("x_rot_slider", 0.0),
-        "y_rotation": 200.0 if auto_orient else st.session_state.get("y_rot_slider", 200.0),
-        "z_rotation": 0.0 if auto_orient else st.session_state.get("z_rot_slider", 0.0),
         "stick_radius": st.session_state.get("stick_radius", 0.2),
         "sphere_scale": st.session_state.get("sphere_scale", 0.3),
         "stick_ball_ratio": st.session_state.get("stick_ball_ratio", 1.8),
@@ -66,11 +63,18 @@ def build_3d_config() -> Dict[str, Any]:
         "reflect": st.session_state.get("reflect", 0.45),
         "shininess": st.session_state.get("shininess", 30),
         "depth_cue": 1 if st.session_state.get("depth_cue", False) else 0,
-        "width": st.session_state.get("width", 1320),
-        "height": st.session_state.get("height", 990),
+        "width": st.session_state.get("width", 1800),
+        "height": st.session_state.get("height", 1600),
         "auto_crop": st.session_state.get("auto_crop", True),
         "crop_margin": st.session_state.get("crop_margin", 10),
     }
+
+    if not auto_orient:
+        config.update({
+            "x_rotation": st.session_state.get("x_rot_slider", 0.0),
+            "y_rotation": st.session_state.get("y_rot_slider", 0.0),
+            "z_rotation": st.session_state.get("z_rot_slider", 0.0),
+        })
 
     return config
 

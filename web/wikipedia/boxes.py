@@ -55,7 +55,7 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
         with col_dl1:
             st.subheader("🗃️ Wikimedia Metadata")
             metadata = f"""{{{{Information
-|description={{{{en|1=Structure of {primary_name} generated using WikiMolGen (RDKit and PyMOL-based tool)}}}}
+|description={{{{en|1={st.session_state.get("structure_type")} structure of {primary_name} generated using WikiMolGen (RDKit and PyMOL-based tool)}}}}
 |date={datetime.now().strftime('%Y-%m-%d')}
 |source={{{{Own work}}}}
 |author=

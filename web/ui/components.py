@@ -241,7 +241,7 @@ def render_2d_settings() -> None:
     if not auto_orient_2d:
         angle_degrees = st.slider(
             "Rotation (°)",
-            0, 360, 180, 15,
+            0, 360, 180, 5,
             key="angle_2d",
             help="Rotation angle in degrees"
         )
@@ -315,20 +315,17 @@ def render_3d_settings() -> None:
         x_rot = st.slider(
             "X Rotation", 0.0, 360.0, 0.0, 5.0,
             key="x_rot_slider",
-            help="Rotation around X-axis"
         )
         y_rot = st.slider(
-            "Y Rotation", 0.0, 360.0, 200.0, 5.0,
+            "Y Rotation", 0.0, 360.0, 0.0, 5.0,
             key="y_rot_slider",
-            help="Rotation around Y-axis"
         )
         z_rot = st.slider(
             "Z Rotation", 0.0, 360.0, 0.0, 5.0,
             key="z_rot_slider",
-            help="Rotation around Z-axis"
         )
     else:
-        x_rot, y_rot, z_rot = 0.0, 200.0, 0.0
+        x_rot, y_rot, z_rot = 0.0, 0.0, 0.0
 
 
 def render_canvas_settings() -> None:
@@ -338,15 +335,14 @@ def render_canvas_settings() -> None:
         col1, col2 = st.columns(2)
 
         with col1:
-            width = st.number_input("Width (pixels)", 800, 4000, 1320, 100, key="width")
-            height = st.number_input("Height (pixels)", 600, 3000, 990, 100, key="height")
+            width = st.number_input("Width (pixels)", 800, 4000, 1800, 100, key="width")
+            height = st.number_input("Height (pixels)", 600, 3000, 1600, 100, key="height")
 
         with col2:
             crop_margin = st.slider("Crop Margin", 5, 50, 10, 5, key="crop_margin")
             auto_crop = st.checkbox("Auto Crop", value=True,
                 key="auto_crop",
             )
-
 
 
 def render_rendering_settings() -> None:

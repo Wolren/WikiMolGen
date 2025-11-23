@@ -29,7 +29,7 @@ def get_3d_defaults() -> Dict[str, Any]:
     return {
         "auto_orient_3d": True,
         "x_rot_slider": 0.0,
-        "y_rot_slider": 200.0,
+        "y_rot_slider": 0.0,
         "z_rot_slider": 0.0,
         "stick_radius": 0.2,
         "sphere_scale": 0.3,
@@ -46,8 +46,8 @@ def get_3d_defaults() -> Dict[str, Any]:
         "reflect": 0.45,
         "shininess": 30,
         "depth_cue": False,
-        "width": 1320,
-        "height": 990,
+        "width": 1800,
+        "height": 1600,
         "auto_crop": True,
         "crop_margin": 10,
     }

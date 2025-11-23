@@ -79,13 +79,13 @@ def generate_drugbox_code(compound_data: Dict[str, Any], image_filename: str = "
     primary_name = compound_data['synonyms'][0] if compound_data['synonyms'] else compound_data['iupac_name']
 
     drugbox_template = f"""{{{{Infobox drug
-| Verifiedfields =
-| Watchedfields =
-| verifiedrevid = 
-| IUPAC_name = {compound_data.get('iupac_name', '')}
 | image = {image_filename if image_filename else 'Example.png'}
-| alt = Chemical structure of {primary_name}
-| caption = Chemical structure
+| image_class = skin-invert-image
+| width = 200px
+| alt =
+| image2 =
+| image_class2 =
+| width2 =
 
 <!--Clinical data-->
 | pronounce = 
@@ -134,35 +134,23 @@ def generate_drugbox_code(compound_data: Dict[str, Any], image_filename: str = "
 | CAS_number_Ref = 
 | CAS_number = 
 | PubChem = {compound_data.get('cid', '')}
-| IUPHAR_ligand = 
-| DrugBank_Ref = 
-| DrugBank = 
 | ChemSpiderID_Ref = 
 | ChemSpiderID = 
-| UNII_Ref = 
-| UNII = 
-| KEGG_Ref = 
-| KEGG = 
-| ChEBI_Ref = 
-| ChEBI = 
 | ChEMBL_Ref = 
 | ChEMBL = 
-| NIAID_ChemDB = 
-| PDB_ligand = 
+| UNII_Ref = 
+| UNII = 
 | synonyms = {'; '.join(compound_data.get('synonyms', [])[:3])}
 
 <!--Chemical and physical data-->
+| IUPAC_name = {compound_data.get('iupac_name', '')}
 | chemical_formula = {compound_data.get('molecular_formula', '')}
 | molecular_weight = {compound_data.get('molecular_weight', '')} g/mol
 | SMILES = {compound_data.get('smiles', '')}
+| StdInChI_Ref =
 | StdInChI = {compound_data.get('inchi', '')}
-| StdInChI_comment = 
+| StdInChIKey_Ref =
 | StdInChIKey = {compound_data.get('inchikey', '')}
-| density = 
-| melting_point = 
-| boiling_point = 
-| solubility = 
-| specific_rotation = 
 }}}}"""
 
     return drugbox_template
@@ -188,34 +176,28 @@ def generate_chembox_code(compound_data: Dict[str, Any], image_filename: str = "
         return "<!-- Unable to generate Chembox: No compound data available -->"
 
     chembox_template = f"""{{{{Chembox
-| Name = {compound_data.get('synonyms', [''])[0] if compound_data.get('synonyms') else ''}
+<!-- Images -->
 | ImageFile = {image_filename if image_filename else 'Example.png'}
-| ImageClass = skin-invert-image
-| ImageSize = 
+| ImageSize = 225px
 | ImageAlt = 
-| OtherNames = {'; '.join(compound_data.get('synonyms', [])[:3])}
-| IUPACName = {compound_data.get('iupac_name', '')}
-| SystematicName = 
+| ImageClass = skin-invert-image
 
+<!-- Names -->
+| IUPACName = {compound_data.get('iupac_name', '')}
+| OtherNames = {'; '.join(compound_data.get('synonyms', [])[:3])}
+
+<!-- Sections -->
 |Section1={{{{Chembox Identifiers
-| CASNo_Ref = 
 | CASNo = 
-| PubChem = {compound_data.get('cid', '')}
-| ChemSpiderID_Ref = 
-| ChemSpiderID = 
-| UNII_Ref = 
-| UNII = 
-| KEGG_Ref = 
-| KEGG = 
-| ChEBI_Ref = 
 | ChEBI = 
-| ChEMBL_Ref = 
-| ChEMBL = 
-| SMILES = {compound_data.get('smiles', '')}
+| ChemSpiderID = 
 | StdInChI = {compound_data.get('inchi', '')}
 | StdInChIKey = {compound_data.get('inchikey', '')}
+| KEGG = 
+| UNII = 
+| PubChem = {compound_data.get('cid', '')}
+| SMILES = {compound_data.get('smiles', '')}
 }}}}
-
 |Section2={{{{Chembox Properties
 | Formula = {compound_data.get('molecular_formula', '')}
 | MolarMass = {compound_data.get('molecular_weight', '')} g/mol
@@ -225,7 +207,6 @@ def generate_chembox_code(compound_data: Dict[str, Any], image_filename: str = "
 | BoilingPt = 
 | Solubility = 
 }}}}
-
 |Section3={{{{Chembox Hazards
 | MainHazards = 
 | FlashPt = 
