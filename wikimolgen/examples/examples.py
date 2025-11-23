@@ -242,4 +242,4 @@ def main():
 
 
 if __name__ == "__main__":
-    example_4_MeO_DiPT()
+    main()
