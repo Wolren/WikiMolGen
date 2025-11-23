@@ -5,24 +5,49 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "WikiMolGen"
 version = "0.1.0"
-description = "Unified molecular structure generator for 2D and 3D visualizations. Originally built for Wikipedia"
+
+description = "Generate 2D/3D molecular structure visualizations from PubChem, SMILES, or compound names"
 readme = "README.md"
-requires-python = "3.12"
+
+requires-python = ">=3.10"
 license = { text = "MIT" }
+
 authors = [
     { name = "Wolren", email = "wolrenn@outlook.com" }
 ]
-keywords = ["chemistry", "cheminformatics", "molecules", "visualization", "rdkit", "pymol"]
+
+keywords = [
+    "chemistry",
+    "cheminformatics",
+    "molecules",
+    "molecular-structure",
+    "visualization",
+    "rdkit",
+    "pymol",
+    "2d-structure",
+    "3d-structure",
+    "svg",
+    "pubchem",
+    "smiles",
+    "wikipedia",
+    "scientific-visualization",
+]
+
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
+    "Intended Audience :: Healthcare Industry",
     "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Chemistry",
     "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Multimedia :: Graphics",
 ]
 
 dependencies = [
@@ -51,7 +76,7 @@ Issues = "https://github.com/Wolren/WikiMolGen/issues"
 wikimolgen = "wikimolgen.cli:main"
 
 [tool.setuptools]
-packages = ["wikimolgen"]
+packages = ["wikimolgen", "wikimolgen.rendering"]
 
 [tool.black]
 line-length = 100
