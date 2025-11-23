@@ -1,12 +1,12 @@
 # WikiMolGen
 
-Generate 2D and 3D molecular visualizations from PubChem or SMILES.
+Generate 2D and 3D molecular visualizations from PubChem or SMILES - RDKit and PyMOL-based tool
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PyPI version](https://img.shields.io/badge/PyPI-v1.0.0-blue.svg)](https://pypi.org/project/wikimolgen/)
 
-Originally developed for generating molecular structure images for Wikipedia, WikiMolGen provides a Python API and CLI for creating 2D SVG diagrams and 3D rendered structures.
+Originally developed for generating molecular structure images for Wikipedia, WikiMolGen provides a Python API, CLI, and a website for creating 2D SVG diagrams and 3D rendered structures.
 
 ---
 
