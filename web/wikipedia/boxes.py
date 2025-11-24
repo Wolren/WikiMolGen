@@ -9,7 +9,7 @@ from datetime import datetime
 
 import streamlit as st
 
-from web.wikipedia.generator import fetch_pubchem_data, generate_drugbox_code, generate_chembox_code
+from wikipedia.generator import fetch_pubchem_data, generate_drugbox_code, generate_chembox_code
 
 def render_wikipedia_metadata_section(compound: str, structure_type: str) -> None:
     """
