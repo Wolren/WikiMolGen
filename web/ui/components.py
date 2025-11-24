@@ -9,7 +9,7 @@ from datetime import datetime
 
 import streamlit as st
 
-from template.utils import (
+from web.template.utils import (
     export_current_settings_as_template,
     export_color_template
 )
