@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Dict, Any, Tuple, Optional
 from wikimolgen.rendering.wikimol2d import MoleculeGenerator2D
 from wikimolgen.rendering.wikimol3d import MoleculeGenerator3D
-from template.utils import apply_templates_to_generator
+from web.template.utils import apply_templates_to_generator
 
 def build_2d_config() -> Dict[str, Any]:
     """
