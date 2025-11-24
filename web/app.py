@@ -12,7 +12,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from base import render_structure_dynamic
+from web.rendering.base import render_structure_dynamic
 from session.state import initialize_session_state
 from ui.components import (
     render_compound_input,
