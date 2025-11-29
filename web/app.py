@@ -165,10 +165,13 @@ def render_download_section() -> None:
             st.session_state.download_filename_input = base_name
 
         def on_reset():
-            """Reset to original compound-based filename"""
-            # Get compound name from last generated compound
+            """Reset to original compound-based filename with structure type"""
+            # Get compound name and structure type
             compound = st.session_state.get("last_compound", "structure")
-            original_base = compound
+            structure_type = st.session_state.get("structure_type", "2D")
+
+            # Construct original filename: "compound_name 2D" or "compound_name 3D"
+            original_base = f"{compound} {structure_type}"
 
             # Reconstruct original filename
             original_filename = f"{original_base}{file_ext}"
