@@ -12,13 +12,13 @@ import streamlit as st
 def get_2d_defaults() -> Dict[str, Any]:
     """Get default values for 2D rendering settings."""
     return {
-        "auto_orient_2d": True,
-        "angle_2d": 180,
+        "auto_orient_2d": False,
+        "angle_2d": 0,
         "scale": 30.0,
-        "margin": 0.5,
+        "margin": 0.8,
         "bond_length": 45.0,
         "min_font_size": 36,
-        "padding": 0.03,
+        "padding": 0.07,
         "use_bw": True,
         "transparent": True,
     }
@@ -27,7 +27,7 @@ def get_2d_defaults() -> Dict[str, Any]:
 def get_3d_defaults() -> Dict[str, Any]:
     """Get default values for 3D rendering settings."""
     return {
-        "auto_orient_3d": True,
+        "auto_orient_3d": False,
         "x_rot_slider": 0.0,
         "y_rot_slider": 0.0,
         "z_rot_slider": 0.0,

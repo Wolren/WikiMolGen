@@ -129,7 +129,7 @@ def render_main_content(compound: str, structure_type: str, auto_generate: bool)
         st.session_state.manual_generate = False
 
         # Render structure
-        with st.spinner("🧬 Generating structure..."):
+        with st.spinner("Generating structure..."):
             image_html = render_structure_dynamic(compound, structure_type)
 
         if image_html:
@@ -142,7 +142,7 @@ def render_main_content(compound: str, structure_type: str, auto_generate: bool)
         )
     else:
         preview_placeholder.info(
-            "👆 Enter a compound and adjust settings, then click 'Generate Now' or enable auto-update.")
+            "Enter a compound and adjust settings, then click 'Generate Now' or enable auto-update.")
 
     st.divider()
 

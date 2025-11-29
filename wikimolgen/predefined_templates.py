@@ -194,7 +194,7 @@ PREDEFINED_COLOR_TEMPLATES = {
     'cpk_standard': {
         'type': 'color_style',
         'name': 'CPK Standard',
-        'description': 'Standard CPK coloring scheme for publication-quality renders',
+        'description': 'Standard CPK coloring scheme for renders',
         'element_colors': {
             # Common Organic Elements
             'C': 'gray25', 'H': 'gray85', 'N': 'blue', 'O': 'red',
@@ -221,28 +221,14 @@ PREDEFINED_COLOR_TEMPLATES = {
     'minimal_bw': {
         'type': 'color_style',
         'name': 'Minimal Black & White',
-        'description': 'Publication-ready black and white style for high contrast',
+        'description': 'Black and white style for high contrast',
         'element_colors': {},  # Uses B/W palette
         'stick_color': None,
         'bg_color': 'white',
         'use_bw_palette': True,
         'transparent_background': True,
-    },
+    }
 
-    'dark_mode': {
-        'type': 'color_style',
-        'name': 'Dark Mode',
-        'description': 'Dark background with bright colors for screen display',
-        'element_colors': {
-            'C': 'gray70', 'H': 'white', 'N': 'cyan', 'O': 'red',
-            'S': 'yellow', 'P': 'orange', 'F': 'palegreen', 'Cl': 'green',
-            'Br': 'firebrick', 'I': 'purple',
-        },
-        'stick_color': 'gray60',
-        'bg_color': 'black',
-        'use_bw_palette': False,
-        'transparent_background': False,
-    },
 }
 
 # ===== PREDEFINED SETTINGS TEMPLATES =====
@@ -251,8 +237,8 @@ PREDEFINED_SETTINGS_TEMPLATES = {
     # 2D TEMPLATES
     'publication_2d': {
         'type': 'settings',
-        'name': 'Publication 2D',
-        'description': 'High-quality 2D rendering for academic publications',
+        'name': '2D',
+        'description': '',
         'dimension': '2D',
         'settings': {
             'scale': 40.0,
@@ -283,7 +269,8 @@ PREDEFINED_SETTINGS_TEMPLATES = {
     'high_quality_3d': {
         'type': 'settings',
         'name': 'High Quality 3D',
-        'description': 'Publication-quality 3D rendering with ray tracing',
+        'description': ''
+                       '3D rendering with ray tracing',
         'dimension': '3D',
         'settings': {
             # Rendering
