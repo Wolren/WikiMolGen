@@ -232,7 +232,7 @@ def render_2d_settings() -> None:
     # Auto-orient checkbox
     auto_orient_2d = st.checkbox(
         "Auto-Orient",
-        value=True,
+        value=False,
         key="auto_orient_2d",
         help="Automatically find optimal viewing angle"
     )
@@ -243,7 +243,6 @@ def render_2d_settings() -> None:
             "Rotation (°)",
             0, 360, 180, 5,
             key="angle_2d",
-            help="Rotation angle in degrees"
         )
     else:
         angle_degrees = 180
@@ -260,7 +259,7 @@ def render_2d_settings() -> None:
                 help="Pixels per coordinate unit"
             )
             margin = st.slider(
-                "Margin", 0.1, 3.0, 0.5, 0.1,
+                "Margin", 0.1, 4.0, 0.8, 0.1,
                 key="margin",
                 help="Canvas margin"
             )
@@ -272,7 +271,7 @@ def render_2d_settings() -> None:
                 help="Fixed bond length in pixels"
             )
             padding = st.slider(
-                "Padding", 0.01, 0.10, 0.03, 0.01,
+                "Padding", 0.01, 0.20, 0.07, 0.01,
                 key="padding",
                 help="Padding around drawing"
             )
@@ -282,9 +281,8 @@ def render_2d_settings() -> None:
 
         with col1:
             min_font_size = st.slider(
-                "Font Size", 24, 60, 36, 2,
+                "Font Size", 20, 60, 36, 2,
                 key="min_font_size",
-                help="Minimum font size for labels"
             )
 
         with col2:
@@ -296,7 +294,6 @@ def render_2d_settings() -> None:
             transparent = st.checkbox(
                 "Transparent Background", value=True,
                 key="transparent",
-                help="Use transparent background (no white fill)"
             )
 
 
@@ -305,7 +302,7 @@ def render_3d_settings() -> None:
     # Auto-orient checkbox
     auto_orient_3d = st.checkbox(
         "Auto-Orient",
-        value=True,
+        value=False,
         key="auto_orient_3d",
         help="Automatically optimize 3D orientation"
     )
@@ -475,7 +472,6 @@ def render_auto_generate_checkbox() -> bool:
     return st.checkbox(
         "Auto-update",
         value=True,
-        help="Re-render as you change settings"
     )
 
 

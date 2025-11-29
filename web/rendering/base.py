@@ -128,6 +128,7 @@ def render_structure_dynamic(compound: str, structure_type: str) -> Optional[str
                 gen = MoleculeGenerator2D(compound, **config)
                 apply_templates_to_generator(gen, "2D")
                 output_path = gen.generate(str(output_base) + ".svg")
+                #inject_invert_css()
 
             else:
                 gen = MoleculeGenerator3D(compound)
@@ -189,3 +190,16 @@ def should_auto_render() -> bool:
     manual_trigger = st.session_state.get("manual_generate", False)
 
     return auto_generate or manual_trigger
+
+def inject_invert_css():
+    """
+    Inject CSS filter to invert image display (white background).
+    """
+    st.markdown('''
+    <style>
+        img { 
+            filter: invert(1);
+            -webkit-filter: invert(1);
+        }
+    </style>
+    ''', unsafe_allow_html=True)
