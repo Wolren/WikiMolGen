@@ -150,23 +150,46 @@ def render_main_content(compound: str, structure_type: str, auto_generate: bool)
 
 
 def render_download_section() -> None:
-    """Render download buttons"""
+    """Render download button with filename customization (extension locked)"""
     # Only show download if there is a file data in session
     if st.session_state.get("last_file_data"):
         file_data = st.session_state.last_file_data
         file_name = st.session_state.get("last_file_name", "structure.png")
         mime_type = st.session_state.get("last_file_mime", "image/png")
 
-        # Determine file extension from name
-        file_ext = Path(file_name).suffix.upper().replace(".", "")
+        # Extract extension and base name
+        file_ext = Path(file_name).suffix  # e.g., ".png"
+        base_name = Path(file_name).stem  # e.g., "structure"
 
-        st.download_button(
-            f"💾 Download {file_ext}",
-            file_data,
-            file_name=file_name,
-            mime=mime_type,
-            width="stretch"
-        )
+        # Create two columns: wider for download button, narrower for filename input
+        col_download, col_rename = st.columns([2, 1], gap="small")
+
+        with col_rename:
+            # Text input for base name only (without extension)
+            custom_base_name = st.text_input(
+                "File name",
+                value=base_name,
+                label_visibility="collapsed",
+                placeholder="Enter filename...",
+                key="download_filename_input"
+            )
+
+            # Reconstruct full filename with extension
+            # Strip any accidental extensions user may have typed
+            clean_base = Path(custom_base_name).stem
+            full_filename = f"{clean_base}{file_ext}"
+
+            # Update session state with the new filename
+            st.session_state.last_file_name = full_filename
+
+        with col_download:
+            st.download_button(
+                f"💾 Download {file_ext.upper().replace('.', '')}",
+                file_data,
+                file_name=st.session_state.last_file_name,  # Read updated value
+                mime=mime_type,
+                use_container_width=True
+            )
 
 
 def main() -> None:
