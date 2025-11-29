@@ -165,9 +165,16 @@ def render_download_section() -> None:
             st.session_state.download_filename_input = base_name
 
         def on_reset():
-            """Reset both filename and input to original values"""
-            st.session_state.last_file_name = file_name
-            st.session_state.download_filename_input = base_name
+            """Reset to original compound-based filename"""
+            # Get compound name from last generated compound
+            compound = st.session_state.get("last_compound", "structure")
+            original_base = compound
+
+            # Reconstruct original filename
+            original_filename = f"{original_base}{file_ext}"
+
+            st.session_state.last_file_name = original_filename
+            st.session_state.download_filename_input = original_base
 
         # Create three columns: download button | filename input | reset button
         col_download, col_rename, col_reset = st.columns([2, 1, 0.6], gap="small")
