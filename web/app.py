@@ -149,44 +149,50 @@ def render_main_content(compound: str, structure_type: str, auto_generate: bool)
     render_download_section()
 
 
+@st.fragment
 def render_download_section() -> None:
-    """Render download button with filename customization (extension locked)"""
-    # Only show download if there is a file data in session
+    """Render download button with filename customization and reset"""
     if st.session_state.get("last_file_data"):
         file_data = st.session_state.last_file_data
         file_name = st.session_state.get("last_file_name", "structure.png")
         mime_type = st.session_state.get("last_file_mime", "image/png")
 
-        # Extract extension and base name
-        file_ext = Path(file_name).suffix  # e.g., ".png"
-        base_name = Path(file_name).stem  # e.g., "structure"
+        file_ext = Path(file_name).suffix
+        base_name = Path(file_name).stem
 
-        # Create two columns: wider for download button, narrower for filename input
-        col_download, col_rename = st.columns([2, 1], gap="small")
+        # Initialize the input key if not present
+        if "download_filename_input" not in st.session_state:
+            st.session_state.download_filename_input = base_name
+
+        def on_reset():
+            """Reset both filename and input to original values"""
+            st.session_state.last_file_name = file_name
+            st.session_state.download_filename_input = base_name
+
+        # Create three columns: download button | filename input | reset button
+        col_download, col_rename, col_reset = st.columns([2, 1, 0.6], gap="small")
+
+        with col_reset:
+            st.button("Reset", use_container_width=True, key="reset_filename_btn", on_click=on_reset)
 
         with col_rename:
-            # Text input for base name only (without extension)
             custom_base_name = st.text_input(
                 "File name",
-                value=base_name,
+                value=st.session_state.download_filename_input,
                 label_visibility="collapsed",
                 placeholder="Enter filename...",
                 key="download_filename_input"
             )
 
-            # Reconstruct full filename with extension
-            # Strip any accidental extensions user may have typed
             clean_base = Path(custom_base_name).stem
             full_filename = f"{clean_base}{file_ext}"
-
-            # Update session state with the new filename
             st.session_state.last_file_name = full_filename
 
         with col_download:
             st.download_button(
                 f"💾 Download {file_ext.upper().replace('.', '')}",
                 file_data,
-                file_name=st.session_state.last_file_name,  # Read updated value
+                file_name=st.session_state.last_file_name,
                 mime=mime_type,
                 use_container_width=True
             )
