@@ -9,7 +9,9 @@ import streamlit as st
 import tempfile
 import base64
 from pathlib import Path
+from datetime import datetime
 from typing import Dict, Any, Tuple, Optional
+
 from wikimolgen.rendering.wikimol2d import MoleculeGenerator2D
 from wikimolgen.rendering.wikimol3d import MoleculeGenerator3D
 from template.utils import apply_templates_to_generator
@@ -24,7 +26,6 @@ def build_2d_config() -> Dict[str, Any]:
         Configuration dictionary for MoleculeGenerator2D
     """
     auto_orient = st.session_state.get("auto_orient_2d", True)
-
     return {
         "angle_degrees": None if auto_orient else st.session_state.get("angle_2d", 0),
         "scale": st.session_state.get("scale", 30.0),
@@ -48,7 +49,6 @@ def build_3d_config() -> Dict[str, Any]:
         Configuration dictionary for MoleculeGenerator3D rendering
     """
     auto_orient = st.session_state.get("auto_orient_3d", True)
-
     config = {
         "auto_orient": auto_orient,
         "stick_radius": st.session_state.get("stick_radius", 0.2),
@@ -79,6 +79,34 @@ def build_3d_config() -> Dict[str, Any]:
     return config
 
 
+def generate_dynamic_filename(compound: str, structure_type: str, file_extension: str) -> str:
+    """
+    Generate a dynamic filename based on compound, structure type, and current timestamp.
+
+    Parameters
+    ----------
+    compound : str
+        Compound identifier (name, CID, or SMILES)
+    structure_type : str
+        "2D" or "3D"
+    file_extension : str
+        File extension (e.g., ".png", ".svg")
+
+    Returns
+    -------
+    str
+        Dynamic filename with timestamp
+    """
+    # Sanitize compound name for filename
+    safe_compound = "".join(c for c in compound if c.isalnum() or c in ('-', '_')).rstrip()
+    if not safe_compound:
+        safe_compound = "structure"
+
+    # Format: compound_structuretype_timestamp.ext
+    filename = f"{safe_compound} {structure_type}"
+    return filename
+
+
 def encode_image_to_base64(image_path: Path) -> Tuple[str, str]:
     """
     Encode image file to base64 string.
@@ -95,7 +123,6 @@ def encode_image_to_base64(image_path: Path) -> Tuple[str, str]:
     """
     with open(image_path, "rb") as img_file:
         img_base64 = base64.b64encode(img_file.read()).decode()
-
     mime_type = "svg+xml" if str(image_path).endswith(".svg") else "png"
     return img_base64, mime_type
 
@@ -127,9 +154,8 @@ def render_structure_dynamic(compound: str, structure_type: str) -> Optional[str
                 config = build_2d_config()
                 gen = MoleculeGenerator2D(compound, **config)
                 apply_templates_to_generator(gen, "2D")
+                gen.generate(compound)
                 output_path = gen.generate(str(output_base) + ".svg")
-                #inject_invert_css()
-
             else:
                 gen = MoleculeGenerator3D(compound)
                 render_config = build_3d_config()
@@ -141,65 +167,36 @@ def render_structure_dynamic(compound: str, structure_type: str) -> Optional[str
             # Encode and create HTML
             if output_path.exists():
                 img_base64, mime_type = encode_image_to_base64(output_path)
-                img_width = 800 if structure_type == "3D" else 600
-
+                data_type = f'data-type="{structure_type}"'
                 image_html = (
-                    f'<div style="text-align: center; margin: 5px 0;">'
                     f'<img src="data:image/{mime_type};base64,{img_base64}" '
-                    f'style="max-width: {img_width}px; width: 100%; height: auto; '
-                    f'box-shadow: 0 0px 0px rgba(0,0,0,0);" />'
-                    f'</div>'
+                    f'{data_type} class="compound-preview-image" />'
                 )
 
-                # Store in session state
-                st.session_state.last_image_html = image_html
-                st.session_state.last_output_path = str(output_path)
-                st.session_state.last_compound = compound
-
-                # Mark structure as successfully rendered
-                st.session_state.rendered_structure = True
-
-                # Store the actual file data for download
+                # Read file data for download
                 with open(output_path, "rb") as f:
-                    st.session_state.last_file_data = f.read()
-                st.session_state.last_file_name = output_path.name
+                    file_data = f.read()
+
+                # Generate dynamic filename
+                file_extension = ".png" if structure_type == "3D" else ".svg"
+                dynamic_filename = generate_dynamic_filename(
+                    compound, structure_type, file_extension
+                )
+
+                # Update session state with dynamic filename and file data
+                st.session_state.last_image_html = image_html
+                st.session_state.last_compound = compound
+                st.session_state.last_file_data = file_data
+                st.session_state.last_file_name = dynamic_filename
                 st.session_state.last_file_mime = f"image/{mime_type}"
+                st.session_state.rendered_structure = True
+                st.session_state.download_filename_input = Path(dynamic_filename).stem
 
                 return image_html
             else:
-                st.error("❌ Failed to generate structure: Output file not created")
+                st.error(f"Failed to generate {structure_type} structure image")
                 return None
 
     except Exception as e:
-        st.error(f"❌ Error generating structure: {str(e)}")
-        import traceback
-        with st.expander("🔍 Error Details"):
-            st.code(traceback.format_exc())
+        st.error(f"Error rendering structure: {str(e)}")
         return None
-
-def should_auto_render() -> bool:
-    """
-    Determine if structure should auto-render based on current state.
-
-    Returns
-    -------
-    bool
-        True if auto-render is enabled and settings changed
-    """
-    auto_generate = st.session_state.get("auto_generate", True)
-    manual_trigger = st.session_state.get("manual_generate", False)
-
-    return auto_generate or manual_trigger
-
-def inject_invert_css():
-    """
-    Inject CSS filter to invert image display (white background).
-    """
-    st.markdown('''
-    <style>
-        img { 
-            filter: invert(1);
-            -webkit-filter: invert(1);
-        }
-    </style>
-    ''', unsafe_allow_html=True)
