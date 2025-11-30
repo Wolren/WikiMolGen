@@ -26,12 +26,12 @@ def build_2d_config() -> Dict[str, Any]:
     auto_orient = st.session_state.get("auto_orient_2d", True)
 
     return {
-        "angle_degrees": None if auto_orient else st.session_state.get("angle_2d", 180),
+        "angle_degrees": None if auto_orient else st.session_state.get("angle_2d", 0),
         "scale": st.session_state.get("scale", 30.0),
-        "margin": st.session_state.get("margin", 0.5),
-        "bond_length": st.session_state.get("bond_length", 45.0),
+        "margin": st.session_state.get("margin", 0.8),
+        "bond_length": st.session_state.get("bond_length", 50.0),
         "min_font_size": st.session_state.get("min_font_size", 36),
-        "padding": st.session_state.get("padding", 0.03),
+        "padding": st.session_state.get("padding", 0.07),
         "use_bw_palette": st.session_state.get("use_bw", True),
         "transparent_background": st.session_state.get("transparent", True),
         "auto_orient": auto_orient,
