@@ -8,19 +8,28 @@ User-friendly angle specification in DEGREES.
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Union
+
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.Draw import rdMolDraw2D
+import re
 
 from wikimolgen.core import fetch_compound, validate_smiles
-
+from wikimolgen.rendering.amine_canonicalization import (
+    AmineCanonicalizer,
+    orient_all_amines,
+)
 from wikimolgen.rendering.optimization import find_optimal_2d_rotation
+from wikimolgen.rendering.optimization import (
+    is_phenethylamine,
+    orient_phenethylamine_sidechain,
+)
+
 
 @dataclass
 class DrawingConfig:
     """Configuration for 2D molecular drawing."""
-
     auto_orient: bool = True
     angle: float = np.pi
     scale: float = 30.0
@@ -30,6 +39,11 @@ class DrawingConfig:
     padding: float = 0.01
     use_bw_palette: bool = True
     transparent_background: bool = True
+    auto_orient_amines: bool = True
+    amine_target_angle: float = 90.0
+    phenethylamine_target: float = 90.0
+    enable_wikipedia_mode: bool = True
+    detect_phenethylamine: bool = True
 
 
 class MoleculeGenerator2D:
@@ -76,6 +90,11 @@ class MoleculeGenerator2D:
             use_bw_palette: bool = True,
             transparent_background: bool = True,
             auto_orient: bool = False,
+            # NEW PARAMETERS:
+            auto_orient_amines: bool = True,
+            phenethylamine_target: float = 90.0,
+            amine_target_angle: float = 90.0,
+            enable_wikipedia_mode: bool = True,
     ):
         """
         Initialize 2D molecule generator.
@@ -103,10 +122,19 @@ class MoleculeGenerator2D:
             Use transparent background (default: True)
         auto_orient : bool, optional
             Automatically find optimal viewing angle (default: False)
+        auto_orient_amines : bool, optional
+        Automatically orient amine groups (default: True)
+            phenethylamine_target : float, optional
+        Target angle for phenethylamine orientation in degrees (default: 90°)
+            amine_target_angle : float, optional
+        Target angle for other amines in degrees (default: 90°)
+            enable_wikipedia_mode : bool, optional
+        Apply Wikipedia drawing standards (default: True)
         """
         self.identifier = identifier
         self.smiles, self.compound_name = fetch_compound(identifier)
         self.mol = validate_smiles(self.smiles)
+        self.amine_canonicalizer = AmineCanonicalizer(self.mol)
 
         # Determine angle (convert degrees to radians internally)
         if auto_orient:
@@ -128,6 +156,10 @@ class MoleculeGenerator2D:
             use_bw_palette=use_bw_palette,
             transparent_background=transparent_background,
             auto_orient=auto_orient,
+            auto_orient_amines = auto_orient_amines,
+            amine_target_angle = amine_target_angle,
+            phenethylamine_target = phenethylamine_target,
+            enable_wikipedia_mode = enable_wikipedia_mode,
         )
 
     def _rotate_coords(self, coords: np.ndarray) -> np.ndarray:
@@ -198,6 +230,7 @@ class MoleculeGenerator2D:
         """
         # Compute 2D coordinates
         AllChem.Compute2DCoords(self.mol)
+        amine_orientation = self._apply_amine_orientation()
         conf = self.mol.GetConformer()
 
         # Extract and rotate coordinates
@@ -250,6 +283,12 @@ class MoleculeGenerator2D:
             print(f"  Auto-oriented: {np.degrees(self.config.angle):.1f}°")
         else:
             print(f"  Rotation: {np.degrees(self.config.angle):.1f}°")
+
+        if amine_orientation:
+            if amine_orientation['type'] == 'phenethylamine':
+                print(f" Phenethylamine detected: sidechain → {amine_orientation['target_angle']}°")
+            elif amine_orientation['type'] == 'amines':
+                print(f" Amines oriented: {amine_orientation['count']} groups → {amine_orientation['target_angle']}°")
 
         return output_path
 
@@ -346,6 +385,47 @@ class MoleculeGenerator2D:
         if template.description:
             print(f"  {template.description}")
 
+    def _apply_amine_orientation(self) -> dict:
+        """
+        Apply automatic amine orientation based on molecule type.
+
+        Returns
+        -------
+        dict
+            Orientation results with information about applied transformations
+        """
+        if not self.config.auto_orient_amines:
+            return {}
+
+        AllChem.Compute2DCoords(self.mol)
+
+        # Check if phenethylamine
+        if is_phenethylamine(self.mol):
+            success = orient_phenethylamine_sidechain(
+                self.mol,
+                target_angle_deg=self.config.phenethylamine_target
+            )
+            return {
+                'type': 'phenethylamine',
+                'success': success,
+                'target_angle': self.config.phenethylamine_target,
+            }
+
+        # Otherwise, orient all amine groups
+        amine_count = orient_all_amines(
+            self.mol,
+            target_angle=self.config.amine_target_angle
+        )
+
+        if amine_count > 0:
+            return {
+                'type': 'amines',
+                'success': True,
+                'count': amine_count,
+                'target_angle': self.config.amine_target_angle,
+            }
+
+        return {}
 
     def __repr__(self) -> str:
         return (

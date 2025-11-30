@@ -16,7 +16,7 @@ def get_2d_defaults() -> Dict[str, Any]:
         "angle_2d": 0,
         "scale": 30.0,
         "margin": 0.8,
-        "bond_length": 45.0,
+        "bond_length": 50.0,
         "min_font_size": 36,
         "padding": 0.07,
         "use_bw": True,

@@ -142,10 +142,10 @@ def render_template_manager() -> None:
                     defaults = {
                         "auto_orient_2d": True,
                         "scale": 30.0,
-                        "margin": 0.5,
-                        "bond_length": 45.0,
+                        "margin": 0.8,
+                        "bond_length": 50.0,
                         "min_font_size": 36,
-                        "padding": 0.03,
+                        "padding": 0.07,
                         "use_bw": True,
                         "transparent": True,
                         "auto_orient_3d": True,
@@ -266,7 +266,7 @@ def render_2d_settings() -> None:
 
         with col2:
             bond_length = st.slider(
-                "Bond Length", 30.0, 70.0, 45.0, 5.0,
+                "Bond Length", 30.0, 70.0, 50.0, 5.0,
                 key="bond_length",
                 help="Fixed bond length in pixels"
             )
