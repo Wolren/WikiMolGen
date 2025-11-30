@@ -31,12 +31,12 @@ def export_current_settings_as_template(gen_type: str) -> Dict[str, Any]:
     if gen_type == "2D":
         settings_dict = {
             "scale": st.session_state.get("scale", 30.0),
-            "margin": st.session_state.get("margin", 0.5),
-            "bond_length": st.session_state.get("bond_length", 45.0),
+            "margin": st.session_state.get("margin", 0.8),
+            "bond_length": st.session_state.get("bond_length", 50.0),
             "min_font_size": st.session_state.get("min_font_size", 36),
-            "padding": st.session_state.get("padding", 0.03),
-            "use_bw_palette": st.session_state.get("use_bw", False),
-            "transparent_background": st.session_state.get("transparent", False),
+            "padding": st.session_state.get("padding", 0.07),
+            "use_bw_palette": st.session_state.get("use_bw", True),
+            "transparent_background": st.session_state.get("transparent", True),
             "auto_orient": st.session_state.get("auto_orient_2d", True),
         }
         template_dict = {
@@ -50,7 +50,7 @@ def export_current_settings_as_template(gen_type: str) -> Dict[str, Any]:
         settings_dict = {
             "auto_orient": st.session_state.get("auto_orient_3d", True),
             "x_rotation": st.session_state.get("x_rot_slider", 0.0),
-            "y_rotation": st.session_state.get("y_rot_slider", 200.0),
+            "y_rotation": st.session_state.get("y_rot_slider", 0.0),
             "z_rotation": st.session_state.get("z_rot_slider", 0.0),
             "stick_radius": st.session_state.get("stick_radius", 0.2),
             "sphere_scale": st.session_state.get("sphere_scale", 0.3),
@@ -67,8 +67,8 @@ def export_current_settings_as_template(gen_type: str) -> Dict[str, Any]:
             "reflect": st.session_state.get("reflect", 0.45),
             "shininess": st.session_state.get("shininess", 30),
             "depth_cue": 1 if st.session_state.get("depth_cue", False) else 0,
-            "width": st.session_state.get("width", 1320),
-            "height": st.session_state.get("height", 990),
+            "width": st.session_state.get("width", 1800),
+            "height": st.session_state.get("height", 1600),
             "auto_crop": st.session_state.get("auto_crop", True),
             "crop_margin": st.session_state.get("crop_margin", 10),
         }

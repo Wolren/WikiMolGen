@@ -45,14 +45,44 @@ from template.themes_css import apply_theme
 
 apply_theme()
 
+st.markdown("""
+       <style>
+       .compound-preview-container {
+           padding: 8px;
+           background-color: rgba(255, 255, 255, 0);
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           
+       }
+       
+       .compound-preview-image-2d {
+            filter: invert(1);
+       }
+       
+       .compound-preview-image[data-type="2D"] {
+            max-width: 100%;
+       }
 
-# Render header of the main section
-def render_header() -> None:
-    """Render application header"""
-    st.title("⌬ WikiMolGen")
-    st.markdown("**Chemical structure generator for Wikipedia & Wikimedia Commons**")
-    st.divider()
+       .compound-preview-image[data-type="3D"] {
+            max-width: 800px;
+       }
+       
+       .compound-preview-image {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            border: 3px dashed rgba(100, 150, 200, 1);
+            border-radius: 4px;
+       }
 
+       .compound-preview-image {
+           max-width: 100%;
+           height: auto;
+           display: block;
+       }
+       </style>
+   """, unsafe_allow_html=True)
 
 def render_sidebar() -> tuple:
     """
@@ -98,6 +128,27 @@ def render_sidebar() -> tuple:
     return compound, structure_type, auto_generate
 
 
+def apply_2d_styling_to_image(image_html: str) -> str:
+    """
+    Apply 2D-specific styling to SVG image by adding class to img tag.
+
+    Parameters
+    ----------
+    image_html : str
+        HTML string containing <img> tag
+
+    Returns
+    -------
+    str
+        HTML with compound-preview-image-2d class added to img tag
+    """
+    # Add the 2D-specific class to the img tag for color inversion
+    return image_html.replace(
+        'class="compound-preview-image"',
+        'class="compound-preview-image compound-preview-image-2d"'
+    )
+
+
 def render_main_content(compound: str, structure_type: str, auto_generate: bool) -> None:
     """
     Render main content area.
@@ -114,14 +165,14 @@ def render_main_content(compound: str, structure_type: str, auto_generate: bool)
     # Manual generation button
     render_generate_button(auto_generate)
 
-    # Placeholder for the structure image
+    # Placeholder for the structure image in a fixed container
     preview_placeholder = st.empty()
 
     # Check if image should be rendered at the momement
     should_render = (
-            auto_generate or
-            st.session_state.get("manual_generate", False) or
-            st.session_state.get("last_compound") != compound
+            auto_generate
+            or st.session_state.get("manual_generate", False)
+            or st.session_state.get("last_compound") != compound
     )
 
     if should_render and compound:
@@ -133,21 +184,48 @@ def render_main_content(compound: str, structure_type: str, auto_generate: bool)
             image_html = render_structure_dynamic(compound, structure_type)
 
         if image_html:
-            preview_placeholder.markdown(image_html, unsafe_allow_html=True)
+            # Apply 2D-specific styling (color inversion) only for 2D renders
+            if structure_type == "2D":
+                image_html = apply_2d_styling_to_image(image_html)
+
+            # Render in fixed container with border and transparent background
+            with preview_placeholder.container():
+                st.markdown(
+                    f'<div class="compound-preview-container">{image_html}</div>',
+                    unsafe_allow_html=True
+                )
+        elif st.session_state.get("last_image_html"):
+            # Show cached image in the same container
+            cached_html = st.session_state.last_image_html
+            # Apply 2D styling if this was a 2D render
+            if st.session_state.get("structure_type") == "2D":
+                cached_html = apply_2d_styling_to_image(cached_html)
+
+            with preview_placeholder.container():
+                st.markdown(
+                    f'<div class="compound-preview-container">{cached_html}</div>',
+                    unsafe_allow_html=True
+                )
+        else:
+            with preview_placeholder.container():
+                st.info(
+                    "Enter a compound and adjust settings, then click 'Generate Now' or enable auto-update."
+                )
     elif st.session_state.get("last_image_html"):
         # Show cached image
-        preview_placeholder.markdown(
-            st.session_state.last_image_html,
-            unsafe_allow_html=True
-        )
-    else:
-        preview_placeholder.info(
-            "Enter a compound and adjust settings, then click 'Generate Now' or enable auto-update.")
+        cached_html = st.session_state.last_image_html
+        # Apply 2D styling if this was a 2D render
+        if st.session_state.get("structure_type") == "2D":
+            cached_html = apply_2d_styling_to_image(cached_html)
+
+        with preview_placeholder.container():
+            st.markdown(
+                f'<div class="compound-preview-container">{cached_html}</div>',
+                unsafe_allow_html=True
+            )
 
     st.divider()
-
     render_download_section()
-
 
 @st.fragment
 def render_download_section() -> None:
@@ -156,7 +234,6 @@ def render_download_section() -> None:
         file_data = st.session_state.last_file_data
         file_name = st.session_state.get("last_file_name", "structure.png")
         mime_type = st.session_state.get("last_file_mime", "image/png")
-
         file_ext = Path(file_name).suffix
         base_name = Path(file_name).stem
 
@@ -175,7 +252,6 @@ def render_download_section() -> None:
 
             # Reconstruct original filename
             original_filename = f"{original_base}{file_ext}"
-
             st.session_state.last_file_name = original_filename
             st.session_state.download_filename_input = original_base
 
@@ -183,7 +259,12 @@ def render_download_section() -> None:
         col_download, col_rename, col_reset = st.columns([2, 1, 0.6], gap="small")
 
         with col_reset:
-            st.button("Reset", use_container_width=True, key="reset_filename_btn", on_click=on_reset)
+            st.button(
+                "Reset",
+                use_container_width=True,
+                key="reset_filename_btn",
+                on_click=on_reset
+            )
 
         with col_rename:
             custom_base_name = st.text_input(
@@ -193,14 +274,12 @@ def render_download_section() -> None:
                 placeholder="Enter filename...",
                 key="download_filename_input"
             )
-
             clean_base = Path(custom_base_name).stem
-            full_filename = f"{clean_base}{file_ext}"
-            st.session_state.last_file_name = full_filename
+            st.session_state.last_file_name = clean_base
 
         with col_download:
             st.download_button(
-                f"💾 Download {file_ext.upper().replace('.', '')}",
+                f"Download {file_ext.upper().replace('.', '')}",
                 file_data,
                 file_name=st.session_state.last_file_name,
                 mime=mime_type,
@@ -216,9 +295,6 @@ def main() -> None:
     # Configure page
     configure_page()
 
-    # Render header
-    render_header()
-
     # Render sidebar and get settings
     compound, structure_type, auto_generate = render_sidebar()
 
@@ -233,7 +309,7 @@ def main() -> None:
     st.divider()
     st.markdown("""
     <div style='text-align: center; color: #666; padding: 20px;'>
-    <strong>WikiMolGen</strong> | Wolren<br>
+    <strong>WikiMolGen</strong>, a chemical structure generator for Wikipedia & Wikimedia Commons | Wolren<br>
     </div>
     """, unsafe_allow_html=True)
 

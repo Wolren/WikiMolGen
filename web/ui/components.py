@@ -254,24 +254,24 @@ def render_2d_settings() -> None:
 
         with col1:
             scale = st.slider(
-                "Scale", 20.0, 40.0, 30.0, 1.0,
+                "Scale", 10.0, 40.0, 30.0, 1.0,
                 key="scale",
                 help="Pixels per coordinate unit"
             )
             margin = st.slider(
-                "Margin", 0.1, 4.0, 0.8, 0.1,
+                "Margin", 0.0, 5.0, 0.8, 0.1,
                 key="margin",
                 help="Canvas margin"
             )
 
         with col2:
             bond_length = st.slider(
-                "Bond Length", 30.0, 70.0, 50.0, 5.0,
+                "Bond Length", 10.0, 70.0, 50.0, 5.0,
                 key="bond_length",
                 help="Fixed bond length in pixels"
             )
             padding = st.slider(
-                "Padding", 0.01, 0.20, 0.07, 0.01,
+                "Padding", 0.00, 0.20, 0.07, 0.01,
                 key="padding",
                 help="Padding around drawing"
             )
@@ -281,7 +281,7 @@ def render_2d_settings() -> None:
 
         with col1:
             min_font_size = st.slider(
-                "Font Size", 20, 60, 36, 2,
+                "Font Size", 10, 60, 36, 2,
                 key="min_font_size",
             )
 
@@ -289,7 +289,6 @@ def render_2d_settings() -> None:
             use_bw = st.checkbox(
                 "B/W Palette", value=True,
                 key="use_bw",
-                help="Use black and white atom palette"
             )
             transparent = st.checkbox(
                 "Transparent Background", value=True,

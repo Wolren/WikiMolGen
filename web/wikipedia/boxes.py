@@ -74,10 +74,6 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
         pubchem_data = st.session_state.get("pubchem_data")
 
         if pubchem_data:
-            st.success(
-                f"Retrieved data for: {pubchem_data.get('synonyms', ['Unknown'])[0] if pubchem_data.get('synonyms') else 'Compound'}"
-            )
-
             cid = str(pubchem_data.get("cid", "N/A"))
             inchi = pubchem_data.get("standard_inchi", "N/A")
             inchikey = pubchem_data.get("standard_inchikey", "N/A")
