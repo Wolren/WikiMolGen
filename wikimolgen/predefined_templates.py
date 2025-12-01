@@ -214,8 +214,8 @@ PREDEFINED_COLOR_TEMPLATES = {
         },
         'stick_color': 'gray40',
         'bg_color': 'white',
-        'use_bw_palette': False,
-        'transparent_background': False,
+        'use_bw_palette': True,
+        'transparent_background': True,
     },
 
     'minimal_bw': {
