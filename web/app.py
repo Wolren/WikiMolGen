@@ -67,7 +67,6 @@ st.markdown("""
             width: auto;
             height: auto;
             max-width: 800px;
-            
        }
        
        .compound-preview-image {
