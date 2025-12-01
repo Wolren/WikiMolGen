@@ -64,26 +64,10 @@ st.markdown("""
        }
 
        .compound-preview-image[data-type="3D"] {
+            width: auto;
+            height: auto;
             max-width: 800px;
-       }
-       
-        @media (max-width: 768px) {
-           .compound-preview-container {
-               max-width: 100vw;
-               overflow-x: auto;
-           }
-           
-           .compound-preview-image {
-               max-width: 90vw;
-               max-height: 90vh;
-           }
-       }
-       
-        @media (max-width: 480px) {
-            .compound-preview-image {
-                max-width: 90vw;
-                max-height: 90vh;
-           }
+            
        }
        
        .compound-preview-image {
