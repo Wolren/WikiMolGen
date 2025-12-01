@@ -24,14 +24,9 @@ class SMILESValidationError(Exception):
 
 def fetch_compound(identifier: str) -> tuple[str, str]:
     """
-    Fetch compound SMILES and primary name from PubChem.
+    Fetch compound SMILES and name from PubChem or validate SMILES.
 
-    Returns the official compound name from PubChem's synonym list:
-    - Primary name = synonyms[0] (the official one)
-    - Falls back to IUPAC if no synonyms
-    - Falls back to CID if nothing else
-
-    Auto-detects input type:
+    Auto-detects input type in this order:
     1. PubChem CID (if numeric)
     2. PubChem compound name (if text lookup succeeds)
     3. Direct SMILES string (if valid chemical structure)
@@ -45,56 +40,18 @@ def fetch_compound(identifier: str) -> tuple[str, str]:
     -------
     tuple[str, str]
         (smiles, compound_name)
-        where compound_name is the PRIMARY name (synonyms[0])
 
     Raises
     ------
     CompoundFetchError
         If identifier is not a valid CID, compound name, or SMILES
     """
-
-    # Helper function: Extract primary name from compound object
-    def get_primary_name(compound, cid: int) -> str:
-        """
-        Get the primary/official compound name.
-
-        Priority:
-        1. synonyms[0] (the official/primary name)
-        2. iupac_name (technical fallback)
-        3. CID (last resort)
-        """
-        try:
-            # Try to get synonyms
-            if hasattr(compound, 'synonyms') and compound.synonyms:
-                # synonyms[0] is the official primary name
-                return compound.synonyms[0]
-        except Exception:
-            pass
-
-        try:
-            # Fallback to IUPAC name
-            if hasattr(compound, 'iupac_name') and compound.iupac_name:
-                return compound.iupac_name
-        except Exception:
-            pass
-
-        # Last resort: CID
-        return f"Compound {cid}"
-
     # Strategy 1: Try PubChem CID if identifier is numeric
     if identifier.isdigit():
         try:
-            cid = int(identifier)
-            compound = pcp.Compound.from_cid(cid)
-
-            # Get SMILES
+            compound = pcp.Compound.from_cid(int(identifier))
             smiles = getattr(compound, 'smiles', None) or compound.canonical_smiles
-
-            # Get PRIMARY name (synonyms[0])
-            compound_name = get_primary_name(compound, cid)
-
-            return smiles, compound_name
-
+            return smiles, compound.iupac_name or f"CID_{identifier}"
         except Exception as e:
             raise CompoundFetchError(f"Failed to fetch PubChem CID {identifier}: {e}")
 
@@ -103,15 +60,8 @@ def fetch_compound(identifier: str) -> tuple[str, str]:
         compounds = pcp.get_compounds(identifier, 'name')
         if compounds:
             compound = compounds[0]
-
-            # Get SMILES
             smiles = getattr(compound, 'smiles', None) or compound.canonical_smiles
-
-            # Get PRIMARY name
-            compound_name = get_primary_name(compound, compound.cid)
-
-            return smiles, compound_name
-
+            return smiles, compound.iupac_name or identifier
     except Exception:
         pass  # Not a valid compound name, continue to SMILES check
 

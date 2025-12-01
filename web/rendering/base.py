@@ -78,31 +78,31 @@ def build_3d_config() -> Dict[str, Any]:
 
     return config
 
-def get_safe_filename(text: str) -> str:
-    """Convert text to safe filename by removing/replacing invalid characters."""
-    import re
-    safe_name = re.sub(r'[<>:"/\\|?*]', '', text)
-    safe_name = safe_name.replace(' ', '_')
-    safe_name = safe_name.strip('. ')
-    return safe_name if safe_name else "compound"
 
+def generate_dynamic_filename(compound: str, structure_type: str, file_extension: str) -> str:
+    """
+    Generate a dynamic filename based on compound, structure type, and current timestamp.
 
-def generate_dynamic_filename(
-        compound: str, structure_type: str
-) -> str:
-    """Generate dynamic filename using compound name from session state."""
+    Parameters
+    ----------
+    compound : str
+        Compound identifier (name, CID, or SMILES)
+    structure_type : str
+        "2D" or "3D"
+    file_extension : str
+        File extension (e.g., ".png", ".svg")
 
-    # Get compound name from session state (already fetched from PubChem)
-    compound_name = st.session_state.get("compound_name", compound)
+    Returns
+    -------
+    str
+        Dynamic filename with timestamp
+    """
+    # Sanitize compound name for filename
+    safe_compound = "".join(c for c in compound if c.isalnum() or c in ('-', '_')).rstrip()
+    if not safe_compound:
+        safe_compound = "structure"
 
-    # Fallback to input if state is empty
-    if not compound_name:
-        compound_name = compound
-
-    # Sanitize for safe filename
-    safe_compound = get_safe_filename(compound_name)
-
-    # Format: compound_name 2D.svg or compound_name 3D.png
+    # Format: compound_structuretype_timestamp.ext
     filename = f"{safe_compound} {structure_type}"
     return filename
 
@@ -153,13 +153,11 @@ def render_structure_dynamic(compound: str, structure_type: str) -> Optional[str
             if structure_type == "2D":
                 config = build_2d_config()
                 gen = MoleculeGenerator2D(compound, **config)
-                st.session_state["compound_name"] = gen.compound_name
                 apply_templates_to_generator(gen, "2D")
                 gen.generate(compound)
                 output_path = gen.generate(str(output_base) + ".svg")
             else:
                 gen = MoleculeGenerator3D(compound)
-                st.session_state["compound_name"] = gen.compound_name
                 render_config = build_3d_config()
                 apply_templates_to_generator(gen, "3D")
                 gen.configure_rendering(**render_config)
@@ -180,8 +178,9 @@ def render_structure_dynamic(compound: str, structure_type: str) -> Optional[str
                     file_data = f.read()
 
                 # Generate dynamic filename
+                file_extension = ".png" if structure_type == "3D" else ".svg"
                 dynamic_filename = generate_dynamic_filename(
-                    compound, structure_type
+                    compound, structure_type, file_extension
                 )
 
                 # Update session state with dynamic filename and file data
