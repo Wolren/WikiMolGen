@@ -64,7 +64,6 @@ def get_session_defaults() -> Dict[str, Any]:
     """
     defaults = {
         # Core state
-        "compound_name": None,
         "rendered_structure": False,
         "compound_data": None,
         "last_image_html": None,
@@ -72,6 +71,7 @@ def get_session_defaults() -> Dict[str, Any]:
         "last_chembox": None,
         "last_output_path": None,
         "last_compound": None,
+        "last_compound_fetched": None,  # Track last compound fetched from PubChem
 
         # File download state
         "last_file_data": None,
@@ -140,4 +140,3 @@ def reset_to_defaults(dimension: str = "all") -> None:
         st.session_state.template_applied_once = False
         st.session_state.uploaded_color_template = None
         st.session_state.uploaded_settings_template = None
-        st.session_state.compound_name = None
