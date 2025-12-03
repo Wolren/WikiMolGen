@@ -17,20 +17,9 @@ from typing import Tuple, List
 
 import numpy as np
 from rdkit import Chem
-from rdkit.Chem import AllChem
-
-from wikimolgen.rendering.amine_canonicalization import (
-    orient_amine_group,
-    detect_amine_groups
-)
-
-# ============================================================================
-# PHENETHYLAMINE DETECTION & AUTO-ORIENTATION
-# ============================================================================
+from rdkit.Chem import rdDepictor
 
 PHENETHYL_PATTERN = Chem.MolFromSmarts("c1ccccc1-CCN")
-"""SMARTS pattern for phenethylamine core (phenyl-CH2-CH2-N)"""
-
 
 def is_phenethylamine(mol: Chem.Mol) -> bool:
     """
@@ -107,12 +96,12 @@ def orient_phenethylamine_sidechain(
     Examples
     --------
     >>> mol = Chem.MolFromSmiles("NCCc1ccccc1")  # Phenethylamine
-    >>> AllChem.Compute2DCoords(mol)
+    >>> rdDepictor.Compute2DCoords(mol)
     >>> orient_phenethylamine_sidechain(mol, target_angle_deg=90)
     True
 
     >>> mol = Chem.MolFromSmiles("c1ccc(C)cc1C(C)N")  # Methamphetamine
-    >>> AllChem.Compute2DCoords(mol)
+    >>> rdDepictor.Compute2DCoords(mol)
     >>> orient_phenethylamine_sidechain(mol, target_angle_deg=90)
     True
     """
@@ -205,172 +194,6 @@ def orient_phenethylamine_sidechain(
     return True
 
 
-def auto_orient_for_wikipedia_compliance(
-    mol: Chem.Mol,
-    conf_id: int = 0
-) -> dict:
-    """
-    Automatically orient molecule for Wikipedia compliance.
-
-    Applies appropriate orientation rules based on compound structure:
-    - Phenethylamines: sidechain pointing up (90°)
-    - Other amines: primary amine pointing up (90°)
-    - General molecules: optimal rotation for clarity
-
-    Parameters
-    ----------
-    mol : Chem.Mol
-        RDKit molecule with 2D coordinates
-    conf_id : int, optional
-        Conformer ID (default: 0)
-
-    Returns
-    -------
-    dict
-        {
-            'applied_phenethylamine': bool,
-            'applied_amine_orientation': bool,
-            'amines_found': int,
-            'phenethylamine_detected': bool
-        }
-
-    Examples
-    --------
-    >>> mol = Chem.MolFromSmiles("c1ccccc1CCN")  # Phenethylamine
-    >>> AllChem.Compute2DCoords(mol)
-    >>> result = auto_orient_for_wikipedia_compliance(mol)
-    >>> result['phenethylamine_detected']
-    True
-    """
-    results = {
-        'applied_phenethylamine': False,
-        'applied_amine_orientation': False,
-        'amines_found': 0,
-        'phenethylamine_detected': False
-    }
-
-    if mol.GetNumConformers() == 0:
-        return results
-
-    # Check for phenethylamine
-    if is_phenethylamine(mol):
-        results['phenethylamine_detected'] = True
-        results['applied_phenethylamine'] = orient_phenethylamine_sidechain(
-            mol, target_angle_deg=90.0, conf_id=conf_id
-        )
-        return results  # Phenethylamine orientation is sufficient
-
-    # For other molecules, orient amine groups
-    amines = detect_amine_groups(mol)
-    results['amines_found'] = len(amines)
-
-    if amines:
-        # Orient first amine (usually the primary one)
-        n_idx, amine_type = amines[0]
-        results['applied_amine_orientation'] = orient_amine_group(
-            mol, n_idx, target_angle_deg=90.0, conf_id=conf_id
-        )
-
-    return results
-
-
-# ============================================================================
-# WIKIPEDIA COMPLIANCE UTILITIES
-# ============================================================================
-
-WIKIPEDIA_DRAWING_STANDARDS = {
-    'chain_angle': 120,  # degrees
-    'bond_spacing': 0.18,  # fraction of bond length
-    'double_bond_spacing': 0.18,  # 18% of bond length
-    'bond_length': 50,  # pixels (~0.508 cm at standard DPI)
-    'bold_width': 2,  # pt (0.071 cm)
-    'line_width': 0.6,  # pt (0.021 cm)
-    'hash_spacing': 2.5,  # pt
-    'font_size': 10,  # pt (Arial)
-    'transparent_bg': True,
-    'format': 'SVG',  # or PNG (600-720 dpi)
-}
-
-
-def validate_wikipedia_compliance(
-    mol: Chem.Mol,
-    config: dict
-) -> Tuple[bool, List[str]]:
-    """
-    Validate if rendering config meets Wikipedia standards.
-
-    Parameters
-    ----------
-    mol : Chem.Mol
-        RDKit molecule
-    config : dict
-        Rendering configuration (from wikimol2d.DrawingConfig)
-
-    Returns
-    -------
-    Tuple[bool, List[str]]
-        (is_compliant, issues) where issues is list of warnings
-
-    Examples
-    --------
-    >>> config = {'bond_length': 45, 'transparent_background': True}
-    >>> is_compliant, issues = validate_wikipedia_compliance(mol, config)
-    """
-    issues = []
-
-    # Check bond length (should be ~50px or 0.508cm)
-    bond_length = config.get('bond_length', 45)
-    if bond_length < 40 or bond_length > 60:
-        issues.append(f"Bond length {bond_length}px outside recommended 40-60px range")
-
-    # Check background
-    if not config.get('transparent_background', True):
-        issues.append("Background should be transparent for Wikipedia")
-
-    # Check font (should be Arial or sans-serif)
-    # Note: RDKit doesn't directly expose font selection in config,
-    # but we can check padding/sizing
-
-    # Warn about color if not B&W
-    if not config.get('use_bw_palette', True):
-        issues.append("Wikipedia prefers B&W structures for consistency")
-
-    is_compliant = len(issues) == 0
-    return is_compliant, issues
-
-
-def apply_wikipedia_standards(config: dict) -> dict:
-    """
-    Apply Wikipedia drawing standards to rendering config.
-
-    Parameters
-    ----------
-    config : dict
-        Current rendering configuration
-
-    Returns
-    -------
-    dict
-        Updated configuration with Wikipedia standards applied
-    """
-    wiki_compliant = config.copy()
-
-    wiki_compliant.update({
-        'bond_length': 50,  # Wikipedia standard
-        'use_bw_palette': True,  # B&W preferred
-        'transparent_background': True,  # Required
-        'padding': 0.01,  # Small padding
-        'margin': 0.8,  # Reasonable margin
-        'min_font_size': 10,  # Arial 10pt
-    })
-
-    return wiki_compliant
-
-
-# ============================================================================
-# EXISTING FUNCTIONS (FROM ORIGINAL optimization.py)
-# ============================================================================
-
 def calculate_principal_axes(
     mol: Chem.Mol, conf_id: int = 0
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -432,7 +255,7 @@ def find_optimal_2d_rotation(mol: Chem.Mol) -> float:
     """
     # Ensure we have 2D coords
     if mol.GetNumConformers() == 0:
-        AllChem.Compute2DCoords(mol)
+        rdDepictor.Compute2DCoords(mol)
 
     conf = mol.GetConformer()
     coords = np.array([

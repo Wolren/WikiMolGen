@@ -1,11 +1,10 @@
 """
 wikimolgen.wikimol2d - 2D Molecular Structure Generation
 =========================================================
-Class-based 2D molecular visualization with SVG export and auto-orientation.
-User-friendly angle specification in DEGREES.
+Config-driven 2D molecular visualization with SVG export and auto-orientation.
+Uses ConfigLoader for centralized configuration management.
 """
 
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Union
 
@@ -13,9 +12,17 @@ import numpy as np
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.Draw import rdMolDraw2D
-import re
 
+from wikimolgen.configs import ConfigLoader, Config2D
 from wikimolgen.core import fetch_compound, validate_smiles
+from wikimolgen.predefined_templates import (
+    get_predefined_settings_template,
+    get_predefined_color_template,
+    TemplateLoader,
+    SettingsTemplate,
+    ColorStyleTemplate,
+    TemplateError,
+)
 from wikimolgen.rendering.amine_canonicalization import (
     AmineCanonicalizer,
     orient_all_amines,
@@ -27,28 +34,12 @@ from wikimolgen.rendering.optimization import (
 )
 
 
-@dataclass
-class DrawingConfig:
-    """Configuration for 2D molecular drawing."""
-    auto_orient: bool = True
-    angle: float = np.pi
-    scale: float = 30.0
-    margin: float = 0.5
-    bond_length: float = 35.0
-    min_font_size: int = 36
-    padding: float = 0.01
-    use_bw_palette: bool = True
-    transparent_background: bool = True
-    auto_orient_amines: bool = True
-    amine_target_angle: float = 90.0
-    phenethylamine_target: float = 0.0
-    enable_wikipedia_mode: bool = True
-    detect_phenethylamine: bool = True
-
-
 class MoleculeGenerator2D:
     """
-    Generate 2D molecular structure diagrams with optional auto-orientation.
+    Generate 2D molecular structure diagrams with config-driven rendering.
+
+    Uses Config2D configuration objects for centralized settings management.
+    Supports predefined templates and runtime configuration adjustments.
 
     Attributes
     ----------
@@ -60,136 +51,94 @@ class MoleculeGenerator2D:
         Name of the compound
     mol : Chem.Mol
         RDKit molecule object
-    config : DrawingConfig
-        Drawing configuration parameters
+    config : Config2D
+        Drawing configuration object
 
     Examples
     --------
-    >>> # Using degrees (user-friendly)
-    >>> gen = MoleculeGenerator2D("aspirin", angle_degrees=180)
-    >>> gen.generate("aspirin.svg")
+    >>> # Using ConfigLoader defaults
+    >>> config = ConfigLoader.get_2d_config()
+    >>> gen = MoleculeGenerator2D("aspirin", config=config)
+    >>> gen.draw("aspirin.svg")
 
-    >>> # Auto-orientation
-    >>> gen = MoleculeGenerator2D("caffeine", auto_orient=True)
-    >>> gen.generate("caffeine.svg")
+    >>> # Using template
+    >>> config = ConfigLoader.load_template("publication_2d")
+    >>> gen = MoleculeGenerator2D("aspirin", config=config)
+    >>> gen.draw("aspirin.svg")
 
-    >>> # Custom angle
-    >>> gen = MoleculeGenerator2D("glucose", angle_degrees=45)
-    >>> gen.generate("glucose.svg")
+    >>> # With custom overrides
+    >>> config = ConfigLoader.get_2d_config(
+    ...     overrides={"scale": 50.0, "margin": 0.8}
+    ... )
+    >>> gen = MoleculeGenerator2D("aspirin", config=config)
+    >>> gen.draw("aspirin.svg")
     """
 
     def __init__(
             self,
             identifier: str,
+            config: Optional[Config2D] = None,
             angle_degrees: Optional[float] = None,
-            scale: float = 30.0,
-            margin: float = 0.5,
-            bond_length: float = 45.0,
-            min_font_size: int = 36,
-            padding: float = 0.03,
-            use_bw_palette: bool = True,
-            transparent_background: bool = True,
-            auto_orient: bool = False,
-            # NEW PARAMETERS:
-            auto_orient_amines: bool = True,
-            phenethylamine_target: float = 90.0,
-            amine_target_angle: float = 0.0,
-            enable_wikipedia_mode: bool = True,
+            **kwargs
     ):
         """
-        Initialize 2D molecule generator.
+        Initialize 2D molecule generator with config-driven setup.
 
         Parameters
         ----------
         identifier : str
             PubChem CID, compound name, or SMILES string
-        angle_degrees : float, optional
-            Rotation angle in DEGREES (default: 180°, ignored if auto_orient=True)
-            Examples: 0, 45, 90, 180, 270
-        scale : float, optional
-            Pixels per coordinate unit (default: 30.0)
-        margin : float, optional
-            Canvas margin in coordinate units (default: 1.2)
-        bond_length : float, optional
-            Fixed bond length in pixels (default: 50.0)
-        min_font_size : int, optional
-            Minimum font size for atom labels (default: 40)
-        padding : float, optional
-            Padding around drawing (default: 0.10)
-        use_bw_palette : bool, optional
-            Use black and white atom palette (default: True)
-        transparent_background : bool, optional
-            Use transparent background (default: True)
-        auto_orient : bool, optional
-            Automatically find optimal viewing angle (default: False)
-        auto_orient_amines : bool, optional
-        Automatically orient amine groups (default: True)
-            phenethylamine_target : float, optional
-        Target angle for phenethylamine orientation in degrees (default: 90°)
-            amine_target_angle : float, optional
-        Target angle for other amines in degrees (default: 90°)
-            enable_wikipedia_mode : bool, optional
-        Apply Wikipedia drawing standards (default: True)
+        config : Config2D, optional
+            Configuration object. If None, uses ConfigLoader defaults.
+
+        Raises
+        ------
+        ValueError
+            If compound cannot be fetched or SMILES is invalid
         """
         self.identifier = identifier
         self.smiles, self.compound_name = fetch_compound(identifier)
         self.mol = validate_smiles(self.smiles)
         self.amine_canonicalizer = AmineCanonicalizer(self.mol)
 
-        # Determine angle (convert degrees to radians internally)
-        if auto_orient:
-            computed_angle = find_optimal_2d_rotation(self.mol)
-            final_angle = computed_angle  # Already in radians
-        else:
+        # Load configuration
+        if config is None:
+            # Build from parameters
+            overrides = {}
             if angle_degrees is not None:
-                final_angle = np.radians(angle_degrees)  # Convert user input to radians
-            else:
-                final_angle = np.pi  # 180 degrees default
+                overrides['angle_degrees'] = angle_degrees  # Degrees directly
+            overrides.update(kwargs)
 
-        self.config = DrawingConfig(
-            angle=final_angle,  # Store in radians internally
-            scale=scale,
-            margin=margin,
-            bond_length=bond_length,
-            min_font_size=min_font_size,
-            padding=padding,
-            use_bw_palette=use_bw_palette,
-            transparent_background=transparent_background,
-            auto_orient=auto_orient,
-            auto_orient_amines = auto_orient_amines,
-            amine_target_angle = amine_target_angle,
-            phenethylamine_target = phenethylamine_target,
-            enable_wikipedia_mode = enable_wikipedia_mode,
-        )
+            if overrides:
+                self.config = ConfigLoader.get_2d_config(overrides=overrides)
+            else:
+                self.config = ConfigLoader.get_2d_config()
+        else:
+            # Use provided config
+            self.config = config
 
     def _rotate_coords(self, coords: np.ndarray) -> np.ndarray:
-        """
-        Rotate 2D coordinates around the center.
-
-        Parameters
-        ----------
-        coords : np.ndarray
-            Nx2 array of coordinates
-
-        Returns
-        -------
-        np.ndarray
-            Rotated coordinates
-        """
+        """Rotate coordinates - convert degrees to radians here ONLY"""
         center = coords.mean(axis=0)
         centered = coords - center
 
-        angle = self.config.angle
+        angle_rad = np.radians(self.config.angle_degrees)
+        if self.config.auto_orient_2d:
+            angle_rad = find_optimal_2d_rotation(self.mol)
+
+        # Build rotation matrix
         rotation_matrix = np.array([
-            [np.cos(angle), -np.sin(angle)],
-            [np.sin(angle), np.cos(angle)]
+            [np.cos(angle_rad), -np.sin(angle_rad)],
+            [np.sin(angle_rad), np.cos(angle_rad)]
         ])
 
         return centered @ rotation_matrix.T
 
-    def _compute_canvas_size(self, coords: np.ndarray) -> tuple[int, int, float, float]:
+    def _compute_canvas_size(
+            self, coords: np.ndarray
+    ) -> tuple[int, int, float, float]:
         """
-        Calculate canvas dimensions with generous margins to prevent clipping.
+        Calculate canvas dimensions with margins to prevent clipping.
 
         Parameters
         ----------
@@ -199,29 +148,29 @@ class MoleculeGenerator2D:
         Returns
         -------
         tuple[int, int, float, float]
-            (width, height, min_x, min_y)
+            width, height, minx, miny
         """
-        min_x, min_y = coords.min(axis=0)
-        max_x, max_y = coords.max(axis=0)
+        minx, miny = coords.min(axis=0)
+        maxx, maxy = coords.max(axis=0)
 
-        min_x -= self.config.margin
-        min_y -= self.config.margin
-        max_x += self.config.margin
-        max_y += self.config.margin
+        minx -= self.config.margin
+        miny -= self.config.margin
+        maxx += self.config.margin
+        maxy += self.config.margin
 
-        width = int((max_x - min_x) * self.config.scale)
-        height = int((max_y - min_y) * self.config.scale)
+        width = int((maxx - minx) * self.config.scale)
+        height = int((maxy - miny) * self.config.scale)
 
-        return width, height, min_x, min_y
+        return width, height, minx, miny
 
-    def generate(self, output: str = "molecule_2d.svg") -> Path:
+    def draw(self, output: str = "molecule2d.svg") -> Path:
         """
         Generate 2D structure and save as SVG.
 
         Parameters
         ----------
         output : str, optional
-            Output SVG filename (default: "molecule_2d.svg")
+            Output SVG filename (default: molecule2d.svg)
 
         Returns
         -------
@@ -229,27 +178,33 @@ class MoleculeGenerator2D:
             Path to saved SVG file
         """
         # Compute 2D coordinates
-        AllChem.Compute2DCoords(self.mol)
-        amine_orientation = self._apply_amine_orientation()
-        conf = self.mol.GetConformer()
+        if self.mol.GetNumConformers() == 0:  # ← Only compute if needed
+            AllChem.Compute2DCoords(self.mol)
 
-        # Extract and rotate coordinates
-        coords = np.array([
-            [conf.GetAtomPosition(i).x, conf.GetAtomPosition(i).y]
-            for i in range(self.mol.GetNumAtoms())
-        ])
+        # Apply amine orientation
+        amine_orientation = self._apply_amine_orientation()
+
+        # Extract coordinates
+        conf = self.mol.GetConformer()
+        coords = np.array(
+            [
+                (conf.GetAtomPosition(i).x, conf.GetAtomPosition(i).y)
+                for i in range(self.mol.GetNumAtoms())
+            ]
+        )
+        # Rotate coordinates
         rotated = self._rotate_coords(coords)
 
-        # Compute canvas dimensions
-        width, height, min_x, min_y = self._compute_canvas_size(rotated)
+        # Compute canvas size
+        width, height, minx, miny = self._compute_canvas_size(rotated)
 
         # Translate coordinates to canvas space
         for i, pos in enumerate(rotated):
-            new_x = pos[0] - min_x
-            new_y = pos[1] - min_y
-            conf.SetAtomPosition(i, (new_x, new_y, 0.0))
+            newx = pos[0] - minx
+            newy = pos[1] - miny
+            conf.SetAtomPosition(i, (newx, newy, 0.0))
 
-        # Configure drawer
+        # Draw molecule
         drawer = rdMolDraw2D.MolDraw2DSVG(width, height)
         opts = drawer.drawOptions()
 
@@ -259,129 +214,157 @@ class MoleculeGenerator2D:
         opts.fixedBondLength = self.config.bond_length
         opts.padding = self.config.padding
         opts.minFontSize = self.config.min_font_size
+        opts.additionalAtomLabelPadding = self.config.additional_atom_label_padding
 
         if self.config.transparent_background:
             opts.setBackgroundColour((0, 0, 0, 0))
 
-        # Draw molecule
         rdMolDraw2D.PrepareAndDrawMolecule(drawer, self.mol)
         drawer.FinishDrawing()
 
-        # Process and save SVG
+        # Get SVG and process
         svg = drawer.GetDrawingText()
         if self.config.transparent_background:
-            svg = svg.replace('fill:white', 'fill:none')
+            svg = svg.replace("fill:white", "fill:none")
 
+        # Save file
         output_path = Path(output)
         output_path.write_text(svg)
 
-        print(f"✓ 2D structure saved: {output_path}")
-        print(f"  Compound: {self.compound_name}")
-        print(f"  Dimensions: {width}×{height} px")
-        print(f"  Atoms: {self.mol.GetNumAtoms()}, Bonds: {self.mol.GetNumBonds()}")
-        if self.config.auto_orient:
-            print(f"  Auto-oriented: {np.degrees(self.config.angle):.1f}°")
-        else:
-            print(f"  Rotation: {np.degrees(self.config.angle):.1f}°")
-
-        if amine_orientation:
-            if amine_orientation['type'] == 'phenethylamine':
-                print(f" Phenethylamine detected: sidechain → {amine_orientation['target_angle']}°")
-            elif amine_orientation['type'] == 'amines':
-                print(f" Amines oriented: {amine_orientation['count']} groups → {amine_orientation['target_angle']}°")
+        # Print summary
+        self._print_generation_summary(width, height, amine_orientation)
 
         return output_path
 
+    def apply_settings(self, **kwargs) -> None:
+        """
+        Apply settings adjustments at runtime.
 
-    def load_color_template(self, template: Union[str, Path, 'ColorStyleTemplate']) -> None:
+        Parameters
+        ----------
+        **kwargs
+            Configuration parameters to override
+            (scale, margin, bond_length, min_font_size, padding, etc.)
+        """
+        for key, value in kwargs.items():
+            if hasattr(self.config, key):
+                setattr(self.config, key, value)
+            else:
+                raise ValueError(f"Unknown configuration parameter: {key}")
+
+    def get_config_dict(self) -> dict:
+        """
+        Export current configuration as dictionary.
+
+        Returns
+        -------
+        dict
+            Configuration as dictionary (suitable for JSON serialization)
+        """
+        return {
+            "scale": self.config.scale,
+            "margin": self.config.margin,
+            "bond_length": self.config.bond_length,
+            "min_font_size": self.config.min_font_size,
+            "padding": self.config.padding,
+            "use_bw_palette": self.config.use_bw_palette,
+            "transparent_background": self.config.transparent_background,
+            "auto_orient_2d": self.config.auto_orient_2d,
+            "auto_orient_amines": self.config.auto_orient_amines,
+            "amine_target_angle": self.config.amine_target_angle,
+            "phenethylamine_target": self.config.phenethylamine_target,
+        }
+
+    def load_color_template(
+            self, template: Union[str, Path, ColorStyleTemplate]
+    ) -> None:
         """
         Apply a color style template to the generator.
 
         Parameters
         ----------
         template : ColorStyleTemplate, str, or Path
-            Color template object, path to template file, or predefined template name
+            Color template object, predefined template name,
+            or path to template file
 
         Examples
         --------
         >>> gen = MoleculeGenerator2D("aspirin")
-        >>> gen.load_color_template("minimal_bw")  # Predefined template
-        >>> gen.load_color_template("my_template.json")  # From file
+        >>> gen.load_color_template("cpk_standard")
+        >>> gen.draw("aspirin.svg")
         """
-        from wikimolgen.predefined_templates import TemplateLoader, ColorStyleTemplate, get_predefined_color_template, TemplateError
-
-        # Load template if needed
         if isinstance(template, str):
-            # Check if it's a predefined template name
             try:
                 template = get_predefined_color_template(template)
             except TemplateError:
-                # Try loading as file path
                 template = TemplateLoader.load_from_file(template)
         elif isinstance(template, Path):
             template = TemplateLoader.load_from_file(template)
 
         if not isinstance(template, ColorStyleTemplate):
-            raise ValueError("Invalid template type. Expected ColorStyleTemplate.")
+            raise ValueError(
+                "Invalid template type. Expected ColorStyleTemplate."
+            )
 
-        # Apply color settings to config
         self.config.use_bw_palette = template.use_bw_palette
         self.config.transparent_background = template.transparent_background
 
-        print(f"✓ Applied color template: {template.name}")
+        print(f"Applied color template: {template.name}")
         if template.description:
             print(f"  {template.description}")
 
-    def load_settings_template(self, template: Union[str, Path, 'SettingsTemplate']) -> None:
+    def load_settings_template(
+            self, template: Union[str, Path, SettingsTemplate]
+    ) -> None:
         """
         Apply a settings template to the generator.
 
         Parameters
         ----------
         template : SettingsTemplate, str, or Path
-            Settings template object, path to template file, or predefined template name
+            Settings template object, predefined template name,
+            or path to template file
 
         Examples
         --------
         >>> gen = MoleculeGenerator2D("caffeine")
-        >>> gen.load_settings_template("publication_2d")  # Predefined template
-        >>> gen.load_settings_template("my_settings.json")  # From file
+        >>> gen.load_settings_template("publication_2d")
+        >>> gen.draw("caffeine.svg")
         """
-        from wikimolgen.predefined_templates import TemplateLoader, SettingsTemplate, get_predefined_settings_template, TemplateError
-
-        # Load template if needed
         if isinstance(template, str):
-            # Check if it's a predefined template name
             try:
                 template = get_predefined_settings_template(template)
             except TemplateError:
-                # Try loading as file path
                 template = TemplateLoader.load_from_file(template)
         elif isinstance(template, Path):
             template = TemplateLoader.load_from_file(template)
 
         if not isinstance(template, SettingsTemplate):
-            raise ValueError("Invalid template type. Expected SettingsTemplate.")
+            raise ValueError(
+                "Invalid template type. Expected SettingsTemplate."
+            )
 
-        if template.dimension != '2D':
-            raise ValueError(f"Template is for {template.dimension}, but this is a 2D generator.")
+        if template.dimension != "2D":
+            raise ValueError(
+                f"Template is for {template.dimension}, but this is a 2D generator."
+            )
 
-        # Apply settings to config
+        # Apply settings from template
         settings = template.settings
-        if 'scale' in settings:
-            self.config.scale = settings['scale']
-        if 'bond_length' in settings:
-            self.config.bond_length = settings['bond_length']
-        if 'min_font_size' in settings:
-            self.config.min_font_size = settings['min_font_size']
-        if 'padding' in settings:
-            self.config.padding = settings['padding']
-        if 'margin' in settings:
-            self.config.margin = settings['margin']
-        if 'auto_orient' in settings:
-            self.config.auto_orient = settings['auto_orient']
+        if "scale" in settings:
+            self.config.scale = settings["scale"]
+        if "bond_length" in settings:
+            self.config.bond_length = settings["bond_length"]
+        if "min_font_size" in settings:
+            self.config.min_font_size = settings["min_font_size"]
+        if "padding" in settings:
+            self.config.padding = settings["padding"]
+        if "margin" in settings:
+            self.config.margin = settings["margin"]
+        if "auto_orient_2d" in settings:
+            self.config.auto_orient_2d = settings["auto_orient_2d"]
 
-        print(f"✓ Applied settings template: {template.name}")
+        print(f"Applied settings template: {template.name}")
         if template.description:
             print(f"  {template.description}")
 
@@ -397,38 +380,70 @@ class MoleculeGenerator2D:
         if not self.config.auto_orient_amines:
             return {}
 
-        AllChem.Compute2DCoords(self.mol)
-
-        # Check if phenethylamine
         if is_phenethylamine(self.mol):
             success = orient_phenethylamine_sidechain(
-                self.mol,
-                target_angle_deg=self.config.phenethylamine_target
+                self.mol, target_angle_deg=self.config.phenethylamine_target
             )
             return {
-                'type': 'phenethylamine',
-                'success': success,
-                'target_angle': self.config.phenethylamine_target,
+                "type": "phenethylamine",
+                "success": success,
+                "target_angle": self.config.phenethylamine_target,
             }
 
-        # Otherwise, orient all amine groups
         amine_count = orient_all_amines(
-            self.mol,
-            target_angle=self.config.amine_target_angle
+            self.mol, target_angle=self.config.amine_target_angle
         )
-
         if amine_count > 0:
             return {
-                'type': 'amines',
-                'success': True,
-                'count': amine_count,
-                'target_angle': self.config.amine_target_angle,
+                "type": "amines",
+                "success": True,
+                "count": amine_count,
+                "target_angle": self.config.amine_target_angle,
             }
 
         return {}
 
+    def _print_generation_summary(
+            self, width: int, height: int, amine_orientation: dict
+    ) -> None:
+        """
+        Print generation summary to console.
+
+        Parameters
+        ----------
+        width : int
+            Canvas width in pixels
+        height : int
+            Canvas height in pixels
+        amine_orientation : dict
+            Amine orientation results
+        """
+        print(f"2D structure saved")
+        print(f"  Compound: {self.compound_name}")
+        print(f"  Dimensions: {width}x{height} px")
+        print(f"  Atoms: {self.mol.GetNumAtoms()}, Bonds: {self.mol.GetNumBonds()}")
+
+        if self.config.auto_orient_2d:
+            angle_deg = find_optimal_2d_rotation(self.mol)
+            print(f"  Auto-oriented: {angle_deg:.1f}°")
+        else:
+            angle_deg = self.config.angle_degrees
+            print(f"  Rotation: {angle_deg:.1f}°")
+
+        if amine_orientation:
+            if amine_orientation["type"] == "phenethylamine":
+                print(
+                    f"  Phenethylamine detected, sidechain: {amine_orientation['target_angle']}°"
+                )
+            elif amine_orientation["type"] == "amines":
+                print(
+                    f"  Amines oriented: {amine_orientation['count']} groups @ {amine_orientation['target_angle']}°"
+                )
+
     def __repr__(self) -> str:
         return (
-            f"MoleculeGenerator2D(identifier='{self.identifier}', "
-            f"compound='{self.compound_name}', atoms={self.mol.GetNumAtoms()})"
+            f"MoleculeGenerator2D("
+            f"identifier={self.identifier!r}, "
+            f"compound={self.compound_name!r}, "
+            f"atoms={self.mol.GetNumAtoms()})"
         )

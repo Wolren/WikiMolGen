@@ -8,7 +8,7 @@ Enhanced CLI with full template support and comprehensive parameter options.
 import argparse
 import sys
 
-from . import __version__
+from wikimolgen import __version__
 from wikimolgen.rendering.wikimol2d import MoleculeGenerator2D
 from wikimolgen.rendering.wikimol3d import MoleculeGenerator3D
 

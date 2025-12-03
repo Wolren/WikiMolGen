@@ -6,10 +6,6 @@ Shared utilities for molecular structure fetching and validation.
 
 import pubchempy as pcp
 from rdkit import Chem
-from rdkit import RDLogger
-from rdkit.Chem import Descriptors
-
-RDLogger.DisableLog('rdApp.*')
 
 
 class CompoundFetchError(Exception):
@@ -99,27 +95,3 @@ def validate_smiles(smiles: str) -> Chem.Mol:
     if mol is None:
         raise SMILESValidationError(f"Invalid SMILES string: {smiles}")
     return mol
-
-
-def get_molecular_properties(mol: Chem.Mol) -> dict[str, float]:
-    """
-    Calculate basic molecular properties.
-
-    Parameters
-    ----------
-    mol : Chem.Mol
-        RDKit molecule object
-
-    Returns
-    -------
-    dict[str, float]
-        Dictionary containing molecular weight, logP, etc.
-    """
-    return {
-        "molecular_weight": Descriptors.MolWt(mol),
-        "logp": Descriptors.MolLogP(mol),
-        "num_h_donors": Descriptors.NumHDonors(mol),
-        "num_h_acceptors": Descriptors.NumHAcceptors(mol),
-        "num_rotatable_bonds": Descriptors.NumRotatableBonds(mol),
-        "tpsa": Descriptors.TPSA(mol),
-    }

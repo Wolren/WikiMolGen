@@ -37,7 +37,7 @@ def export_current_settings_as_template(gen_type: str) -> Dict[str, Any]:
             "padding": st.session_state.get("padding", 0.07),
             "use_bw_palette": st.session_state.get("use_bw", True),
             "transparent_background": st.session_state.get("transparent", True),
-            "auto_orient": st.session_state.get("auto_orient_2d", True),
+            "auto_orient_2d": st.session_state.get("auto_orient_2d", True),
         }
         template_dict = {
             "type": "settings",
@@ -48,7 +48,7 @@ def export_current_settings_as_template(gen_type: str) -> Dict[str, Any]:
         }
     else:
         settings_dict = {
-            "auto_orient": st.session_state.get("auto_orient_3d", True),
+            "auto_orient_3d": st.session_state.get("auto_orient_3d", True),
             "x_rotation": st.session_state.get("x_rot_slider", 0.0),
             "y_rotation": st.session_state.get("y_rot_slider", 0.0),
             "z_rotation": st.session_state.get("z_rot_slider", 0.0),
