@@ -7,7 +7,7 @@ Streamlit CSS styling module for consistent theming across the application.
 DARK_FOREST_THEME_CSS = """
 <style>
     /* Dark forest theme */
-    :root {
+    :root {  
         --primary-bg: #1a2421;
         --secondary-bg: #243029;
         --tertiary-bg: #2d3a32;
@@ -16,6 +16,10 @@ DARK_FOREST_THEME_CSS = """
         --text-primary: #e8f4ea;
         --text-secondary: #b8d4be;
         --border-color: #3d4f44;
+    }
+    
+    * {
+        color-scheme: dark !important;
     }
 
     /* Main background */

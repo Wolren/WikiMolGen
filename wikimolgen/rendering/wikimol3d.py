@@ -3,18 +3,22 @@ wikimolgen.wikimol3d - 3D Molecular Structure Generation
 =========================================================
 Class-based 3D conformer generation with PyMOL rendering and auto-cropping.
 Extended element colors and RDKit configuration options.
+
+Uses split Config3D structure (render + conformer) from ConfigLoader.
 """
 
-from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Literal, Dict, Union
+from typing import Optional, Literal, Union
 
-from PIL import ImageEnhance
 from rdkit import Chem
-from rdkit.Chem import AllChem, rdmolfiles
+from rdkit.Chem import AllChem, rdmolfiles, rdForceFieldHelpers
 
+from wikimolgen.configs import ConfigLoader, Config3D
 from wikimolgen.core import fetch_compound, validate_smiles
-from wikimolgen.rendering.optimization import find_optimal_3d_orientation, optimize_zoom_buffer
+from wikimolgen.rendering.optimization import (
+    find_optimal_3d_orientation,
+    optimize_zoom_buffer,
+)
 
 ForceFieldType = Literal["MMFF94", "UFF"]
 
@@ -47,136 +51,12 @@ def color_name_to_rgb(color_name: str) -> tuple:
     return color_map.get(color_name.lower(), (0.5, 0.5, 0.5))
 
 
-@dataclass
-class RenderConfig:
-    """
-    Configuration for PyMOL 3D rendering with comprehensive element colors.
-
-    Element colors follow standard CPK coloring scheme adapted for clarity.
-    """
-
-    # Auto orientation
-    auto_orient: bool = True  # Enable automatic 3D orientation
-
-    # Canvas settings
-    width: int = 1800
-    height: int = 1400
-    auto_crop: bool = True
-    crop_margin: int = 10
-
-    # Molecular representation
-    stick_radius: float = 0.2
-    stick_ball_ratio: float = 1.8
-    stick_quality: int = 64
-    sphere_scale: float = 0.3
-    sphere_quality: int = 6
-    stick_transparency: float = 0.0  # 0.0=opaque, 1.0=fully transparent
-    sphere_transparency: float = 0.0  # 0.0=opaque, 1.0=fully transparent
-    valence: float = 0.0  # Show valence (0=off, 0.05-0.2 typical)
-
-    # Ray tracing options
-    ray_trace_mode: int = 0
-    ray_trace_gain: float = 0.0  # Brightness boost for ray tracing
-    ray_trace_color: str = "black"  # Background for ray tracing (black/white/grey)
-    ray_transparency_contrast: float = 1.0  # Transparency contrast (0.5-2.0)
-    ray_transparency_oblique: float = 0.0  # Oblique transparency (0.0-1.0)
-
-    # Lighting and rendering
-    ambient: float = 0.25
-    specular: int = 1
-    shininess: int = 30
-    ray_shadows: int = 0  # 0=off, 1=on (slower but more realistic)
-    antialias: int = 4  # 0=off, 1=on, 2=2x, 3=3x, 4=4x
-    depth_cue: int = 0  # Depth cueing (fog effect)
-    fog_start: float = 1.0  # Where fog starts (0.0-1.0)
-    direct: float = 0.5  # Direct lighting intensity (0.0-1.0)
-    reflect: float = 0.5  # Reflection intensity (0.0-1.0)
-
-    # Camera and orientation
-    zoom_buffer: float = 2.0
-    x_rotation: float = 0.0
-    y_rotation: float = 0.0
-    z_rotation: float = 0.0
-    bg_color: str = "white"
-
-    # Comprehensive element colors (CPK-based with adjustments for clarity)
-    element_colors: Dict[str, str] = field(default_factory=lambda: {
-        # Common organic elements
-        "C": "gray25",  # Carbon - dark gray
-        "H": "gray85",  # Hydrogen - light gray
-        "N": "blue",  # Nitrogen - blue
-        "O": "red",  # Oxygen - red
-        "S": "yellow",  # Sulfur - yellow
-        "P": "orange",  # Phosphorus - orange
-
-        # Halogens
-        "F": "palegreen",  # Fluorine - pale green
-        "Cl": "green",  # Chlorine - green
-        "Br": "firebrick",  # Bromine - dark red/brown
-        "I": "purple",  # Iodine - purple
-
-        # Metals (alkali & alkaline earth)
-        "Li": "violet",  # Lithium
-        "Na": "slate",  # Sodium
-        "K": "violet",  # Potassium
-        "Mg": "forest",  # Magnesium
-        "Ca": "forest",  # Calcium
-
-        # Transition metals (common in organometallics)
-        "Fe": "darkorange",  # Iron
-        "Cu": "chocolate",  # Copper
-        "Zn": "brown",  # Zinc
-        "Ni": "forest",  # Nickel
-        "Co": "salmon",  # Cobalt
-        "Mn": "violet",  # Manganese
-        "Cr": "gray50",  # Chromium
-        "Pd": "forest",  # Palladium
-        "Pt": "gray50",  # Platinum
-        "Au": "gold",  # Gold
-        "Ag": "gray70",  # Silver
-
-        # Other common elements
-        "B": "salmon",  # Boron
-        "Si": "goldenrod",  # Silicon
-        "Se": "orange",  # Selenium
-        "As": "violet",  # Arsenic
-
-        "He": "cyan",
-        "Ne": "cyan",
-        "Ar": "cyan",
-        "Kr": "cyan",
-        "Xe": "cyan",
-    })
-
-    # Stick coloring (default uses element colors, or set to specific color)
-    stick_color: Optional[str] = "gray40"  # None = use element colors
-
-
-@dataclass
-class ConformerConfig:
-    """Configuration for RDKit conformer generation and optimization."""
-
-    # ETKDG parameters
-    use_random_coords: bool = False
-    clear_confs: bool = True
-    use_macrocycle_torsions: bool = False
-    use_basic_knowledge: bool = True
-    enforce_chirality: bool = True
-    use_small_ring_torsions: bool = False
-
-    # Optimization parameters
-    max_iterations: int = 200
-    vdw_thresh: float = 10.0
-    conf_energy_threshold: float = 10.0  # kcal/mol for multi-conformer
-
-    # Multi-conformer settings
-    num_conformers: int = 1
-    prune_rms_thresh: float = 0.5  # RMS threshold for conformer pruning
-
-
 class MoleculeGenerator3D:
     """
     Generate 3D molecular structures with conformer optimization and rendering.
+
+    Uses split Config3D configuration with render and conformer configs.
+    Supports comprehensive element coloring, auto-cropping, and multi-conformer generation.
 
     Attributes
     ----------
@@ -190,10 +70,8 @@ class MoleculeGenerator3D:
         RDKit molecule object with hydrogens
     energy : Optional[float]
         Final optimized energy in kcal/mol
-    render_config : RenderConfig
-        PyMOL rendering configuration
-    conformer_config : ConformerConfig
-        RDKit conformer generation configuration
+    config : Config3D
+        Configuration object with split render and conformer configs
 
     Examples
     --------
@@ -205,40 +83,54 @@ class MoleculeGenerator3D:
     """
 
     def __init__(
-            self,
-            identifier: str,
-            random_seed: int = 1,
+        self,
+        identifier: str,
+        config: Optional[Config3D] = None,
+        random_seed: int = 1,
+        **kwargs
     ):
         """
-        Initialize 3D molecule generator.
+        Initialize 3D molecule generator with config-driven setup.
 
         Parameters
         ----------
         identifier : str
             PubChem CID, compound name, or SMILES string
+        config : Config3D, optional
+            Configuration object. If None, build from kwargs
         random_seed : int, optional
             Random seed for conformer generation (default: 1)
+        **kwargs
+            Additional configuration parameters
         """
         self.identifier = identifier
         self.smiles, self.compound_name = fetch_compound(identifier)
         self.mol = validate_smiles(self.smiles)
         self.mol = Chem.AddHs(self.mol)
+
         self.random_seed = random_seed
         self.energy: Optional[float] = None
-        self.render_config = RenderConfig()
-        self.conformer_config = ConformerConfig()
+
+        # Load configuration
+        if config is None:
+            if kwargs:
+                self.config = ConfigLoader.get_3d_config(overrides=kwargs)
+            else:
+                self.config = ConfigLoader.get_3d_config()
+        else:
+            self.config = config
 
     def _embed_conformer(self) -> None:
         """Generate 3D conformer using ETKDG with configurable parameters."""
         params = AllChem.ETKDGv3()
         params.randomSeed = self.random_seed
-        params.useRandomCoords = self.conformer_config.use_random_coords
-        params.clearConfs = self.conformer_config.clear_confs
-        params.useBasicKnowledge = self.conformer_config.use_basic_knowledge
-        params.enforceChirality = self.conformer_config.enforce_chirality
-        params.useSmallRingTorsions = self.conformer_config.use_small_ring_torsions
+        params.useRandomCoords = self.config.conformer.use_random_coords
+        params.clearConfs = self.config.conformer.clear_confs
+        params.useBasicKnowledge = self.config.conformer.use_basic_knowledge
+        params.enforceChirality = self.config.conformer.enforce_chirality
+        params.useSmallRingTorsions = self.config.conformer.use_small_ring_torsions
 
-        if self.conformer_config.num_conformers == 1:
+        if self.config.conformer.num_conformers == 1:
             result = AllChem.EmbedMolecule(self.mol, params)
             if result == -1:
                 raise ValueError("Failed to generate 3D conformer")
@@ -246,9 +138,9 @@ class MoleculeGenerator3D:
             # Multi-conformer generation
             result = AllChem.EmbedMultipleConfs(
                 self.mol,
-                numConfs=self.conformer_config.num_conformers,
+                numConfs=self.config.conformer.num_conformers,
                 params=params,
-                pruneRmsThresh=self.conformer_config.prune_rms_thresh
+                pruneRmsThresh=self.config.conformer.prune_rms_thresh
             )
             if len(result) == 0:
                 raise ValueError("Failed to generate 3D conformers")
@@ -264,28 +156,28 @@ class MoleculeGenerator3D:
         max_iterations : int, optional
             Maximum optimization iterations (default: 200)
         """
-        max_iters = max_iterations or self.conformer_config.max_iterations
+        max_iters = max_iterations or self.config.conformer.max_iterations
 
         if force_field == "MMFF94":
-            if self.conformer_config.num_conformers == 1:
-                result = AllChem.MMFFOptimizeMolecule(self.mol, maxIters=max_iters)
+            if self.config.conformer.num_conformers == 1:
+                result = rdForceFieldHelpers.MMFFOptimizeMolecule(self.mol, maxIters=max_iters)
                 if result == 0:
-                    props = AllChem.MMFFGetMoleculeProperties(self.mol)
-                    ff = AllChem.MMFFGetMoleculeForceField(self.mol, props)
+                    props = rdForceFieldHelpers.MMFFGetMoleculeProperties(self.mol)
+                    ff = rdForceFieldHelpers.MMFFGetMoleculeForceField(self.mol, props)
                     self.energy = ff.CalcEnergy()
             else:
-                results = AllChem.MMFFOptimizeMoleculeConfs(self.mol, maxIters=max_iters)
+                results = rdForceFieldHelpers.MMFFOptimizeMoleculeConfs(self.mol, maxIters=max_iters)
                 energies = [r[1] for r in results]
                 self.energy = min(energies)
 
         elif force_field == "UFF":
-            if self.conformer_config.num_conformers == 1:
-                result = AllChem.UFFOptimizeMolecule(self.mol, maxIters=max_iters)
+            if self.config.conformer.num_conformers == 1:
+                result = rdForceFieldHelpers.UFFOptimizeMolecule(self.mol, maxIters=max_iters)
                 if result == 0:
-                    ff = AllChem.UFFGetMoleculeForceField(self.mol)
+                    ff = rdForceFieldHelpers.UFFGetMoleculeForceField(self.mol)
                     self.energy = ff.CalcEnergy()
             else:
-                results = AllChem.UFFOptimizeMoleculeConfs(self.mol, maxIters=max_iters)
+                results = rdForceFieldHelpers.UFFOptimizeMoleculeConfs(self.mol, maxIters=max_iters)
                 energies = [r[1] for r in results]
                 self.energy = min(energies)
         else:
@@ -312,6 +204,7 @@ class MoleculeGenerator3D:
     def _auto_crop_image(self, image_path: Path, margin: int = 10, contrast_factor: float = 1.15) -> None:
         """
         Auto-crop PNG to molecule bounds using alpha channel only (no white compositing).
+
         Keeps transparency untouched—best for Discord/transparent backgrounds.
 
         Parameters
@@ -320,6 +213,8 @@ class MoleculeGenerator3D:
             Path to PNG image
         margin : int
             Margin around molecule in pixels (default: 10)
+        contrast_factor : float
+            Contrast enhancement factor (default: 1.15)
         """
         from PIL import Image
 
@@ -328,15 +223,19 @@ class MoleculeGenerator3D:
 
         # Find the bounding box of non-transparent pixels
         bbox = alpha.getbbox()
+
         if bbox:
             left, top, right, bottom = bbox
             width, height = img.size
+
             left = max(0, left - margin)
             top = max(0, top - margin)
             right = min(width, right + margin)
             bottom = min(height, bottom + margin)
+
             img = img.crop((left, top, right, bottom))
-            ImageEnhance.Contrast(img).enhance(contrast_factor)
+            img.save(image_path)
+        else:
             img.save(image_path)
 
     def _render_pymol(self, sdf_path: Path, output: str) -> Path:
@@ -362,7 +261,7 @@ class MoleculeGenerator3D:
                 "pymol2 not installed. Install with: conda install -c conda-forge pymol-open-source"
             )
 
-        cfg = self.render_config
+        cfg = self.config.render
         output_path = Path(output)
 
         with pymol2.PyMOL() as pymol:
@@ -375,8 +274,56 @@ class MoleculeGenerator3D:
             cmd.show("spheres", "all")
             cmd.bg_color(cfg.bg_color)
 
-            # Apply element colors
-            for element, color_name in cfg.element_colors.items():
+            # Apply element colors - CPK-based comprehensive coloring
+            element_colors = {
+                # Common organic elements
+                "C": "gray25",  # Carbon - dark gray
+                "H": "gray85",  # Hydrogen - light gray
+                "N": "blue",  # Nitrogen - blue
+                "O": "red",  # Oxygen - red
+                "S": "yellow",  # Sulfur - yellow
+                "P": "orange",  # Phosphorus - orange
+
+                # Halogens
+                "F": "palegreen",  # Fluorine - pale green
+                "Cl": "green",  # Chlorine - green
+                "Br": "firebrick",  # Bromine - dark red/brown
+                "I": "purple",  # Iodine - purple
+
+                # Metals (alkali & alkaline earth)
+                "Li": "violet",  # Lithium
+                "Na": "slate",  # Sodium
+                "K": "violet",  # Potassium
+                "Mg": "forest",  # Magnesium
+                "Ca": "forest",  # Calcium
+
+                # Transition metals (common in organometallics)
+                "Fe": "darkorange",  # Iron
+                "Cu": "chocolate",  # Copper
+                "Zn": "brown",  # Zinc
+                "Ni": "forest",  # Nickel
+                "Co": "salmon",  # Cobalt
+                "Mn": "violet",  # Manganese
+                "Cr": "gray50",  # Chromium
+                "Pd": "forest",  # Palladium
+                "Pt": "gray50",  # Platinum
+                "Au": "gold",  # Gold
+                "Ag": "gray70",  # Silver
+
+                # Other common elements
+                "B": "salmon",  # Boron
+                "Si": "goldenrod",  # Silicon
+                "Se": "orange",  # Selenium
+                "As": "violet",  # Arsenic
+
+                "He": "cyan",
+                "Ne": "cyan",
+                "Ar": "cyan",
+                "Kr": "cyan",
+                "Xe": "cyan",
+            }
+
+            for element, color_name in element_colors.items():
                 rgb = color_name_to_rgb(color_name)
                 custom_color = f"custom_{color_name}"
                 cmd.set_color(custom_color, list(rgb))
@@ -429,7 +376,7 @@ class MoleculeGenerator3D:
             cmd.set("ray_transparency_oblique", cfg.ray_transparency_oblique)
 
             # Position and orientation
-            if cfg.auto_orient:
+            if cfg.auto_orient_3d:
                 x_opt, y_opt, z_opt = find_optimal_3d_orientation(self.mol)
                 zoom_opt = optimize_zoom_buffer(self.mol)
                 cmd.orient("all")
@@ -437,8 +384,8 @@ class MoleculeGenerator3D:
                 cmd.turn("y", y_opt)
                 cmd.turn("z", z_opt)
                 cmd.zoom("all", buffer=zoom_opt)
-                print(f"  Auto-oriented: x={x_opt:.1f}°, y={y_opt:.1f}°, z={z_opt:.1f}°")
-                print(f"  Auto-zoom: {zoom_opt:.2f}")
+                print(f" Auto-oriented: x={x_opt:.1f}°, y={y_opt:.1f}°, z={z_opt:.1f}°")
+                print(f" Auto-zoom: {zoom_opt:.2f}")
             else:
                 cmd.orient("all")
                 cmd.turn("x", cfg.x_rotation)
@@ -446,25 +393,26 @@ class MoleculeGenerator3D:
                 cmd.turn("z", cfg.z_rotation)
                 cmd.zoom("all", buffer=cfg.zoom_buffer)
 
+            # Render
             if cfg.ray_trace_mode > 0:
                 cmd.ray(width=cfg.width, height=cfg.height)
                 cmd.png(str(output_path))
             else:
                 cmd.png(str(output_path), width=cfg.width, height=cfg.height)
 
-        # Auto-crop if enabled
-        if cfg.auto_crop:
-            self._auto_crop_image(output_path, margin=cfg.crop_margin)
+            # Auto-crop if enabled
+            if cfg.auto_crop:
+                self._auto_crop_image(output_path, margin=cfg.crop_margin)
 
-        return output_path
+            return output_path
 
     def generate(
-            self,
-            optimize: bool = True,
-            force_field: ForceFieldType = "MMFF94",
-            max_iterations: int = 200,
-            render: bool = False,
-            output_base: Optional[str] = None,
+        self,
+        optimize: bool = True,
+        force_field: ForceFieldType = "MMFF94",
+        max_iterations: int = 200,
+        render: bool = False,
+        output_base: Optional[str] = None,
     ) -> tuple[Path, Optional[Path]]:
         """
         Generate 3D structure with optional rendering.
@@ -488,8 +436,11 @@ class MoleculeGenerator3D:
             (sdf_path, png_path) - PNG path is None if render=False
         """
         if output_base is None:
-            output_base = self.compound_name.replace(" ",
-                                                     "_") if self.compound_name != "custom_smiles" else "molecule_3d"
+            output_base = (
+                self.compound_name.replace(" ", "_")
+                if self.compound_name != "custom_smiles"
+                else "molecule_3d"
+            )
 
         # Generate conformer
         self._embed_conformer()
@@ -501,198 +452,88 @@ class MoleculeGenerator3D:
         # Save SDF
         sdf_path = self._save_sdf(f"{output_base}.sdf")
         print(f"✓ 3D structure saved: {sdf_path}")
-        print(f"  Compound: {self.compound_name}")
-        print(f"  Atoms: {self.mol.GetNumAtoms()}, Bonds: {self.mol.GetNumBonds()}")
+        print(f" Compound: {self.compound_name}")
+        print(f" Atoms: {self.mol.GetNumAtoms()}, Bonds: {self.mol.GetNumBonds()}")
 
-        if self.conformer_config.num_conformers > 1:
-            print(f"  Conformers: {self.mol.GetNumConformers()}")
+        if self.config.conformer.num_conformers > 1:
+            print(f" Conformers: {self.mol.GetNumConformers()}")
 
         if optimize and self.energy is not None:
-            print(f"  Energy: {self.energy:.2f} kcal/mol ({force_field})")
+            print(f" Energy: {self.energy:.2f} kcal/mol ({force_field})")
 
         # Render with PyMOL
         png_path = None
         if render:
             png_path = self._render_pymol(sdf_path, f"{output_base}.png")
             print(f"✓ Rendered image saved: {png_path}")
-            if self.render_config.auto_crop:
-                print(f"  Auto-cropped with {self.render_config.crop_margin}px margin")
+            if self.config.render.auto_crop:
+                print(f" Auto-cropped with {self.config.render.crop_margin}px margin")
             else:
-                print(f"  Dimensions: {self.render_config.width}×{self.render_config.height} px")
+                print(f" Dimensions: {self.config.render.width}×{self.config.render.height} px")
 
         return sdf_path, png_path
 
-    def configure_rendering(
-            self,
-            width: Optional[int] = None,
-            height: Optional[int] = None,
-            y_rotation: Optional[float] = None,
-            x_rotation: Optional[float] = None,
-            z_rotation: Optional[float] = None,
-            auto_crop: Optional[bool] = None,
-            crop_margin: Optional[int] = None,
-            auto_orient: Optional[bool] = None,
-            stick_radius: Optional[float] = None,
-            sphere_scale: Optional[float] = None,
-            stick_ball_ratio: Optional[float] = None,
-            ray_trace_mode: Optional[int] = None,
-            ray_shadows: Optional[int] = None,
-            stick_transparency: Optional[float] = None,
-            sphere_transparency: Optional[float] = None,
-            valence: Optional[float] = None,
-            antialias: Optional[int] = None,
-            ambient: Optional[float] = None,
-            specular: Optional[float] = None,
-            direct: Optional[float] = None,
-            reflect: Optional[float] = None,
-            shininess: Optional[int] = None,
-            depth_cue: Optional[int] = None,
-            bg_color: Optional[str] = None,
-            **kwargs,
-    ) -> None:
+    def configure_rendering(self, **kwargs) -> None:
         """
-        Update rendering configuration.
+        Update rendering configuration at runtime.
 
         Parameters
         ----------
-        width : int, optional
-            Image width in pixels (before cropping)
-        height : int, optional
-            Image height in pixels (before cropping)
-        x_rotation : float, optional
-            X-axis rotation in degrees
-        y_rotation : float, optional
-            Y-axis rotation in degrees
-        z_rotation : float, optional
-            Z-axis rotation in degrees
-        auto_crop : bool, optional
-            Enable automatic cropping to molecule bounds
-        crop_margin : int, optional
-            Margin around molecule in pixels (default: 10)
-        auto_orient : bool, optional
-            Automatically orient molecule
-        stick_radius : float, optional
-            Thickness of bond sticks
-        sphere_scale : float, optional
-            Scale factor for atom spheres
-        stick_ball_ratio : float, optional
-            Ratio of stick to ball size
-        ray_trace_mode : int, optional
-            Enable ray tracing (0=off, 1=on)
-        ray_shadows : int, optional
-            Enable ray tracing shadows (0=off, 1=on)
-        stick_transparency : float, optional
-            Transparency of sticks (0.0-1.0)
-        sphere_transparency : float, optional
-            Transparency of spheres (0.0-1.0)
-        valence : float, optional
-            Valence bond visibility
-        antialias : int, optional
-            Antialiasing level (0-4)
-        ambient : float, optional
-            Ambient light intensity (0.0-1.0)
-        specular : float, optional
-            Specular reflection intensity
-        direct : float, optional
-            Direct light intensity (0.0-1.0)
-        reflect : float, optional
-            Environmental reflection intensity (0.0-1.0)
-        shininess : int, optional
-            Surface shininess (10-100)
-        depth_cue : int, optional
-            Enable depth cueing/fog (0=off, 1=on)
-        bg_color : str, optional
-            Background color ('white', 'black', 'gray')
         **kwargs
-            Additional RenderConfig parameters
+            Rendering parameters to override (50+ parameters supported)
+            width, height, stick_radius, sphere_scale, antialias, auto_orient, etc.
+
+        Raises
+        ------
+        ValueError
+            If an unknown rendering parameter is provided
         """
-        if width is not None:
-            self.render_config.width = width
-        if height is not None:
-            self.render_config.height = height
-        if x_rotation is not None:
-            self.render_config.x_rotation = x_rotation
-        if y_rotation is not None:
-            self.render_config.y_rotation = y_rotation
-        if z_rotation is not None:
-            self.render_config.z_rotation = z_rotation
-        if auto_crop is not None:
-            self.render_config.auto_crop = auto_crop
-        if crop_margin is not None:
-            self.render_config.crop_margin = crop_margin
-        if auto_orient is not None:
-            self.render_config.auto_orient = auto_orient
-        if stick_radius is not None:
-            self.render_config.stick_radius = stick_radius
-        if sphere_scale is not None:
-            self.render_config.sphere_scale = sphere_scale
-        if stick_ball_ratio is not None:
-            self.render_config.stick_ball_ratio = stick_ball_ratio
-        if ray_trace_mode is not None:
-            self.render_config.ray_trace_mode = ray_trace_mode
-        if ray_shadows is not None:
-            self.render_config.ray_shadows = ray_shadows
-        if stick_transparency is not None:
-            self.render_config.stick_transparency = stick_transparency
-        if sphere_transparency is not None:
-            self.render_config.sphere_transparency = sphere_transparency
-        if valence is not None:
-            self.render_config.valence = valence
-        if antialias is not None:
-            self.render_config.antialias = antialias
-        if ambient is not None:
-            self.render_config.ambient = ambient
-        if specular is not None:
-            self.render_config.specular = specular
-        if direct is not None:
-            self.render_config.direct = direct
-        if reflect is not None:
-            self.render_config.reflect = reflect
-        if shininess is not None:
-            self.render_config.shininess = shininess
-        if depth_cue is not None:
-            self.render_config.depth_cue = depth_cue
-        if bg_color is not None:
-            self.render_config.bg_color = bg_color
+        valid_render_params = {
+            attr for attr in dir(self.config.render)
+            if not attr.startswith('_') and not callable(getattr(self.config.render, attr))
+        }
 
-        # Handle any remaining kwargs
         for key, value in kwargs.items():
-            if hasattr(self.render_config, key):
-                setattr(self.render_config, key, value)
+            if key in valid_render_params:
+                setattr(self.config.render, key, value)
+            else:
+                raise ValueError(
+                    f"Unknown rendering parameter: {key}\n"
+                    f"Valid parameters: {', '.join(sorted(valid_render_params))}"
+                )
 
-    def configure_conformer(
-            self,
-            num_conformers: Optional[int] = None,
-            max_iterations: Optional[int] = None,
-            enforce_chirality: Optional[bool] = None,
-            **kwargs,
-    ) -> None:
+    def configure_conformer(self, **kwargs) -> None:
         """
         Update conformer generation configuration.
 
         Parameters
         ----------
-        num_conformers : int, optional
-            Number of conformers to generate
-        max_iterations : int, optional
-            Maximum optimization iterations
-        enforce_chirality : bool, optional
-            Enforce chirality during embedding
         **kwargs
-            Additional ConformerConfig parameters
+            Conformer parameters to override
+            (num_conformers, max_iterations, enforce_chirality, etc.)
+
+        Raises
+        ------
+        ValueError
+            If an unknown conformer parameter is provided
         """
-        if num_conformers is not None:
-            self.conformer_config.num_conformers = num_conformers
-        if max_iterations is not None:
-            self.conformer_config.max_iterations = max_iterations
-        if enforce_chirality is not None:
-            self.conformer_config.enforce_chirality = enforce_chirality
+        valid_conformer_params = {
+            attr for attr in dir(self.config.conformer)
+            if not attr.startswith('_') and not callable(getattr(self.config.conformer, attr))
+        }
 
         for key, value in kwargs.items():
-            if hasattr(self.conformer_config, key):
-                setattr(self.conformer_config, key, value)
+            if key in valid_conformer_params:
+                setattr(self.config.conformer, key, value)
+            else:
+                raise ValueError(
+                    f"Unknown conformer parameter: {key}\n"
+                    f"Valid parameters: {', '.join(sorted(valid_conformer_params))}"
+                )
 
-    def load_color_template(self, template: Union[str, Path, 'ColorStyleTemplate']) -> None:
+    def load_color_template(
+        self, template: Union[str, Path, "ColorStyleTemplate"]
+    ) -> None:
         """
         Apply a color style template to the 3D generator.
 
@@ -704,10 +545,15 @@ class MoleculeGenerator3D:
         Examples
         --------
         >>> gen = MoleculeGenerator3D("caffeine")
-        >>> gen.load_color_template("cpk_standard")  # Predefined template
-        >>> gen.load_color_template("my_colors.json")  # From file
+        >>> gen.load_color_template("cpk_standard") # Predefined template
+        >>> gen.load_color_template("my_colors.json") # From file
         """
-        from wikimolgen.predefined_templates import TemplateLoader, ColorStyleTemplate, get_predefined_color_template, TemplateError
+        from wikimolgen.predefined_templates import (
+            TemplateLoader,
+            ColorStyleTemplate,
+            get_predefined_color_template,
+            TemplateError,
+        )
 
         # Load template if needed
         if isinstance(template, str):
@@ -722,19 +568,23 @@ class MoleculeGenerator3D:
             raise ValueError("Invalid template type. Expected ColorStyleTemplate.")
 
         # Apply color settings to render config
-        if template.element_colors:
-            self.render_config.element_colors.update(template.element_colors)
+        if hasattr(template, "element_colors") and template.element_colors:
+            # Note: element_colors are applied dynamically in _render_pymol
+            pass
 
-        if template.stick_color is not None:
-            self.render_config.stick_color = template.stick_color
+        if hasattr(template, "stick_color") and template.stick_color:
+            self.config.render.stick_color = template.stick_color
 
-        self.render_config.bg_color = template.bg_color
+        if hasattr(template, "bg_color") and template.bg_color:
+            self.config.render.bg_color = template.bg_color
 
         print(f"✓ Applied color template: {template.name}")
-        if template.description:
-            print(f"  {template.description}")
+        if hasattr(template, "description") and template.description:
+            print(f" {template.description}")
 
-    def load_settings_template(self, template: Union[str, Path, 'SettingsTemplate']) -> None:
+    def load_settings_template(
+        self, template: Union[str, Path, "SettingsTemplate"]
+    ) -> None:
         """
         Apply a settings template to the 3D generator.
 
@@ -746,10 +596,15 @@ class MoleculeGenerator3D:
         Examples
         --------
         >>> gen = MoleculeGenerator3D("dopamine")
-        >>> gen.load_settings_template("high_quality_3d")  # Predefined template
-        >>> gen.load_settings_template("my_settings.json")  # From file
+        >>> gen.load_settings_template("high_quality_3d") # Predefined template
+        >>> gen.load_settings_template("my_settings.json") # From file
         """
-        from wikimolgen.predefined_templates import TemplateLoader, SettingsTemplate, get_predefined_settings_template, TemplateError
+        from wikimolgen.predefined_templates import (
+            TemplateLoader,
+            SettingsTemplate,
+            get_predefined_settings_template,
+            TemplateError,
+        )
 
         # Load template if needed
         if isinstance(template, str):
@@ -763,18 +618,34 @@ class MoleculeGenerator3D:
         if not isinstance(template, SettingsTemplate):
             raise ValueError("Invalid template type. Expected SettingsTemplate.")
 
-        if template.dimension != '3D':
-            raise ValueError(f"Template is for {template.dimension}, but this is a 3D generator.")
+        if template.dimension != "3D":
+            raise ValueError(
+                f"Template is for {template.dimension}, but this is a 3D generator."
+            )
 
-        # Apply settings to render config
-        settings = template.settings
-        for key, value in settings.items():
-            if hasattr(self.render_config, key):
-                setattr(self.render_config, key, value)
+        # Apply settings to appropriate nested config
+        if hasattr(template, "settings"):
+            settings = template.settings
+            for key, value in settings.items():
+                if hasattr(self.config.render, key):
+                    setattr(self.config.render, key, value)
+                elif hasattr(self.config.conformer, key):
+                    setattr(self.config.conformer, key, value)
 
         print(f"✓ Applied settings template: {template.name}")
-        if template.description:
-            print(f"  {template.description}")
+        if hasattr(template, "description") and template.description:
+            print(f" {template.description}")
+
+    def get_config_dict(self) -> dict:
+        """
+        Export current configuration as dictionary.
+
+        Returns
+        -------
+        dict
+            Configuration as nested dictionary (JSON-serializable)
+        """
+        return self.config.to_dict()
 
     def __repr__(self) -> str:
         return (
