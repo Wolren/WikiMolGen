@@ -6,12 +6,11 @@ Protein structure fetching and visualization using Biotite, PyMOL, and NGLView.
 Supports PDB structures, protein-ligand complexes, and publication-quality rendering.
 """
 
+import tempfile
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
 from typing import Optional, Dict, Tuple, List
-import tempfile
-from enum import Enum
-import sys
 
 # Try to import optional dependencies gracefully
 HAS_BIOTITE = False
@@ -19,35 +18,12 @@ HAS_PYMOL = False
 HAS_NGLVIEW = False
 HAS_PIL = False
 
-try:
-    import biotite.database.rcsb as rcsb
-    import biotite.structure.io.pdb as pdb
-    HAS_BIOTITE = True
-except ImportError:
-    pass
+import biotite.database.rcsb as rcsb
+import biotite.structure.io.pdb as pdb
 
-try:
-    from pymol import cmd as pymol_cmd
-    from pymol import finish_launching
-    HAS_PYMOL = True
-except ImportError:
-    try:
-        import pymol2
-        HAS_PYMOL = True
-    except ImportError:
-        pass
-
-try:
-    import nglview as nv
-    HAS_NGLVIEW = True
-except ImportError:
-    pass
-
-try:
-    from PIL import Image, ImageEnhance
-    HAS_PIL = True
-except ImportError:
-    pass
+from pymol import cmd
+import nglview as nv
+from PIL import Image, ImageEnhance
 
 
 def hex_to_rgb(hex_color: str) -> Tuple[float, float, float]:
@@ -86,10 +62,6 @@ def autocrop_image(image_path: Path, margin: int = 10, contrast_factor: float = 
     contrast_factor : float
         Contrast enhancement factor (default: 1.15)
     """
-    if not HAS_PIL:
-        print("⚠ PIL not available - skipping autocrop")
-        return
-
     if not image_path.exists():
         print(f"⚠ Image file not found: {image_path}")
         return
@@ -122,17 +94,7 @@ def autocrop_image(image_path: Path, margin: int = 10, contrast_factor: float = 
 
 def initialize_pymol() -> None:
     """Initialize PyMOL in headless mode (no GUI)."""
-    try:
-        from pymol import cmd
-        # Check if already initialized
-        cmd.reinitialize()
-    except Exception:
-        # Try pymol2 alternative
-        try:
-            import pymol2
-            pymol2.PyMOL()
-        except Exception:
-            pass
+    cmd.reinitialize()
 
 
 class ProteinVisualizationError(Exception):
@@ -239,10 +201,6 @@ class ProteinStructureMetadata:
 class BiotiteStructureProvider:
     """Fetch protein structures using Biotite/RCSB PDB."""
 
-    def is_available(self) -> bool:
-        """Check if Biotite is available."""
-        return HAS_BIOTITE
-
     def fetch_structure(self, pdb_id: str) -> Tuple[Path, ProteinStructureMetadata]:
         """Fetch PDB structure from RCSB database.
 
@@ -261,12 +219,6 @@ class BiotiteStructureProvider:
         ProteinFetchError
             If Biotite not available or fetch fails
         """
-        if not HAS_BIOTITE:
-            raise ProteinFetchError(
-                "Biotite not installed. Install with:\n"
-                "  conda install -c conda-forge biotite\n"
-                "  or: pip install biotite"
-            )
 
         try:
             pdb_id = pdb_id.upper()
@@ -364,13 +316,6 @@ class ProteinGenerator:
         ProteinFetchError
             If provider not available or fetch fails
         """
-        if not self.provider.is_available():
-            raise ProteinFetchError(
-                "Biotite provider not available. Install with:\n"
-                "  conda install -c conda-forge biotite\n"
-                "  or: pip install biotite"
-            )
-
         self.pdb_path, self.metadata = self.provider.fetch_structure(self.pdb_id)
         print(f"✓ Fetched {self.pdb_id}")
         print(f"  Chains: {', '.join(self.metadata.chains)}")
@@ -410,12 +355,6 @@ class ProteinGenerator:
         ProteinVisualizationError
             If PyMOL not available or rendering fails
         """
-        if not HAS_PYMOL:
-            raise ProteinVisualizationError(
-                "PyMOL not installed. Install with:\n"
-                "  conda install -c conda-forge pymol-open-source\n"
-                "  or: pip install pymol-open-source"
-            )
 
         output_path = Path(output)
 
@@ -553,10 +492,6 @@ class ProteinNGLViewRenderer:
         ImportError
             If NGLView not available
         """
-        if not HAS_NGLVIEW:
-            raise ImportError(
-                "NGLView not installed. Install with: pip install nglview"
-            )
 
         self.pdb_id = pdb_id.upper()
         self.view = None
@@ -684,19 +619,3 @@ def get_optimal_dynorphin_kor_view() -> Dict:
 if __name__ == "__main__":
     print("WikiMolGen Protein Visualization Module")
     print("=" * 50)
-
-    print(f"\nDependency Status:")
-    print(f"  Biotite: {'✓ Available' if HAS_BIOTITE else '✗ Not available'}")
-    print(f"  PyMOL: {'✓ Available' if HAS_PYMOL else '✗ Not available'}")
-    print(f"  NGLView: {'✓ Available' if HAS_NGLVIEW else '✗ Not available'}")
-    print(f"  PIL: {'✓ Available' if HAS_PIL else '✗ Not available'}")
-
-    if not HAS_BIOTITE or not HAS_PYMOL:
-        print("\n⚠️  Required dependencies not installed.")
-        print("\nInstall with:")
-        print("  conda install -c conda-forge biotite pymol-open-source")
-        print("  pip install nglview pillow")
-    else:
-        print("\n✓ All dependencies available!")
-        print("\nExample usage:")
-        print("  gen = ProteinGenerator('8F7W')")
