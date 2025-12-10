@@ -53,6 +53,7 @@ class RenderConfig3D:
 
     # Rendering
     auto_orient_2d: bool = True
+    acs_mode: bool = True
     auto_orient_3d: bool = True
     width: int = 1800
     height: int = 1400
@@ -121,6 +122,7 @@ class Config3D:
 class Config2D:
     """Configuration for 2D molecular rendering."""
     auto_orient_2d: bool = True
+    acs_mode: bool = True
     auto_orient_3d: bool = True
     angle_degrees: float = 0.0
     scale: float = 30.0
@@ -162,7 +164,7 @@ class Config2D:
         self.auto_orient_amines = True
         self.amine_target_angle = 90.0
         self.phenethylamine_target = 90.0
-        self.additional_atom_label_padding = 0.2
+        self.additional_atom_label_padding = 0.1
 
 
 @dataclass

@@ -1,12 +1,6 @@
 """
-web/ui/components.py - UPDATED with Cookie & Config Support
+web/ui/components.py
 ==============================================================
-
-Updated version with:
-  ✅ Cookie loading at startup
-  ✅ Cookie saving on config changes
-  ✅ Config extraction from session state
-  ✅ Backward compatible with old app.py
 """
 
 import json
@@ -22,67 +16,6 @@ from template.utils import (
 from wikimolgen.predefined_templates import list_predefined_templates
 
 logger = logging.getLogger(__name__)
-
-
-# ============================================================================
-# CONFIG LOADING (At app startup)
-# ============================================================================
-
-def load_config_from_cookies_on_startup(dimension: str = "2d") -> None:
-    """
-    Load configuration from cookies at app startup.
-
-    Call this ONCE at the beginning of your app.py main() function.
-
-    Example:
-        def main():
-            load_config_from_cookies_on_startup("2d")
-            # Rest of app...
-
-    Parameters
-    ----------
-    dimension : str
-        "2d", "3d", or "protein"
-    """
-
-    last_loaded_mode = st.session_state.get("last_loaded_mode", None)
-    if last_loaded_mode == dimension:
-        return
-
-    try:
-        from session.config_manager import ConfigSessionManager
-
-        # Try to load from cookies if they exist
-        manager = ConfigSessionManager(config_type=dimension)
-
-        # Get cookie from browser if available
-        # (Streamlit-specific: use extra_streamlit_args or direct access)
-        # For now, we'll check session state for cookie data
-
-        if f"config_{dimension}" not in st.session_state:
-            logger.info(f"No saved config for {dimension}, using defaults")
-            return
-
-        saved_config_json = st.session_state.get(f"config_{dimension}")
-        if not saved_config_json:
-            return
-
-        try:
-            # Load from cookie
-            config = manager.init_from_cookie_or_default(saved_config_json)
-
-            # Apply values to session state
-            if hasattr(config, 'to_dict'):
-                config_dict = config.to_dict()
-                for key, value in config_dict.items():
-                    if key in st.session_state:
-                        st.session_state[key] = value
-                logger.info(f"Loaded {dimension} config from cookie")
-        except Exception as e:
-            logger.warning(f"Failed to load config: {e}")
-    except ImportError:
-        logger.debug("ConfigSessionManager not available, skipping cookie load")
-
 
 # ============================================================================
 # CONFIG SAVING (On setting changes)
@@ -106,95 +39,6 @@ def save_config_to_session(dimension: str = "2d") -> None:
     st.session_state.config_changed = True
     st.session_state.last_changed_dimension = dimension
 
-
-def finalize_and_save_config(dimension: str = "2d") -> bool:
-    """
-    Finalize config changes and save to cookies.
-
-    Call this BEFORE rendering structures or at end of app.
-
-    Returns True if saved, False otherwise.
-
-    Example:
-        if st.button("Generate"):
-            finalize_and_save_config("2d")
-            # Render...
-
-    Parameters
-    ----------
-    dimension : str
-        "2d", "3d", or "protein"
-
-    Returns
-    -------
-    bool
-        True if config was saved to cookies
-    """
-    if not st.session_state.get("config_changed", False):
-        return False
-
-    try:
-        from session.config_manager import ConfigSessionManager
-
-        manager = ConfigSessionManager(config_type=dimension)
-
-        # Extract current settings from session state
-        if dimension == "2d":
-            config_dict = {
-                "scale": st.session_state.get("scale", 30.0),
-                "margin": st.session_state.get("margin", 0.8),
-                "bond_length": st.session_state.get("bond_length", 50.0),
-                "min_font_size": st.session_state.get("min_font_size", 36),
-                "padding": st.session_state.get("padding", 0.07),
-                "use_bw_palette": st.session_state.get("use_bw_palette", True),
-                "transparent_background": st.session_state.get("transparent_background", True),
-                "auto_orient_2d": st.session_state.get("auto_orient_2d", False),
-                "angle_degrees": st.session_state.get("angle_degrees", 0),
-            }
-        elif dimension == "3d":
-            config_dict = {
-                "width": st.session_state.get("width", 1800),
-                "height": st.session_state.get("height", 1600),
-                "stick_radius": st.session_state.get("stick_radius", 0.2),
-                "sphere_scale": st.session_state.get("sphere_scale", 0.3),
-                "stick_ball_ratio": st.session_state.get("stick_ball_ratio", 1.8),
-                "ambient": st.session_state.get("ambient", 0.25),
-                "specular": st.session_state.get("specular", 1.0),
-                "direct": st.session_state.get("direct", 0.45),
-                "reflect": st.session_state.get("reflect", 0.45),
-                "shininess": st.session_state.get("shininess", 30),
-                "auto_orient_3d": st.session_state.get("auto_orient_3d", False),
-                "ray_trace": st.session_state.get("ray_trace", False),
-                "antialias": st.session_state.get("antialias", 2),
-            }
-        else:
-            config_dict = {}
-
-        # Create mock config object with proper to_dict method
-        class MockConfig:
-            def to_dict(self):
-                return config_dict
-
-        config_obj = MockConfig()
-
-        # Serialize
-        cookie_json = manager.serialize_for_cookie(config_obj)
-
-        # Store in session
-        st.session_state[f"config_{dimension}"] = cookie_json
-        st.session_state.config_changed = False
-
-        logger.info(f"Saved {dimension} config to session")
-        return True
-
-    except Exception as e:
-        logger.warning(f"Failed to save config: {e}")
-        return False
-
-    finally:
-        # CRITICAL: Update mode tracking
-        st.session_state.last_loaded_mode = dimension
-
 # ============================================================================
 # ORIGINAL COMPONENTS (Unchanged)
 # ============================================================================
@@ -205,7 +49,7 @@ def render_compound_input() -> str:
 
 
 def render_template_manager() -> None:
-    """Render template management UI with cookie support."""
+    """Render template management UI"""
     with st.expander("📁 Templates", expanded=False):
         st.markdown("**Manage Templates:**")
         tab1, tab2, tab3 = st.tabs(["Predefined", "Upload", "Save"])
@@ -313,7 +157,7 @@ def render_template_manager() -> None:
                 st.session_state.get("uploaded_settings_template") is not None
             ):
                 st.divider()
-                if st.button("🔄 Reset Loaded Template", use_container_width=True):
+                if st.button("Reset Loaded Template", use_container_width=True):
                     st.session_state.uploaded_color_template = None
                     st.session_state.uploaded_settings_template = None
                     st.session_state.template_applied_once = False
@@ -324,7 +168,7 @@ def render_template_manager() -> None:
                         "scale": 30.0,
                         "margin": 0.8,
                         "bond_length": 50.0,
-                        "min_font_size": 36,
+                        "min_font_size": 32,
                         "padding": 0.07,
                         "use_bw_palette": True,
                         "transparent_background": True,
@@ -349,7 +193,7 @@ def render_template_manager() -> None:
 
         with tab3:
             st.markdown("**Save Current Settings as Template**")
-            gen_type = st.session_state.get("structure_type", "2D")
+            gen_type = st.session_state.get("structure_type", "3D")
 
             # Custom filename input
             save_filename = st.text_input(
@@ -390,7 +234,7 @@ def render_mode_selector() -> str:
     """Render 2D/3D mode selector."""
     structure_type = st.radio(
         "Mode",
-        ["2D", "3D", "Protein"],
+        ["3D", "2D", "Protein"],
         horizontal=True,
         label_visibility="collapsed"
     )
@@ -404,17 +248,24 @@ def render_2d_settings() -> None:
 
     # Auto-orient checkbox
     auto_orient_2d = st.checkbox(
-        "Auto-Orient",
+        "Auto orient",
         value=False,
         key="auto_orient_2d",
         help="Automatically find optimal viewing angle"
+    )
+
+    ACS_mode = st.checkbox(
+        "ACS Mode (overrides custom settings)",
+        value=True,
+        key="acs_mode",
+        help="Applies wikipedia compliant settings"
     )
 
     # Manual rotation (if not auto-orient)
     if not auto_orient_2d:
         angle_degrees = st.slider(
             "Rotation (°)",
-            0, 360, 180, 5,
+            0, 360, 0, 5,
             key="angle_degrees",
         )
     else:
@@ -466,7 +317,7 @@ def render_2d_settings() -> None:
             save_config_to_session("2d")
 
             additional_atom_label_padding = st.slider(
-                "Label padding", 0.0, 1.0, 0.2, 0.1,
+                "Label padding", 0.0, 1.0, 0.1, 0.1,
                 key="additional_atom_label_padding",
             )
             save_config_to_session("2d")

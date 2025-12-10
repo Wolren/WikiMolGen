@@ -12,16 +12,10 @@ from enum import Enum
 from pathlib import Path
 from typing import Optional, Dict, Tuple, List
 
-# Try to import optional dependencies gracefully
-HAS_BIOTITE = False
-HAS_PYMOL = False
-HAS_NGLVIEW = False
-HAS_PIL = False
-
+import pymol
 import biotite.database.rcsb as rcsb
 import biotite.structure.io.pdb as pdb
 
-from pymol import cmd
 import nglview as nv
 from PIL import Image, ImageEnhance
 
@@ -94,6 +88,7 @@ def autocrop_image(image_path: Path, margin: int = 10, contrast_factor: float = 
 
 def initialize_pymol() -> None:
     """Initialize PyMOL in headless mode (no GUI)."""
+    cmd = pymol.cmd
     cmd.reinitialize()
 
 
@@ -360,8 +355,8 @@ class ProteinGenerator:
 
         try:
             # Initialize PyMOL (headless mode, no GUI)
-            from pymol import cmd
             initialize_pymol()
+            cmd = pymol.cmd
 
             # Load structure
             cmd.load(str(self.pdb_path), "protein")

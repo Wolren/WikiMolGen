@@ -1,11 +1,8 @@
 """
-web/session/config_manager.py
+web/session/config.py
 
 Session management for web UI with config persistence.
-Handles template selection, user changes, and cookie storage.
-
-⚠️  This is WEB-SPECIFIC. Do not import in core wikimolgen package.
-Use wikimolgen.configs.ConfigLoader in the core package instead.
+Handles template selection and user changes
 """
 
 import json
@@ -37,32 +34,6 @@ class ConfigSessionManager:
         self.metadata_key = "_metadata"
         logger.info(f"ConfigSessionManager initialized for {config_type}")
 
-    def init_from_cookie_or_default(self, cookie_value: Optional[str] = None):
-        """
-        Initialize config from cookie or return default.
-
-        Tries to load from cookie first. If cookie is invalid,
-        returns default config without error.
-
-        Parameters
-        ----------
-        cookie_value : str, optional
-            JSON string from cookie
-
-        Returns
-        -------
-        Config2D, Config3D, or ConfigProtein
-            Initialized configuration
-        """
-        if cookie_value:
-            try:
-                return self.deserialize_from_cookie(cookie_value)
-            except (json.JSONDecodeError, ValueError, KeyError) as e:
-                logger.warning(f"Failed to load config from cookie: {e}. Using defaults.")
-                return self._get_default_config()
-
-        return self._get_default_config()
-
     def load_template(self, template_name: str):
         """
         Load predefined template using core ConfigLoader.
@@ -84,81 +55,6 @@ class ConfigSessionManager:
         """
         cfg = ConfigLoader.load_template(template_name)
         logger.info(f"Loaded template: {template_name}")
-        return cfg
-
-    def serialize_for_cookie(self, config, template_name: Optional[str] = None) -> str:
-        """
-        Serialize config to JSON for cookie storage.
-
-        Includes metadata (saved timestamp, template name, version).
-        Result is a JSON string suitable for HTTP cookies.
-
-        Parameters
-        ----------
-        config : Config2D, Config3D, or ConfigProtein
-            Configuration to serialize
-        template_name : str, optional
-            Template name (for tracking usage)
-
-        Returns
-        -------
-        str
-            JSON string for cookie
-        """
-        data = {
-            "config": config.to_dict(),
-            "type": self.config_type,
-            self.metadata_key: {
-                "saved_at": datetime.now().isoformat(),
-                "template": template_name or "custom",
-                "version": "1.0",
-            }
-        }
-
-        json_str = json.dumps(data)
-        logger.debug(f"Serialized config to {len(json_str)} bytes")
-        return json_str
-
-    def deserialize_from_cookie(self, cookie_json: str):
-        """
-        Deserialize config from cookie JSON.
-
-        Handles backward compatibility: if cookie has missing fields,
-        they're filled with defaults.
-
-        Parameters
-        ----------
-        cookie_json : str
-            JSON string from cookie
-
-        Returns
-        -------
-        Config2D, Config3D, or ConfigProtein
-            Restored configuration
-
-        Raises
-        ------
-        json.JSONDecodeError
-            If JSON is invalid
-        ValueError
-            If config reconstruction fails
-        """
-        data = json.loads(cookie_json)
-        config_dict = data.get("config", {})
-        config_type = data.get("type", self.config_type)
-
-        # Log metadata
-        metadata = data.get(self.metadata_key, {})
-        if metadata:
-            logger.info(
-                f"Deserializing config from {metadata.get('saved_at')} "
-                f"(template: {metadata.get('template')})"
-            )
-
-        # Reconstruct config with overrides
-        cfg = self._get_config_with_overrides(config_dict)
-        logger.debug(f"Deserialized config successfully")
-
         return cfg
 
     def export_to_file(self, config, filepath: str) -> str:
@@ -293,8 +189,6 @@ class ConfigSessionManager:
         cfg = self._get_config_with_overrides(merged)
         logger.info(f"Merged config with {len(user_overrides)} overrides")
         return cfg
-
-    # Private helpers
 
     def _get_default_config(self):
         """Get default config for configured type."""
