@@ -8,8 +8,9 @@ Usage:
     streamlit run web/app.py
 """
 
-from pathlib import Path
 import base64
+import tempfile
+from pathlib import Path
 
 import streamlit as st
 
@@ -26,8 +27,9 @@ from ui.components import (
     render_lighting_settings,
     render_effects_settings,
     render_auto_generate_checkbox,
-    render_generate_button, load_config_from_cookies_on_startup, finalize_and_save_config,
+    render_generate_button,
 )
+from ui.protein_web_component import render_protein_structure
 from wikipedia.boxes import render_wikipedia_metadata_section
 
 
@@ -40,9 +42,8 @@ def configure_page() -> None:
         initial_sidebar_state="expanded"
     )
 
-
 # Apply theme
-from template.themes_css import apply_theme
+from template.theme import apply_theme
 
 apply_theme()
 
@@ -55,11 +56,11 @@ st.markdown("""
            align-items: center;
            justify-content: center;
        }
-       
+
        .compound-preview-image-2d {
             filter: invert(1);
        }
-       
+
        .compound-preview-image[data-type="2D"] {
             max-width: 100%;
        }
@@ -69,7 +70,7 @@ st.markdown("""
             height: auto;
             max-width: 800px;
        }
-       
+
        .compound-preview-image {
             max-width: 100%;
             height: auto;
@@ -222,45 +223,40 @@ def render_protein_structure_dynamic(pdb_id: str, cartoon_cfg: dict, ligand_cfg:
     str
         HTML string with embedded base64 image, or None on error
     """
-    try:
-        from ui.protein_web_component import render_protein_structure
 
-        # Create output base in temp directory (like base_old.py does)
-        import tempfile
-        with tempfile.TemporaryDirectory() as tmpdir:
-            output_base = Path(tmpdir) / pdb_id
+    # Create output base in temp directory (like base_old.py does)
 
-            # Render protein structure
-            output_path = render_protein_structure(
-                pdb_id,
-                cartoon_cfg,
-                ligand_cfg,
-                canvas_cfg,
-                output_base,
-            )
+    with tempfile.TemporaryDirectory() as tmpdir:
+        output_base = Path(tmpdir) / pdb_id
 
-            # Encode and create HTML (same as base_old.py)
-            if output_path.exists():
-                img_base64, mime_type = encode_image_to_base64(output_path)
-                image_html = f'<img src="data:image/{mime_type};base64,{img_base64}" class="protein-preview-image" alt="Protein Structure">'
+        # Render protein structure
+        output_path = render_protein_structure(
+            pdb_id,
+            cartoon_cfg,
+            ligand_cfg,
+            canvas_cfg,
+            output_base,
+        )
 
-                # Read file data for download
-                with open(output_path, "rb") as f:
-                    file_data = f.read()
+        # Encode and create HTML (same as base_old.py)
+        if output_path.exists():
+            img_base64, mime_type = encode_image_to_base64(output_path)
+            image_html = f'<img src="data:image/{mime_type};base64,{img_base64}" class="protein-preview-image" alt="Protein Structure">'
 
-                # Update session state (same pattern as base_old.py)
-                st.session_state.last_protein_image_html = image_html
-                st.session_state.last_protein_pdb = pdb_id
-                st.session_state.last_protein_file_data = file_data
-                st.session_state.last_protein_file_name = output_path.name
+            # Read file data for download
+            with open(output_path, "rb") as f:
+                file_data = f.read()
 
-                return image_html
-            else:
-                st.error("Failed to generate protein structure image")
-                return None
-    except Exception as e:
-        st.error(f"Error rendering protein structure: {str(e)}")
-        return None
+            # Update session state (same pattern as base_old.py)
+            st.session_state.last_protein_image_html = image_html
+            st.session_state.last_protein_pdb = pdb_id
+            st.session_state.last_protein_file_data = file_data
+            st.session_state.last_protein_file_name = output_path.name
+
+            return image_html
+        else:
+            st.error("Failed to generate protein structure image")
+            return None
 
 
 def render_main_content(compound: str, structure_type: str, auto_generate: bool, protein_inputs: tuple = None) -> None:
@@ -311,7 +307,7 @@ def render_main_content(compound: str, structure_type: str, auto_generate: bool,
                         f'<div class="compound-preview-container">{image_html}</div>',
                         unsafe_allow_html=True
                     )
-                #finalize_and_save_config(structure_type.lower())
+                # finalize_and_save_config(structure_type.lower())
 
             elif st.session_state.get("last_image_html"):
                 # Show cached image in the same container
@@ -350,12 +346,11 @@ def render_main_content(compound: str, structure_type: str, auto_generate: bool,
 
             # Generate button always visible at top
             if st.button("Generate Protein Structure", use_container_width=True, key="protein_gen_btn"):
-                with st.spinner("Rendering protein structure..."):
-                    image_html = render_protein_structure_dynamic(pdb_id, cartoon_cfg, ligand_cfg, canvas_cfg)
+                image_html = render_protein_structure_dynamic(pdb_id, cartoon_cfg, ligand_cfg, canvas_cfg)
 
             # Show success message and metrics if rendered
             if st.session_state.get("last_protein_image_html"):
-                st.success(f"âœ“ Fetched {pdb_id}")
+                st.success(f"✓ Fetched {pdb_id}")
 
                 # Display metrics (data above image)
                 col1, col2, col3, col4 = st.columns(4)
@@ -475,7 +470,6 @@ def main() -> None:
     compound, structure_type, auto_generate, protein_inputs = render_sidebar()
 
     if st.session_state.get("last_structure_type") != structure_type:
-        load_config_from_cookies_on_startup(structure_type.lower())
         st.session_state.last_structure_type = structure_type
 
     # Render main content

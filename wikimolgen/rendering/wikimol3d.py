@@ -274,7 +274,6 @@ class MoleculeGenerator3D:
             cmd.show("spheres", "all")
             cmd.bg_color(cfg.bg_color)
 
-            # Apply element colors - CPK-based comprehensive coloring
             element_colors = {
                 # Common organic elements
                 "C": "gray25",  # Carbon - dark gray

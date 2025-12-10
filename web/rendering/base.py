@@ -6,14 +6,13 @@ Integrated rendering logic with session config management.
 
 Handles:
   - 2D/3D structure generation with session state
-  - Config persistence via ConfigSessionManager (cookies)
   - Template loading and user preferences
   - Dynamic file generation and download
   - Error handling with graceful fallbacks
 
 Dependencies:
   - Streamlit (web framework)
-  - ConfigSessionManager (session/config_manager.py)
+  - ConfigSessionManager (session/config.py)
   - MoleculeGenerator2D/3D (core wikimolgen)
 """
 
@@ -28,7 +27,7 @@ from typing import Dict, Any, Tuple, Optional, Literal
 from wikimolgen.rendering.wikimol2d import MoleculeGenerator2D
 from wikimolgen.rendering.wikimol3d import MoleculeGenerator3D
 
-from session.config_manager import ConfigSessionManager
+from session.config import ConfigSessionManager
 
 logger = logging.getLogger(__name__)
 
@@ -51,15 +50,16 @@ def init_session_state():
 
         # 2D Config
         "auto_orient_2d": True,
+        "acs_mode": True,
         "angle_degrees": 0.0,
         "scale": 30.0,
         "margin": 0.8,
         "bond_length": 50.0,
-        "min_font_size": 36,
+        "min_font_size": 32,
         "padding": 0.07,
         "use_bw": True,
         "transparent": True,
-        "additionalAtomLabelPadding": 0.2,
+        "additionalAtomLabelPadding": 0.1,
 
         # 3D Config
         "auto_orient_3d": True,
@@ -141,6 +141,7 @@ def build_2d_config() -> Dict[str, Any]:
         "use_bw_palette": st.session_state.get("use_bw", True),
         "transparent_background": st.session_state.get("transparent", True),
         "auto_orient_2d": auto_orient_2d,
+        "acs_mode": st.session_state.get("acs_mode", True),
         "additional_atom_label_padding": st.session_state.get("additional_atom_label_padding", 0.2),
     }
 
@@ -238,14 +239,18 @@ def encode_image_to_base64(image_path: Path) -> Tuple[str, str]:
     Tuple[str, str]
         (base64_string, mime_type)
     """
-    with open(image_path, "rb") as img_file:
-        img_base64 = base64.b64encode(img_file.read()).decode()
-
     # Determine MIME type
     if str(image_path).endswith(".svg"):
         mime_type = "svg+xml"
+        # Read SVG as text
+        with open(image_path, "r") as svg_file:
+            svg_content = svg_file.read()
+        img_base64 = base64.b64encode(svg_content.encode()).decode()
     else:
         mime_type = "png"
+        # Read binary
+        with open(image_path, "rb") as img_file:
+            img_base64 = base64.b64encode(img_file.read()).decode()
 
     return img_base64, mime_type
 
@@ -281,19 +286,10 @@ def apply_templates_to_generator(generator, structure_type: str):
         except Exception as e:
             logger.warning(f"Failed to apply template {template_name}: {e}")
 
+
 def render_structure_2d(compound: str, structure_type: str) -> Optional[str]:
     """
-    Render 2D molecular structure.
-
-    Parameters
-    ----------
-    compound : str
-        PubChem CID, compound name, or SMILES string
-
-    Returns
-    -------
-    Optional[str]
-        HTML string with embedded SVG image, or None on error
+    Render 2D molecular structure with fixed container sizing.
     """
     try:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -311,13 +307,25 @@ def render_structure_2d(compound: str, structure_type: str) -> Optional[str]:
             output_path = gen.draw(str(output_base.with_suffix(".svg")))
 
             if output_path and Path(output_path).exists():
+                # Read SVG and add viewBox for proper scaling
+                with open(output_path, "r") as f:
+                    svg_content = f.read()
+
+                import re
+
+                # Encode SVG as base64
                 img_base64, mime_type = encode_image_to_base64(Path(output_path))
                 data_type = f'data-type="{structure_type}"'
 
-                # Create HTML
+                # Create HTML with fixed container
                 image_html = (
+                    f'<div style="max-width: 800px; height: 500px; '
+                    f'display: flex; align-items: center; justify-content: center; '
+                    f'background: transparent;">'
                     f'<img src="data:image/{mime_type};base64,{img_base64}" '
-                    f'{data_type} class="compound-preview-image" />'
+                    f'{data_type} class="compound-preview-image" '
+                    f'style="width: 100%; height: 100%; object-fit: contain; display: block;" />'
+                    f'</div>'
                 )
 
                 # Store in session for download
@@ -330,7 +338,7 @@ def render_structure_2d(compound: str, structure_type: str) -> Optional[str]:
                 st.session_state.last_compound = compound
                 st.session_state.last_file_data = file_data
                 st.session_state.last_file_name = filename
-                st.session_state.last_file_mime = f"image/{mime_type}"
+                st.session_state.last_file_mime = "image/svg+xml"
                 st.session_state.rendered_structure = True
                 st.session_state.download_filename_input = filename
 

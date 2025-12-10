@@ -1,3 +1,3 @@
-from .config_manager import ConfigSessionManager
+from .config import ConfigSessionManager
 
 __all__ = ["ConfigSessionManager"]

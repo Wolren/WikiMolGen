@@ -205,16 +205,23 @@ class MoleculeGenerator2D:
             conf.SetAtomPosition(i, (newx, newy, 0.0))
 
         # Draw molecule
-        drawer = rdMolDraw2D.MolDraw2DSVG(width, height)
+        drawer = rdMolDraw2D.MolDraw2DSVG(-1, -1)
+        if not self.config.acs_mode:
+            drawer = rdMolDraw2D.MolDraw2DSVG(width, height)
+
         opts = drawer.drawOptions()
+
+        if self.config.acs_mode:
+            rdMolDraw2D.SetACS1996Mode(opts, rdMolDraw2D.MeanBondLength(self.mol))
+
+        if not self.config.acs_mode:
+            opts.fixedBondLength = self.config.bond_length
+            opts.padding = self.config.padding
+            opts.minFontSize = self.config.min_font_size
+            opts.additionalAtomLabelPadding = self.config.additional_atom_label_padding
 
         if self.config.use_bw_palette:
             opts.useBWAtomPalette()
-
-        opts.fixedBondLength = self.config.bond_length
-        opts.padding = self.config.padding
-        opts.minFontSize = self.config.min_font_size
-        opts.additionalAtomLabelPadding = self.config.additional_atom_label_padding
 
         if self.config.transparent_background:
             opts.setBackgroundColour((0, 0, 0, 0))
@@ -222,10 +229,14 @@ class MoleculeGenerator2D:
         rdMolDraw2D.PrepareAndDrawMolecule(drawer, self.mol)
         drawer.FinishDrawing()
 
-        # Get SVG and process
         svg = drawer.GetDrawingText()
         if self.config.transparent_background:
             svg = svg.replace("fill:white", "fill:none")
+
+        if self.config.acs_mode:
+            import re
+            svg = re.sub(r"width=['\"](\d+)px['\"]", lambda m: f'width="{int(m.group(1)) * 3}px"', svg)
+            svg = re.sub(r"height=['\"](\d+)px['\"]", lambda m: f'height="{int(m.group(1)) * 3}px"', svg)
 
         # Save file
         output_path = Path(output)

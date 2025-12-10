@@ -129,7 +129,7 @@ def render_protein_ligand_settings() -> Dict[str, Any]:
     with col1:
         config["show_ligand"] = st.checkbox(
             "Show Ligand",
-            value=True,
+            value=False,
             key="show_ligand",
             help="Display organic molecules (ligands) in the structure"
         )
@@ -291,8 +291,6 @@ def render_protein_structure(
     try:
         with st.spinner(f"Fetching PDB structure {pdb_id}..."):
             gen = ProteinGenerator(pdb_id)
-
-        st.success(f"✓ Fetched {pdb_id}")
 
         col1, col2, col3, col4 = st.columns(4)
         with col1:

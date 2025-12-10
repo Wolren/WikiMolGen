@@ -1,9 +1,3 @@
-"""
-Dark Forest Theme for WikiMolGen
-================================
-Streamlit CSS styling module for consistent theming across the application.
-"""
-
 DARK_FOREST_THEME_CSS = """
 <style>
     /* Dark forest theme */
@@ -188,6 +182,5 @@ DARK_FOREST_THEME_CSS = """
 
 
 def apply_theme(theme_name: str = DARK_FOREST_THEME_CSS):
-    """Apply the dark forest theme to the Streamlit app."""
     import streamlit as st
     st.markdown(theme_name, unsafe_allow_html=True)
