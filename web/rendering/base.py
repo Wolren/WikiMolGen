@@ -214,9 +214,14 @@ def generate_dynamic_filename(
         Clean filename without extension
     """
     # Sanitize compound name for filename
+    compound.replace("@", "at").replace("/", "sl").replace("\\", "bs").replace("#", "hash")
+
     safe_compound = "".join(
         c for c in compound if c.isalnum() or c in ('-', '_', ' ')
     ).strip()
+
+    if len(safe_compound) > 30:
+        safe_compound = safe_compound[:30]
 
     if not safe_compound or len(safe_compound) > 50:
         safe_compound = "structure"

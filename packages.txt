@@ -1,7 +1,7 @@
 libxrender1
 libxext6
 libsm6
-libgl1-mesa-glx
+libgl1
 libglu1-mesa
 libxkbcommon0
 libdbus-1-3

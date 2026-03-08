@@ -191,7 +191,7 @@ class ConfigProtein:
     ligand_single_color: str = "#FF6B6B"
     antialias: int = 2
     ray_trace: bool = False
-    ambient: float = 0.4
+    ambient: float = 0.2
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
@@ -228,7 +228,7 @@ class ConfigProtein:
         self.ligand_single_color = "#FF6B6B"
         self.antialias = 2
         self.ray_trace = False
-        self.ambient = 0.4
+        self.ambient = 0.2
 
 
 class ConfigLoader:
