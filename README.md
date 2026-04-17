@@ -22,7 +22,7 @@ Originally developed for generating molecular structure images for Wikipedia, Wi
 
 ---
 
-## 📦 Installation
+## Installation
 
 ### Basic Installation (2D only)
 ```bash
@@ -50,7 +50,7 @@ pip install -e ".[dev]"
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Python API
 
@@ -173,7 +173,7 @@ done
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 ### API Reference
 
