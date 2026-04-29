@@ -1,70 +1,109 @@
-# This workflow will upload a Python Package to PyPI when a release is created
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#publishing-to-package-registries
+# Publishes WikiMolGen to PyPI via OIDC Trusted Publishing.
+# Trigger: push of a version tag (v*.*.*) OR manual workflow_dispatch.
+#
+# Setup required (one-time):
+#   1. Go to https://pypi.org → Account → Publishing → Add a new pending publisher
+#      - PyPI project name : WikiMolGen
+#      - GitHub owner      : Wolren
+#      - GitHub repo       : WikiMolGen
+#      - Workflow filename : python-publish.yml
+#      - Environment name  : pypi
+#   2. Create a GitHub environment named "pypi" (repo Settings → Environments).
+#      Optionally add a required-reviewer protection rule there.
 
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-name: Upload Python Package
+name: Publish Python Package
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+*"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (build only, skip PyPI upload)"
+        required: false
+        default: "false"
+        type: choice
+        options: ["true", "false"]
 
 permissions:
   contents: read
 
 jobs:
-  release-build:
+  # ─────────────────────────────────────────────
+  # 1. Build sdist + wheel
+  # ─────────────────────────────────────────────
+  build:
+    name: Build distributions
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
+          fetch-depth: 0   # needed so setuptools-scm can read tags (if used later)
 
-      - name: Build release distributions
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # Sync the version in pyproject.toml to the pushed tag (e.g. v0.2.1 → 0.2.1).
+      # This is a no-op on manual workflow_dispatch runs that carry no tag.
+      - name: Patch version from git tag
+        if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          # NOTE: put your own distribution build steps here.
-          python -m pip install build
-          python -m build
+          TAG="${GITHUB_REF_NAME}"          # e.g. v0.2.1
+          VERSION="${TAG#v}"                 # strip leading 'v'
+          sed -i "s/^version = .*/version = \"${VERSION}\"/" pyproject.toml
+          echo "Building version ${VERSION}"
 
-      - name: Upload distributions
+      - name: Install build frontend
+        run: python -m pip install --upgrade build
+
+      - name: Build sdist and wheel
+        run: python -m build
+
+      - name: Verify distributions
+        run: |
+          python -m pip install --upgrade twine
+          python -m twine check --strict dist/*
+
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: release-dists
           path: dist/
+          retention-days: 7
 
-  pypi-publish:
+  # ─────────────────────────────────────────────
+  # 2. Publish to PyPI (OIDC – no API token needed)
+  # ─────────────────────────────────────────────
+  publish:
+    name: Publish to PyPI
     runs-on: ubuntu-latest
-    needs:
-      - release-build
-    permissions:
-      # IMPORTANT: this permission is mandatory for trusted publishing
-      id-token: write
+    needs: build
+    # Skip upload on dry-run
+    if: |
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'false')
 
-    # Dedicated environments with protections for publishing are strongly recommended.
-    # For more information, see: https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment#deployment-protection-rules
+    permissions:
+      id-token: write   # required for OIDC Trusted Publishing
+
     environment:
       name: pypi
-      # OPTIONAL: uncomment and update to include your PyPI project URL in the deployment status:
-      # url: https://pypi.org/p/wikimolgen
-      #
-      # ALTERNATIVE: if your GitHub Release name is the PyPI project version string
-      # ALTERNATIVE: exactly, uncomment the following line instead:
-      # url: https://pypi.org/project/YOURPROJECT/${{ github.event.release.name }}
+      url: https://pypi.org/project/WikiMolGen/
 
     steps:
-      - name: Retrieve release distributions
+      - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           name: release-dists
           path: dist/
 
-      - name: Publish release distributions to PyPI
+      - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
+          print-hash: true

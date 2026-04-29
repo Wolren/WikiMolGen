@@ -1,0 +1,135 @@
+# Validates and deploys the WikiMolGen Streamlit web app.
+#
+# Two deployment paths are supported — pick the one that matches your setup:
+#
+#   PATH A – Streamlit Community Cloud (default, zero-infra)
+#     The job validates the app can be imported cleanly.  Actual deployment is
+#     automatic: Streamlit Community Cloud watches this repo and redeploys on
+#     every push to main that touches web/** or requirements.txt.
+#     No secrets required for PATH A.
+#
+#   PATH B – Self-hosted server via SSH  (uncomment the "Deploy" step below)
+#     Requires three repository secrets:
+#       SSH_PRIVATE_KEY   – private key for the deploy user
+#       DEPLOY_HOST       – hostname or IP of the target server
+#       DEPLOY_USER       – SSH username
+#     The server is expected to run the app as a systemd service named
+#     "wikimolgen" (or adjust the restart command to match your setup).
+
+name: Deploy Streamlit Site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - "wikimolgen/**"
+      - "requirements.txt"
+      - "packages.txt"
+      - ".streamlit/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # ─────────────────────────────────────────────
+  # 1. Validate – import-check & syntax smoke test
+  # ─────────────────────────────────────────────
+  validate:
+    name: Validate Streamlit app
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # Install system packages listed in packages.txt (mirrors Streamlit Cloud)
+      - name: Install system packages
+        run: |
+          if [ -f packages.txt ]; then
+            sudo apt-get update -qq
+            xargs -a packages.txt sudo apt-get install -y -qq
+          fi
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          # Install the local package in editable mode so web/ can import wikimolgen
+          pip install -e .
+
+      - name: Syntax check – web app
+        run: python -m py_compile web/app.py
+
+      - name: Syntax check – wikimolgen package
+        run: |
+          find wikimolgen -name "*.py" | xargs python -m py_compile
+
+      - name: Import smoke test
+        run: |
+          python -c "
+          import sys, importlib
+          # Check the package itself loads cleanly
+          import wikimolgen
+          print('wikimolgen package OK:', wikimolgen.__file__)
+          "
+
+      # Optional: run pytest if tests exist
+      - name: Run tests (if present)
+        run: |
+          if [ -d tests ] || find . -name 'test_*.py' | grep -q .; then
+            pip install pytest
+            pytest --tb=short -q
+          else
+            echo "No tests found – skipping."
+          fi
+
+  # ─────────────────────────────────────────────
+  # 2. Deploy (PATH A – Streamlit Community Cloud)
+  # ─────────────────────────────────────────────
+  # Streamlit Community Cloud deploys automatically when this job succeeds.
+  # No extra steps needed — this job just signals readiness.
+  notify-streamlit-cloud:
+    name: Streamlit Cloud – ready to redeploy
+    runs-on: ubuntu-latest
+    needs: validate
+
+    steps:
+      - name: Deployment note
+        run: |
+          echo "✅ Validation passed."
+          echo "Streamlit Community Cloud will pick up changes from main automatically."
+          echo "App entry point : web/app.py"
+          echo "Requirements    : requirements.txt"
+          echo "System packages : packages.txt"
+
+  # ─────────────────────────────────────────────
+  # 2. Deploy (PATH B – self-hosted SSH deploy)
+  # Uncomment this entire job if you use your own server.
+  # ─────────────────────────────────────────────
+  # deploy-ssh:
+  #   name: Deploy to self-hosted server
+  #   runs-on: ubuntu-latest
+  #   needs: validate
+  #   environment:
+  #     name: production
+  #     url: https://your-domain.example.com
+  #
+  #   steps:
+  #     - name: Deploy via SSH
+  #       uses: appleboy/ssh-action@v1.0.3
+  #       with:
+  #         host: ${{ secrets.DEPLOY_HOST }}
+  #         username: ${{ secrets.DEPLOY_USER }}
+  #         key: ${{ secrets.SSH_PRIVATE_KEY }}
+  #         script: |
+  #           cd /opt/wikimolgen
+  #           git pull origin main
+  #           pip install -r requirements.txt -e .
+  #           sudo systemctl restart wikimolgen
