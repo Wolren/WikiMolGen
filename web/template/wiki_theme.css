@@ -28,11 +28,9 @@
     --code-text: #eaecf0;
     --header-bg: #101418;
     --header-border: #404348;
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
-[data-theme="light"] {
+.theme-light {
     --bg-primary: #ffffff;
     --bg-secondary: #f8f9fa;
     --bg-tertiary: #eaecf0;
@@ -62,13 +60,9 @@
     --code-text: #202122;
     --header-bg: #f8f9fa;
     --header-border: #c8ccd1;
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
-.stApp {
-    background-color: var(--bg-primary);
-}
+.stApp { background-color: var(--bg-primary); }
 
 header, [data-testid="stHeader"] {
     background-color: var(--header-bg) !important;
@@ -79,281 +73,126 @@ header, [data-testid="stHeader"] {
     background-color: var(--header-bg) !important;
 }
 
-[data-testid="stToolbar"] button {
-    color: var(--text-primary) !important;
-}
+[data-testid="stToolbar"] button { color: var(--text-primary) !important; }
 
 [data-testid="stSidebar"] {
     background-color: var(--bg-secondary);
     border-right: 1px solid var(--border-color);
 }
 
-[data-testid="stSidebar"] * {
-    color: var(--text-primary) !important;
-}
+[data-testid="stSidebar"] * { color: var(--text-primary) !important; }
 
-h1, h2, h3 {
-    color: var(--text-primary) !important;
-    font-weight: 600 !important;
-}
+h1, h2, h3 { color: var(--text-primary) !important; font-weight: 600 !important; }
 
-[data-testid="stSidebar"] .stMarkdown {
-    padding: 0.15rem 0;
-}
+[data-testid="stSidebar"] .stMarkdown { padding: 0.15rem 0; }
 
 [data-testid="stSidebar"] h3, [data-testid="stSidebar"] h2 {
-    font-size: 1rem !important;
-    margin-bottom: 0.2rem !important;
-    margin-top: 0.4rem !important;
-    color: var(--accent-blue) !important;
-    font-weight: 700 !important;
+    font-size: 1rem !important; margin-bottom: 0.2rem !important; margin-top: 0.4rem !important;
+    color: var(--accent-blue) !important; font-weight: 700 !important;
 }
 
 .sidebar-main-header {
-    font-size: 1.4rem !important;
-    font-weight: 700 !important;
-    color: var(--text-primary) !important;
-    margin-top: -1.2rem !important;
-    margin-bottom: 0.55rem !important;
-    padding-bottom: 0 !important;
-    padding-top: 0 !important;
-    letter-spacing: 0.02em;
-    line-height: 1.16 !important;
+    font-size: 1.4rem !important; font-weight: 700 !important; color: var(--text-primary) !important;
+    margin-top: -1.2rem !important; margin-bottom: 0.55rem !important;
+    padding-bottom: 0 !important; padding-top: 0 !important;
+    letter-spacing: 0.02em; line-height: 1.16 !important;
 }
 
-[data-testid="stSidebar"] .block-container {
-    padding-top: 0.4rem !important;
-}
+[data-testid="stSidebar"] .block-container { padding-top: 0.4rem !important; }
 
 [data-testid="stSidebar"] label[data-baseweb="label"]:first-of-type {
-    font-size: 1.05rem !important;
-    font-weight: 600 !important;
-    color: var(--text-primary) !important;
-    margin-bottom: 0.3rem !important;
+    font-size: 1.05rem !important; font-weight: 600 !important;
+    color: var(--text-primary) !important; margin-bottom: 0.3rem !important;
 }
 
 .stTextInput input, .stNumberInput input {
-    background-color: var(--bg-primary) !important;
-    color: var(--text-primary) !important;
+    background-color: var(--bg-primary) !important; color: var(--text-primary) !important;
     border: 1px solid var(--border-color) !important;
 }
 
 .stTextInput input:focus, .stNumberInput input:focus {
-    border-color: var(--accent-blue) !important;
-    box-shadow: 0 0 0 1px var(--accent-blue) !important;
+    border-color: var(--accent-blue) !important; box-shadow: 0 0 0 1px var(--accent-blue) !important;
 }
 
-.stSlider {
-    padding: 0.3rem 0 !important;
-}
+.stSlider { padding: 0.3rem 0 !important; }
 
 [data-testid="stSidebar"] .stRadio {
-    margin-top: 0.3rem !important;
-    margin-bottom: -0.6rem !important;
-    padding: 0 !important;
+    margin-top: 0.3rem !important; margin-bottom: -0.6rem !important; padding: 0 !important;
 }
 
-.stCheckbox {
-    margin-top: 0.7rem !important;
-    margin-bottom: -0.3rem !important;
-}
+.stCheckbox { margin-top: 0.7rem !important; margin-bottom: -0.3rem !important; }
 
 [data-testid="stSidebar"] hr {
-    margin-top: 0.5rem !important;
-    margin-bottom: 0.5rem !important;
-    border-color: var(--border-color) !important;
-    opacity: 0.5;
+    margin-top: 0.5rem !important; margin-bottom: 0.5rem !important;
+    border-color: var(--border-color) !important; opacity: 0.5;
 }
 
 .stButton>button {
-    background-color: var(--button-primary) !important;
-    color: #ffffff !important;
-    border: none !important;
-    font-weight: 600 !important;
-    border-radius: 4px !important;
+    background-color: var(--button-primary) !important; color: #ffffff !important;
+    border: none !important; font-weight: 600 !important; border-radius: 4px !important;
     padding: 0.5rem 1rem !important;
-    box-shadow: var(--shadow-sm);
-    transition: background-color 0.15s ease;
 }
 
-.stButton>button:hover {
-    background-color: var(--button-primary-hover) !important;
-    box-shadow: var(--shadow-md);
-}
+.stButton>button:hover { background-color: var(--button-primary-hover) !important; }
 
 .stDownloadButton>button {
-    background-color: var(--button-secondary) !important;
-    color: var(--text-primary) !important;
+    background-color: var(--button-secondary) !important; color: var(--text-primary) !important;
     border: 1px solid var(--button-secondary-border) !important;
 }
 
-.stDownloadButton>button:hover {
-    background-color: var(--bg-tertiary) !important;
-}
+.stDownloadButton>button:hover { background-color: var(--bg-tertiary) !important; }
 
 .streamlit-expanderHeader {
-    background-color: var(--bg-secondary) !important;
-    color: var(--text-primary) !important;
-    border: 1px solid var(--border-color) !important;
-    border-radius: 4px !important;
-    font-size: 0.88rem !important;
-    padding: 0.35rem 0.7rem !important;
+    background-color: var(--bg-secondary) !important; color: var(--text-primary) !important;
+    border: 1px solid var(--border-color) !important; border-radius: 4px !important;
+    font-size: 0.88rem !important; padding: 0.35rem 0.7rem !important;
 }
 
-.stSuccess {
-    background-color: var(--success-bg) !important;
-    color: var(--text-primary) !important;
-    border: 1px solid var(--success-border) !important;
-    border-radius: 4px !important;
-}
-
-.stInfo {
-    background-color: var(--info-bg) !important;
-    color: var(--text-primary) !important;
-    border: 1px solid var(--info-border) !important;
-    border-radius: 4px !important;
-}
-
-.stWarning {
-    background-color: var(--warning-bg) !important;
-    color: var(--text-primary) !important;
-    border: 1px solid var(--warning-border) !important;
-    border-radius: 4px !important;
-}
-
-.stError {
-    background-color: var(--error-bg) !important;
-    color: var(--text-primary) !important;
-    border: 1px solid var(--error-border) !important;
-    border-radius: 4px !important;
-}
+.stSuccess { background-color: var(--success-bg) !important; color: var(--text-primary) !important; border: 1px solid var(--success-border) !important; border-radius: 4px !important; }
+.stInfo { background-color: var(--info-bg) !important; color: var(--text-primary) !important; border: 1px solid var(--info-border) !important; border-radius: 4px !important; }
+.stWarning { background-color: var(--warning-bg) !important; color: var(--text-primary) !important; border: 1px solid var(--warning-border) !important; border-radius: 4px !important; }
+.stError { background-color: var(--error-bg) !important; color: var(--text-primary) !important; border: 1px solid var(--error-border) !important; border-radius: 4px !important; }
 
 code {
-    background-color: var(--code-bg) !important;
-    color: var(--code-text) !important;
-    border: 1px solid var(--border-light) !important;
-    border-radius: 3px;
-    padding: 1px 4px;
+    background-color: var(--code-bg) !important; color: var(--code-text) !important;
+    border: 1px solid var(--border-light) !important; border-radius: 3px; padding: 1px 4px;
 }
 
-hr {
-    border-color: var(--border-color) !important;
-}
+hr { border-color: var(--border-color) !important; }
 
 .stSelectbox>div>div {
-    background-color: var(--bg-primary) !important;
-    color: var(--text-primary) !important;
+    background-color: var(--bg-primary) !important; color: var(--text-primary) !important;
     border: 1px solid var(--border-color) !important;
 }
 
-.stSelectbox>div>div:hover {
-    border-color: var(--accent-blue) !important;
-}
+.stSelectbox>div>div:hover { border-color: var(--accent-blue) !important; }
 
 .sidebar-section-header {
-    font-size: 1.2rem !important;
-    font-weight: 700 !important;
-    color: var(--accent-blue) !important;
-    margin-bottom: 0.5rem !important;
-    line-height: 1.16 !important;
+    font-size: 1.2rem !important; font-weight: 700 !important;
+    color: var(--accent-blue) !important; margin-bottom: 0.5rem !important; line-height: 1.16 !important;
 }
 
-.compound-preview-container {
-    padding: 8px;
-    background-color: var(--bg-primary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+.compound-preview-container { padding: 8px; background-color: var(--bg-primary); display: flex; align-items: center; justify-content: center; }
 
-.compound-preview-image[data-type="2D"] {
-    max-width: 100%;
-    filter: invert(1) hue-rotate(180deg);
-}
+.compound-preview-image { max-width: 100%; height: auto; display: block; border: 2px solid var(--border-color); border-radius: 4px; }
 
-[data-theme="light"] .compound-preview-image[data-type="2D"] {
-    filter: none;
-}
+.compound-preview-image[data-type="3D"] { width: auto; height: auto; max-width: 800px; filter: none; }
 
-.compound-preview-image[data-type="3D"] {
-    width: auto;
-    height: auto;
-    max-width: 800px;
-    filter: none;
-}
+.protein-preview-container { display: flex; align-items: center; justify-content: center; max-width: 800px; margin: 0 auto; }
 
-.compound-preview-image {
-    max-width: 100%;
-    height: auto;
-    display: block;
-    border: 2px solid var(--border-color);
-    border-radius: 4px;
-}
+.protein-preview-image { max-width: 800px; width: 100%; height: auto; display: block; border: 2px solid var(--border-color); border-radius: 4px; }
 
-.protein-preview-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    max-width: 800px;
-    margin: 0 auto;
-}
+.footer-text { text-align: center; color: var(--text-muted); padding: 20px; font-size: 0.9rem; }
 
-.protein-preview-image {
-    max-width: 800px;
-    width: 100%;
-    height: auto;
-    display: block;
-    border: 2px solid var(--border-color);
-    border-radius: 4px;
-}
+a { color: var(--link-color) !important; text-decoration: none; }
+a:hover { color: var(--link-hover) !important; text-decoration: underline; }
 
-.footer-text {
-    text-align: center;
-    color: var(--text-muted);
-    padding: 20px;
-    font-size: 0.9rem;
-}
+.stTabs [data-baseweb="tab-list"] { border-bottom: 1px solid var(--border-color); }
+.stTabs [data-baseweb="tab"] { color: var(--text-secondary); }
+.stTabs [aria-selected="true"] { color: var(--accent-blue) !important; border-bottom-color: var(--accent-blue) !important; }
 
-a {
-    color: var(--link-color) !important;
-    text-decoration: none;
-}
+.stDataFrame { border: 1px solid var(--border-color); border-radius: 4px; }
 
-a:hover {
-    color: var(--link-hover) !important;
-    text-decoration: underline;
-}
-
-.stTabs [data-baseweb="tab-list"] {
-    border-bottom: 1px solid var(--border-color);
-}
-
-.stTabs [data-baseweb="tab"] {
-    color: var(--text-secondary);
-}
-
-.stTabs [aria-selected="true"] {
-    color: var(--accent-blue) !important;
-    border-bottom-color: var(--accent-blue) !important;
-}
-
-.stDataFrame {
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-}
-
-.stMetric {
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border-light);
-    border-radius: 4px;
-    padding: 8px;
-}
-
-.stMetric label {
-    color: var(--text-muted) !important;
-}
-
-.stMetric [data-testid="stMetricValue"] {
-    color: var(--text-primary) !important;
-    font-weight: 700;
-}
+.stMetric { background-color: var(--bg-secondary); border: 1px solid var(--border-light); border-radius: 4px; padding: 8px; }
+.stMetric label { color: var(--text-muted) !important; }
+.stMetric [data-testid="stMetricValue"] { color: var(--text-primary) !important; font-weight: 700; }
