@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import streamlit as st
+from wikimolgen.configs import Config2D, Config3D
 from wikimolgen.rendering.wikimol2d import MoleculeGenerator2D
 from wikimolgen.rendering.wikimol3d import MoleculeGenerator3D
 
@@ -21,6 +22,11 @@ _CONFORMER_SESSION_KEYS = [
 ]
 
 
+def _filter_config(config: dict, ref_obj: object) -> dict:
+    valid = {k for k in dir(ref_obj) if not k.startswith("_") and not callable(getattr(ref_obj, k, None))}
+    return {k: v for k, v in config.items() if k in valid}
+
+
 def get_config_manager(config_type: Literal["2d", "3d"]) -> ConfigSessionManager:
     key = f"config_manager_{config_type}"
 
@@ -33,7 +39,7 @@ def get_config_manager(config_type: Literal["2d", "3d"]) -> ConfigSessionManager
 def build_2d_config() -> dict[str, Any]:
     auto_orient_2d = st.session_state.get("auto_orient_2d", True)
 
-    return {
+    config = {
         "angle_degrees": None if auto_orient_2d else st.session_state.get("angle_degrees", 180.0),
         "scale": st.session_state.get("scale", 30.0),
         "margin": st.session_state.get("margin", 0.5),
@@ -60,6 +66,7 @@ def build_2d_config() -> dict[str, Any]:
         "comic_mode": st.session_state.get("comic_mode", False),
         "fixed_font_size": st.session_state.get("fixed_font_size", -1),
     }
+    return _filter_config(config, Config2D())
 
 
 def build_3d_config() -> dict[str, Any]:
@@ -108,7 +115,7 @@ def build_3d_config() -> dict[str, Any]:
             "z_rotation": st.session_state.get("z_rot_slider", 0.0),
         })
 
-    return config
+    return _filter_config(config, Config3D().render)
 
 
 def generate_dynamic_filename(
@@ -206,7 +213,8 @@ def render_structure_3d(compound: str, structure_type: str) -> str | None:
 
             gen.configure_rendering(**render_config)
 
-            conformer_config = {k: st.session_state.get(k) for k in _CONFORMER_SESSION_KEYS if st.session_state.get(k) is not None}
+            raw = {k: st.session_state.get(k) for k in _CONFORMER_SESSION_KEYS if st.session_state.get(k) is not None}
+            conformer_config = _filter_config(raw, gen.config.conformer)
             if conformer_config:
                 gen.configure_conformer(**conformer_config)
 
