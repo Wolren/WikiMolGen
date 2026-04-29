@@ -1,113 +1,20 @@
-"""
-web/base.py - Core Web Rendering Layer
-======================================
-
-Integrated rendering logic with session config management.
-
-Handles:
-  - 2D/3D structure generation with session state
-  - Template loading and user preferences
-  - Dynamic file generation and download
-  - Error handling with graceful fallbacks
-
-Dependencies:
-  - Streamlit (web framework)
-  - ConfigSessionManager (session/config.py)
-  - MoleculeGenerator2D/3D (core wikimolgen)
-"""
-
-import streamlit as st
-import tempfile
 import base64
 import logging
+import tempfile
 from pathlib import Path
-from datetime import datetime
-from typing import Dict, Any, Tuple, Optional, Literal
+from typing import Any, Literal
+
+import streamlit as st
+from session.config import ConfigSessionManager
+from template.utils import apply_templates_to_generator
 
 from wikimolgen.rendering.wikimol2d import MoleculeGenerator2D
 from wikimolgen.rendering.wikimol3d import MoleculeGenerator3D
 
-from session.config import ConfigSessionManager
-
 logger = logging.getLogger(__name__)
 
 
-# ============================================================================
-# SESSION STATE INITIALIZATION
-# ============================================================================
-
-def init_session_state():
-    """Initialize Streamlit session state with defaults."""
-    defaults = {
-        # Rendering state
-        "rendered_structure": False,
-        "last_image_html": None,
-        "last_compound": None,
-        "last_file_data": None,
-        "last_file_name": None,
-        "last_file_mime": None,
-        "download_filename_input": "molecule",
-
-        # 2D Config
-        "auto_orient_2d": True,
-        "acs_mode": True,
-        "angle_degrees": 0.0,
-        "scale": 30.0,
-        "margin": 0.8,
-        "bond_length": 50.0,
-        "min_font_size": 32,
-        "padding": 0.07,
-        "use_bw": True,
-        "transparent": True,
-        "additionalAtomLabelPadding": 0.1,
-
-        # 3D Config
-        "auto_orient_3d": True,
-        "stick_radius": 0.2,
-        "sphere_scale": 0.3,
-        "stick_ball_ratio": 1.8,
-        "stick_transparency": 0.0,
-        "sphere_transparency": 0.0,
-        "valence": 0.0,
-        "ambient": 0.25,
-        "specular": 1.0,
-        "direct": 0.45,
-        "reflect": 0.45,
-        "shininess": 30,
-        "depth_cue": False,
-        "width": 1800,
-        "height": 1600,
-        "auto_crop": True,
-        "crop_margin": 10,
-        "x_rot_slider": 0.0,
-        "y_rot_slider": 0.0,
-        "z_rot_slider": 0.0,
-
-        # Config managers
-        "config_manager_2d": None,
-        "config_manager_3d": None,
-        "config_manager_protein": None,
-    }
-
-    for key, value in defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = value
-
-
-def get_config_manager(config_type: Literal["2d", "3d", "protein"]) -> ConfigSessionManager:
-    """
-    Get or create ConfigSessionManager for given type.
-
-    Parameters
-    ----------
-    config_type : {"2d", "3d", "protein"}
-        Type of configuration manager to get
-
-    Returns
-    -------
-    ConfigSessionManager
-        Session config manager instance
-    """
+def get_config_manager(config_type: Literal["2d", "3d"]) -> ConfigSessionManager:
     key = f"config_manager_{config_type}"
 
     if st.session_state.get(key) is None:
@@ -116,45 +23,25 @@ def get_config_manager(config_type: Literal["2d", "3d", "protein"]) -> ConfigSes
     return st.session_state[key]
 
 
-# ============================================================================
-# CONFIG BUILDERS - Convert Session State to Generator Config
-# ============================================================================
-
-def build_2d_config() -> Dict[str, Any]:
-    """
-    Build 2D generator configuration from session state.
-
-    Returns
-    -------
-    Dict[str, Any]
-        Configuration dictionary for MoleculeGenerator2D
-    """
+def build_2d_config() -> dict[str, Any]:
     auto_orient_2d = st.session_state.get("auto_orient_2d", True)
 
     return {
-        "angle_degrees": None if auto_orient_2d else st.session_state.get("angle_degrees", 0),
+        "angle_degrees": None if auto_orient_2d else st.session_state.get("angle_degrees", 180.0),
         "scale": st.session_state.get("scale", 30.0),
-        "margin": st.session_state.get("margin", 0.8),
-        "bond_length": st.session_state.get("bond_length", 50.0),
-        "min_font_size": st.session_state.get("min_font_size", 32),
-        "padding": st.session_state.get("padding", 0.07),
-        "use_bw_palette": st.session_state.get("use_bw", True),
-        "transparent_background": st.session_state.get("transparent", True),
+        "margin": st.session_state.get("margin", 0.5),
+        "bond_length": st.session_state.get("bond_length", 45.0),
+        "min_font_size": st.session_state.get("min_font_size", 36),
+        "padding": st.session_state.get("padding", 0.03),
+        "use_bw_palette": st.session_state.get("use_bw_palette", True),
+        "transparent_background": st.session_state.get("transparent_background", True),
         "auto_orient_2d": auto_orient_2d,
         "acs_mode": st.session_state.get("acs_mode", True),
         "additional_atom_label_padding": st.session_state.get("additional_atom_label_padding", 0.2),
     }
 
 
-def build_3d_config() -> Dict[str, Any]:
-    """
-    Build 3D rendering configuration from session state.
-
-    Returns
-    -------
-    Dict[str, Any]
-        Configuration dictionary for MoleculeGenerator3D
-    """
+def build_3d_config() -> dict[str, Any]:
     auto_orient_3d = st.session_state.get("auto_orient_3d", True)
 
     config = {
@@ -172,7 +59,7 @@ def build_3d_config() -> Dict[str, Any]:
         "shininess": st.session_state.get("shininess", 30),
         "depth_cue": 1 if st.session_state.get("depth_cue", False) else 0,
         "width": st.session_state.get("width", 1800),
-        "height": st.session_state.get("height", 1600),
+        "height": st.session_state.get("height", 1400),
         "auto_crop": st.session_state.get("auto_crop", True),
         "crop_margin": st.session_state.get("crop_margin", 10),
     }
@@ -187,33 +74,11 @@ def build_3d_config() -> Dict[str, Any]:
     return config
 
 
-# ============================================================================
-# FILENAME & ENCODING UTILITIES
-# ============================================================================
-
 def generate_dynamic_filename(
     compound: str,
     structure_type: str,
     file_extension: str = None
 ) -> str:
-    """
-    Generate a dynamic filename based on compound and structure type.
-
-    Parameters
-    ----------
-    compound : str
-        Compound identifier (name, CID, or SMILES)
-    structure_type : str
-        "2D" or "3D"
-    file_extension : str, optional
-        File extension (auto-determined if None)
-
-    Returns
-    -------
-    str
-        Clean filename without extension
-    """
-    # Sanitize compound name for filename
     compound.replace("@", "at").replace("/", "sl").replace("\\", "bs").replace("#", "hash")
 
     safe_compound = "".join(
@@ -226,103 +91,37 @@ def generate_dynamic_filename(
     if not safe_compound or len(safe_compound) > 50:
         safe_compound = "structure"
 
-    # Format: compound_structuretype
     return f"{safe_compound}_{structure_type}".replace(' ', '_')
 
 
-def encode_image_to_base64(image_path: Path) -> Tuple[str, str]:
-    """
-    Encode image file to base64 string.
-
-    Parameters
-    ----------
-    image_path : Path
-        Path to image file
-
-    Returns
-    -------
-    Tuple[str, str]
-        (base64_string, mime_type)
-    """
-    # Determine MIME type
+def encode_image_to_base64(image_path: Path) -> tuple[str, str]:
     if str(image_path).endswith(".svg"):
         mime_type = "svg+xml"
-        # Read SVG as text
-        with open(image_path, "r") as svg_file:
+        with open(image_path) as svg_file:
             svg_content = svg_file.read()
         img_base64 = base64.b64encode(svg_content.encode()).decode()
     else:
         mime_type = "png"
-        # Read binary
         with open(image_path, "rb") as img_file:
             img_base64 = base64.b64encode(img_file.read()).decode()
 
     return img_base64, mime_type
 
 
-# ============================================================================
-# TEMPLATE INTEGRATION (Placeholder)
-# ============================================================================
-
-def apply_templates_to_generator(generator, structure_type: str):
-    """
-    Apply user-selected template to generator.
-
-    Placeholder for template system integration.
-
-    Parameters
-    ----------
-    generator : MoleculeGenerator2D or MoleculeGenerator3D
-        Generator to configure
-    structure_type : str
-        "2D" or "3D"
-    """
-    # Get template selection from session state
-    template_name = st.session_state.get(
-        f"template_{structure_type.lower()}",
-        "default"
-    )
-
-    if template_name and template_name != "default":
-        try:
-            config_manager = get_config_manager(structure_type.lower())
-            template_config = config_manager.load_template(template_name)
-            logger.info(f"Applied template: {template_name}")
-        except Exception as e:
-            logger.warning(f"Failed to apply template {template_name}: {e}")
-
-
-def render_structure_2d(compound: str, structure_type: str) -> Optional[str]:
-    """
-    Render 2D molecular structure with fixed container sizing.
-    """
+def render_structure_2d(compound: str, structure_type: str) -> str | None:
     try:
         with tempfile.TemporaryDirectory() as tmpdir:
             output_base = Path(tmpdir) / generate_dynamic_filename(compound, "2D")
-
-            # Build config
             config = build_2d_config()
             gen = MoleculeGenerator2D(compound, **config)
 
-            # Apply templates
             apply_templates_to_generator(gen, "2D")
-            gen.draw(compound)
-
-            # Generate
             output_path = gen.draw(str(output_base.with_suffix(".svg")))
 
             if output_path and Path(output_path).exists():
-                # Read SVG and add viewBox for proper scaling
-                with open(output_path, "r") as f:
-                    svg_content = f.read()
-
-                import re
-
-                # Encode SVG as base64
                 img_base64, mime_type = encode_image_to_base64(Path(output_path))
                 data_type = f'data-type="{structure_type}"'
 
-                # Create HTML with fixed container
                 image_html = (
                     f'<div style="max-width: 800px; height: 500px; '
                     f'display: flex; align-items: center; justify-content: center; '
@@ -333,7 +132,6 @@ def render_structure_2d(compound: str, structure_type: str) -> Optional[str]:
                     f'</div>'
                 )
 
-                # Store in session for download
                 with open(output_path, "rb") as f:
                     file_data = f.read()
 
@@ -359,32 +157,16 @@ def render_structure_2d(compound: str, structure_type: str) -> Optional[str]:
         return None
 
 
-def render_structure_3d(compound: str, structure_type: str) -> Optional[str]:
-    """
-    Render 3D molecular structure with PyMOL.
-
-    Parameters
-    ----------
-    compound : str
-        PubChem CID, compound name, or SMILES string
-
-    Returns
-    -------
-    Optional[str]
-        HTML string with embedded PNG image, or None on error
-    """
+def render_structure_3d(compound: str, structure_type: str) -> str | None:
     try:
         with tempfile.TemporaryDirectory() as tmpdir:
             output_base = Path(tmpdir) / generate_dynamic_filename(compound, "3D")
 
-            # Build config
             gen = MoleculeGenerator3D(compound)
             render_config = build_3d_config()
 
-            # Apply templates
             apply_templates_to_generator(gen, "3D")
 
-            # Configure and generate
             gen.configure_rendering(**render_config)
             sdf_path, png_path = gen.generate(
                 optimize=True,
@@ -394,14 +176,12 @@ def render_structure_3d(compound: str, structure_type: str) -> Optional[str]:
 
             if png_path and Path(png_path).exists():
                 img_base64, mime_type = encode_image_to_base64(Path(png_path))
-
                 data_type = f'data-type="{structure_type}"'
                 image_html = (
                     f'<img src="data:image/{mime_type};base64,{img_base64}" '
                     f'{data_type} class="compound-preview-image" />'
                 )
 
-                # Store in session for download
                 with open(png_path, "rb") as f:
                     file_data = f.read()
 
@@ -427,45 +207,20 @@ def render_structure_3d(compound: str, structure_type: str) -> Optional[str]:
         return None
 
 
-def render_structure_dynamic(compound: str, structure_type: str) -> Optional[str]:
-    """
-    Render molecular structure dynamically based on type.
-
-    Wrapper that routes to 2D or 3D renderer.
-
-    Parameters
-    ----------
-    compound : str
-        PubChem CID, compound name, or SMILES string
-    structure_type : str
-        "2D" or "3D"
-
-    Returns
-    -------
-    Optional[str]
-        HTML string with embedded image, or None on error
-    """
+def render_structure_dynamic(compound: str, structure_type: str) -> str | None:
     if structure_type == "2D":
         return render_structure_2d(compound, structure_type)
     elif structure_type == "3D":
         return render_structure_3d(compound, structure_type)
     return None
 
-def get_download_data() -> Tuple[Optional[bytes], Optional[str], Optional[str]]:
-    """
-    Get file data for download button.
 
-    Returns
-    -------
-    Tuple[Optional[bytes], Optional[str], Optional[str]]
-        (file_data, filename, mime_type) or (None, None, None) if no file
-    """
+def get_download_data() -> tuple[bytes | None, str | None, str | None]:
     file_data = st.session_state.get("last_file_data")
     file_name = st.session_state.get("last_file_name")
     file_mime = st.session_state.get("last_file_mime")
 
     if file_data and file_name:
-        # Append extension based on MIME type
         if "svg" in str(file_mime):
             file_name = f"{file_name}.svg"
         elif "png" in str(file_mime):

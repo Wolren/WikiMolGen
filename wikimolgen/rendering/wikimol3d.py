@@ -7,13 +7,14 @@ Extended element colors and RDKit configuration options.
 Uses split Config3D structure (render + conformer) from ConfigLoader.
 """
 
+import json
 from pathlib import Path
-from typing import Optional, Literal, Union
+from typing import Any, Literal
 
 from rdkit import Chem
-from rdkit.Chem import AllChem, rdmolfiles, rdForceFieldHelpers
+from rdkit.Chem import AllChem, rdForceFieldHelpers, rdmolfiles
 
-from wikimolgen.configs import ConfigLoader, Config3D
+from wikimolgen.configs import ColorConfig, Config3D, ConfigLoader
 from wikimolgen.core import fetch_compound, validate_smiles
 from wikimolgen.rendering.optimization import (
     find_optimal_3d_orientation,
@@ -85,7 +86,7 @@ class MoleculeGenerator3D:
     def __init__(
         self,
         identifier: str,
-        config: Optional[Config3D] = None,
+        config: Config3D | None = None,
         random_seed: int = 1,
         **kwargs
     ):
@@ -109,7 +110,7 @@ class MoleculeGenerator3D:
         self.mol = Chem.AddHs(self.mol)
 
         self.random_seed = random_seed
-        self.energy: Optional[float] = None
+        self.energy: float | None = None
 
         # Load configuration
         if config is None:
@@ -411,8 +412,8 @@ class MoleculeGenerator3D:
         force_field: ForceFieldType = "MMFF94",
         max_iterations: int = 200,
         render: bool = False,
-        output_base: Optional[str] = None,
-    ) -> tuple[Path, Optional[Path]]:
+        output_base: str | None = None,
+    ) -> tuple[Path, Path | None]:
         """
         Generate 3D structure with optional rendering.
 
@@ -531,109 +532,66 @@ class MoleculeGenerator3D:
                 )
 
     def load_color_template(
-        self, template: Union[str, Path, "ColorStyleTemplate"]
+        self, template: str | Path | dict | ColorConfig
     ) -> None:
-        """
-        Apply a color style template to the 3D generator.
-
-        Parameters
-        ----------
-        template : ColorStyleTemplate, str, or Path
-            Color template object, path to template file, or predefined template name
-
-        Examples
-        --------
-        >>> gen = MoleculeGenerator3D("caffeine")
-        >>> gen.load_color_template("cpk_standard") # Predefined template
-        >>> gen.load_color_template("my_colors.json") # From file
-        """
-        from wikimolgen.predefined_templates import (
-            TemplateLoader,
-            ColorStyleTemplate,
-            get_predefined_color_template,
-            TemplateError,
-        )
-
-        # Load template if needed
         if isinstance(template, str):
             try:
-                template = get_predefined_color_template(template)
-            except TemplateError:
-                template = TemplateLoader.load_from_file(template)
+                color_cfg = ConfigLoader.load_color_template(template)
+                self.config.render.stick_color = color_cfg.stick_color
+                self.config.render.bg_color = color_cfg.bg_color
+            except ValueError:
+                p = Path(template)
+                if p.exists():
+                    with open(p) as f:
+                        data = json.load(f)
+                    color_cfg = ColorConfig(**data)
+                else:
+                    color_cfg = ColorConfig()
+                self.config.render.stick_color = color_cfg.stick_color
+                self.config.render.bg_color = color_cfg.bg_color
         elif isinstance(template, Path):
-            template = TemplateLoader.load_from_file(template)
-
-        if not isinstance(template, ColorStyleTemplate):
-            raise ValueError("Invalid template type. Expected ColorStyleTemplate.")
-
-        # Apply color settings to render config
-        if hasattr(template, "element_colors") and template.element_colors:
-            # Note: element_colors are applied dynamically in _render_pymol
-            pass
-
-        if hasattr(template, "stick_color") and template.stick_color:
+            with open(template) as f:
+                data = json.load(f)
+            color_cfg = ColorConfig(**data)
+            self.config.render.stick_color = color_cfg.stick_color
+            self.config.render.bg_color = color_cfg.bg_color
+        elif isinstance(template, dict):
+            self.config.render.stick_color = template.get("stick_color", self.config.render.stick_color)
+            self.config.render.bg_color = template.get("bg_color", self.config.render.bg_color)
+        else:
             self.config.render.stick_color = template.stick_color
-
-        if hasattr(template, "bg_color") and template.bg_color:
             self.config.render.bg_color = template.bg_color
 
-        print(f"✓ Applied color template: {template.name}")
-        if hasattr(template, "description") and template.description:
-            print(f" {template.description}")
-
     def load_settings_template(
-        self, template: Union[str, Path, "SettingsTemplate"]
+        self, template: str | Path | Config3D | dict
     ) -> None:
-        """
-        Apply a settings template to the 3D generator.
-
-        Parameters
-        ----------
-        template : SettingsTemplate, str, or Path
-            Settings template object, path to template file, or predefined template name
-
-        Examples
-        --------
-        >>> gen = MoleculeGenerator3D("dopamine")
-        >>> gen.load_settings_template("high_quality_3d") # Predefined template
-        >>> gen.load_settings_template("my_settings.json") # From file
-        """
-        from wikimolgen.predefined_templates import (
-            TemplateLoader,
-            SettingsTemplate,
-            get_predefined_settings_template,
-            TemplateError,
-        )
-
-        # Load template if needed
         if isinstance(template, str):
             try:
-                template = get_predefined_settings_template(template)
-            except TemplateError:
-                template = TemplateLoader.load_from_file(template)
+                cfg = ConfigLoader.load_template(template)
+            except ValueError:
+                p = Path(template)
+                if p.exists():
+                    cfg = ConfigLoader.load_from_file(p)
+                else:
+                    cfg = ConfigLoader.get_3d_config()
+            if isinstance(cfg, Config3D):
+                self.config = cfg
+            return
         elif isinstance(template, Path):
-            template = TemplateLoader.load_from_file(template)
-
-        if not isinstance(template, SettingsTemplate):
-            raise ValueError("Invalid template type. Expected SettingsTemplate.")
-
-        if template.dimension != "3D":
-            raise ValueError(
-                f"Template is for {template.dimension}, but this is a 3D generator."
-            )
-
-        # Apply settings to appropriate nested config
-        if hasattr(template, "settings"):
-            settings = template.settings
-            for key, value in settings.items():
+            cfg = ConfigLoader.load_from_file(template)
+            if isinstance(cfg, Config3D):
+                self.config = cfg
+            return
+        elif isinstance(template, dict):
+            for key, value in template.items():
                 if hasattr(self.config.render, key):
                     setattr(self.config.render, key, value)
                 elif hasattr(self.config.conformer, key):
                     setattr(self.config.conformer, key, value)
+            return
 
-        print(f"✓ Applied settings template: {template.name}")
-        if hasattr(template, "description") and template.description:
-            print(f" {template.description}")
+        if isinstance(template, Config3D):
+            self.config = template
 
     def get_config_dict(self) -> dict:
         """

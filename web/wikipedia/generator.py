@@ -4,12 +4,12 @@ Wikipedia Drugbox Generator
 Fetches compound data from PubChem and generates Wikipedia Drugbox template code.
 """
 
-from typing import Optional, Dict, Any
+from typing import Any
 
 import pubchempy as pcp
 
 
-def fetch_pubchem_data(identifier: str) -> Optional[Dict[str, Any]]:
+def fetch_pubchem_data(identifier: str) -> dict[str, Any] | None:
     """
     Fetch compound data from PubChem.
 
@@ -56,7 +56,7 @@ def fetch_pubchem_data(identifier: str) -> Optional[Dict[str, Any]]:
         return None
 
 
-def generate_drugbox_code(compound_data: Dict[str, Any], image_filename: str = "") -> str:
+def generate_drugbox_code(compound_data: dict[str, Any], image_filename: str = "") -> str:
     """
     Generate Wikipedia Drugbox template code.
 
@@ -156,7 +156,7 @@ def generate_drugbox_code(compound_data: Dict[str, Any], image_filename: str = "
     return drugbox_template
 
 
-def generate_chembox_code(compound_data: Dict[str, Any], image_filename: str = "") -> str:
+def generate_chembox_code(compound_data: dict[str, Any], image_filename: str = "") -> str:
     """
     Generate Wikipedia Chembox template code (alternative to Drugbox).
 

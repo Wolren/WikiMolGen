@@ -5,30 +5,21 @@ Config-driven 2D molecular visualization with SVG export and auto-orientation.
 Uses ConfigLoader for centralized configuration management.
 """
 
+import json
 from pathlib import Path
-from typing import Optional, Union
 
 import numpy as np
-from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.Chem.Draw import rdMolDraw2D
 
-from wikimolgen.configs import ConfigLoader, Config2D
+from wikimolgen.configs import ColorConfig, Config2D, ConfigLoader
 from wikimolgen.core import fetch_compound, validate_smiles
-from wikimolgen.predefined_templates import (
-    get_predefined_settings_template,
-    get_predefined_color_template,
-    TemplateLoader,
-    SettingsTemplate,
-    ColorStyleTemplate,
-    TemplateError,
-)
 from wikimolgen.rendering.amine_canonicalization import (
     AmineCanonicalizer,
     orient_all_amines,
 )
-from wikimolgen.rendering.optimization import find_optimal_2d_rotation
 from wikimolgen.rendering.optimization import (
+    find_optimal_2d_rotation,
     is_phenethylamine,
     orient_phenethylamine_sidechain,
 )
@@ -77,8 +68,8 @@ class MoleculeGenerator2D:
     def __init__(
             self,
             identifier: str,
-            config: Optional[Config2D] = None,
-            angle_degrees: Optional[float] = None,
+            config: Config2D | None = None,
+            angle_degrees: float | None = None,
             **kwargs
     ):
         """
@@ -287,97 +278,62 @@ class MoleculeGenerator2D:
         }
 
     def load_color_template(
-            self, template: Union[str, Path, ColorStyleTemplate]
+            self, template: str | Path | ColorConfig | dict
     ) -> None:
-        """
-        Apply a color style template to the generator.
-
-        Parameters
-        ----------
-        template : ColorStyleTemplate, str, or Path
-            Color template object, predefined template name,
-            or path to template file
-
-        Examples
-        --------
-        >>> gen = MoleculeGenerator2D("aspirin")
-        >>> gen.load_color_template("cpk_standard")
-        >>> gen.draw("aspirin.svg")
-        """
         if isinstance(template, str):
             try:
-                template = get_predefined_color_template(template)
-            except TemplateError:
-                template = TemplateLoader.load_from_file(template)
+                color_cfg = ConfigLoader.load_color_template(template)
+            except ValueError:
+                template_path = Path(template)
+                if template_path.exists():
+                    with open(template_path) as f:
+                        data = json.load(f)
+                    color_cfg = ColorConfig(**data.get("element_colors", {}),
+                                            stick_color=data.get("stick_color"),
+                                            bg_color=data.get("bg_color", "white"))
+                else:
+                    color_cfg = ConfigLoader.load_color_template("cpk_standard")
+            self.config.use_bw_palette = False
         elif isinstance(template, Path):
-            template = TemplateLoader.load_from_file(template)
+            with open(template) as f:
+                data = json.load(f)
+            color_cfg = ColorConfig(**data)
+            self.config.use_bw_palette = False
+        elif isinstance(template, dict):
+            self.config.use_bw_palette = template.get("use_bw_palette", False)
+            self.config.transparent_background = template.get("transparent_background", False)
+            return
+        else:
+            color_cfg = template
 
-        if not isinstance(template, ColorStyleTemplate):
-            raise ValueError(
-                "Invalid template type. Expected ColorStyleTemplate."
-            )
-
-        self.config.use_bw_palette = template.use_bw_palette
-        self.config.transparent_background = template.transparent_background
-
-        print(f"Applied color template: {template.name}")
-        if template.description:
-            print(f"  {template.description}")
+        self.config.transparent_background = color_cfg.bg_color == "white"
 
     def load_settings_template(
-            self, template: Union[str, Path, SettingsTemplate]
+            self, template: str | Path | Config2D | dict
     ) -> None:
-        """
-        Apply a settings template to the generator.
-
-        Parameters
-        ----------
-        template : SettingsTemplate, str, or Path
-            Settings template object, predefined template name,
-            or path to template file
-
-        Examples
-        --------
-        >>> gen = MoleculeGenerator2D("caffeine")
-        >>> gen.load_settings_template("publication_2d")
-        >>> gen.draw("caffeine.svg")
-        """
         if isinstance(template, str):
             try:
-                template = get_predefined_settings_template(template)
-            except TemplateError:
-                template = TemplateLoader.load_from_file(template)
+                cfg = ConfigLoader.load_template(template)
+            except ValueError:
+                template_path = Path(template)
+                if template_path.exists():
+                    cfg = ConfigLoader.load_from_file(template_path)
+                else:
+                    cfg = ConfigLoader.get_2d_config()
+            if isinstance(cfg, Config2D):
+                self.config = cfg
+            return
         elif isinstance(template, Path):
-            template = TemplateLoader.load_from_file(template)
+            cfg = ConfigLoader.load_from_file(template)
+            if isinstance(cfg, Config2D):
+                self.config = cfg
+            return
+        elif isinstance(template, dict):
+            self.config.update(**template)
+            return
 
-        if not isinstance(template, SettingsTemplate):
-            raise ValueError(
-                "Invalid template type. Expected SettingsTemplate."
-            )
-
-        if template.dimension != "2D":
-            raise ValueError(
-                f"Template is for {template.dimension}, but this is a 2D generator."
-            )
-
-        # Apply settings from template
-        settings = template.settings
-        if "scale" in settings:
-            self.config.scale = settings["scale"]
-        if "bond_length" in settings:
-            self.config.bond_length = settings["bond_length"]
-        if "min_font_size" in settings:
-            self.config.min_font_size = settings["min_font_size"]
-        if "padding" in settings:
-            self.config.padding = settings["padding"]
-        if "margin" in settings:
-            self.config.margin = settings["margin"]
-        if "auto_orient_2d" in settings:
-            self.config.auto_orient_2d = settings["auto_orient_2d"]
-
-        print(f"Applied settings template: {template.name}")
-        if template.description:
-            print(f"  {template.description}")
+        if isinstance(template, Config2D):
+            self.config = template
 
     def _apply_amine_orientation(self) -> dict:
         """
@@ -429,7 +385,7 @@ class MoleculeGenerator2D:
         amine_orientation : dict
             Amine orientation results
         """
-        print(f"2D structure saved")
+        print("2D structure saved")
         print(f"  Compound: {self.compound_name}")
         print(f"  Dimensions: {width}x{height} px")
         print(f"  Atoms: {self.mol.GetNumAtoms()}, Bonds: {self.mol.GetNumBonds()}")

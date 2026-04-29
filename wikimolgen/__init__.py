@@ -1,4 +1,4 @@
-""""
+"""
 WikiMolGen - Unified Molecular Structure Generator
 ===================================================
 A Python package for generating 2D and 3D molecular visualizations
@@ -20,6 +20,6 @@ __version__ = "1.0.0"
 __all__ = [
     "core",
     "rendering",
-    "predefined_templates",
-    "cli"
+    "cli",
+    "configs",
 ]

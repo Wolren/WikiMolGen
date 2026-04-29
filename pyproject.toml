@@ -75,10 +75,15 @@ Repository = "https://github.com/Wolren/WikiMolGen"
 Issues = "https://github.com/Wolren/WikiMolGen/issues"
 
 [project.scripts]
-wikimolgen = "wikimolgen.cli:main"
+wikimolgen = "wikimolgen.cli.cli:main"
 
 [tool.setuptools]
-packages = ["wikimolgen", "wikimolgen.rendering"]
+packages = [
+    "wikimolgen",
+    "wikimolgen.rendering",
+    "wikimolgen.cli",
+    "wikimolgen.configs",
+]
 
 [tool.black]
 line-length = 100
