@@ -21,6 +21,7 @@ from rdkit.Chem import rdDepictor
 
 PHENETHYL_PATTERN = Chem.MolFromSmarts("c1ccccc1-CCN")
 
+
 def is_phenethylamine(mol: Chem.Mol) -> bool:
     """
     Determine if molecule is a phenethylamine derivative.
@@ -55,9 +56,7 @@ def is_phenethylamine(mol: Chem.Mol) -> bool:
 
 
 def orient_phenethylamine_sidechain(
-    mol: Chem.Mol,
-    target_angle_deg: float = 90.0,
-    conf_id: int = 0
+    mol: Chem.Mol, target_angle_deg: float = 90.0, conf_id: int = 0
 ) -> bool:
     """
     Rotate molecule so phenethylamine sidechain points at target angle.
@@ -129,16 +128,17 @@ def orient_phenethylamine_sidechain(
             atom2 = mol.GetAtomWithIdx(atom2_idx)
 
             # Look for aromatic C - aliphatic C - N pattern
-            if (atom1.GetIsAromatic() and not atom2.GetIsAromatic() and
-                atom2.GetAtomicNum() == 6):
+            if atom1.GetIsAromatic() and not atom2.GetIsAromatic() and atom2.GetAtomicNum() == 6:
                 # This is the bridge from ring to chain
                 ch2_1_idx = atom2_idx
 
                 # Find next carbon (second CH2)
                 for neighbor in atom2.GetNeighbors():
-                    if (neighbor.GetAtomicNum() == 6 and
-                        not neighbor.GetIsAromatic() and
-                        neighbor.GetIdx() != atom1_idx):
+                    if (
+                        neighbor.GetAtomicNum() == 6
+                        and not neighbor.GetIsAromatic()
+                        and neighbor.GetIdx() != atom1_idx
+                    ):
                         ch2_2_idx = neighbor.GetIdx()
                         ch2_indices = [ch2_1_idx, ch2_2_idx]
                         break
@@ -194,9 +194,7 @@ def orient_phenethylamine_sidechain(
     return True
 
 
-def calculate_principal_axes(
-    mol: Chem.Mol, conf_id: int = 0
-) -> Tuple[np.ndarray, np.ndarray]:
+def calculate_principal_axes(mol: Chem.Mol, conf_id: int = 0) -> Tuple[np.ndarray, np.ndarray]:
     """
     Calculate principal axes of molecule using PCA on atomic coordinates.
 
@@ -213,12 +211,12 @@ def calculate_principal_axes(
         (eigenvalues, eigenvectors) - eigenvectors are principal axes
     """
     conf = mol.GetConformer(conf_id)
-    coords = np.array([
-        [conf.GetAtomPosition(i).x,
-         conf.GetAtomPosition(i).y,
-         conf.GetAtomPosition(i).z]
-        for i in range(mol.GetNumAtoms())
-    ])
+    coords = np.array(
+        [
+            [conf.GetAtomPosition(i).x, conf.GetAtomPosition(i).y, conf.GetAtomPosition(i).z]
+            for i in range(mol.GetNumAtoms())
+        ]
+    )
 
     # Center coordinates
     centered = coords - coords.mean(axis=0)
@@ -258,10 +256,9 @@ def find_optimal_2d_rotation(mol: Chem.Mol) -> float:
         rdDepictor.Compute2DCoords(mol)
 
     conf = mol.GetConformer()
-    coords = np.array([
-        [conf.GetAtomPosition(i).x, conf.GetAtomPosition(i).y]
-        for i in range(mol.GetNumAtoms())
-    ])
+    coords = np.array(
+        [[conf.GetAtomPosition(i).x, conf.GetAtomPosition(i).y] for i in range(mol.GetNumAtoms())]
+    )
 
     # Center coordinates
     centered = coords - coords.mean(axis=0)
@@ -283,9 +280,7 @@ def find_optimal_2d_rotation(mol: Chem.Mol) -> float:
     return optimal_angle
 
 
-def find_optimal_3d_orientation(
-    mol: Chem.Mol, conf_id: int = 0
-) -> Tuple[float, float, float]:
+def find_optimal_3d_orientation(mol: Chem.Mol, conf_id: int = 0) -> Tuple[float, float, float]:
     """
     Find optimal 3D orientation (Euler angles) for visualization.
 
@@ -312,7 +307,7 @@ def find_optimal_3d_orientation(
 
     # Calculate Euler angles to align v1 with x-axis and v2 with xy-plane
     # Y-rotation (around y-axis)
-    y_rot = np.arctan2(-v1[2], np.sqrt(v1[0]**2 + v1[1]**2))
+    y_rot = np.arctan2(-v1[2], np.sqrt(v1[0] ** 2 + v1[1] ** 2))
 
     # Z-rotation (around z-axis)
     z_rot = np.arctan2(v1[1], v1[0])

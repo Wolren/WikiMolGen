@@ -26,7 +26,6 @@ def example_2d_manual():
     print()
 
 
-
 def example_2d_auto():
     """Example 2: 2D structure with auto-orientation."""
     print("=" * 70)
@@ -53,10 +52,7 @@ def example_3d_manual():
     # Caffeine
     gen = MoleculeGenerator3D("2519")
     gen.generate(
-        optimize=True,
-        force_field="MMFF94",
-        render=True,
-        output_base="examples/3D/caffeine_manual"
+        optimize=True, force_field="MMFF94", render=True, output_base="examples/3D/caffeine_manual"
     )
     print()
 
@@ -71,10 +67,7 @@ def example_3d_auto():
     gen = MoleculeGenerator3D("2519")
     gen.configure_rendering(auto_orient=True)
     gen.generate(
-        optimize=True,
-        force_field="MMFF94",
-        render=True,
-        output_base="examples/3D/caffeine_auto"
+        optimize=True, force_field="MMFF94", render=True, output_base="examples/3D/caffeine_auto"
     )
     print()
 
@@ -113,7 +106,7 @@ def example_batch_processing():
                 optimize=True,
                 force_field="MMFF94",
                 render=False,  # Skip rendering for faster batch processing
-                output_base=f"examples/batch/{name}_3d"
+                output_base=f"examples/batch/{name}_3d",
             )
 
         except Exception as e:
@@ -167,10 +160,7 @@ def example_4_MeO_DiPT():
         y_rotation=200,
     )
     gen.generate(
-        optimize=True,
-        render=True,
-        force_field="MMFF94",
-        output_base="examples/3D/4-Meo-DiPT"
+        optimize=True, render=True, force_field="MMFF94", output_base="examples/3D/4-Meo-DiPT"
     )
     print()
 
@@ -184,11 +174,11 @@ def example_minimal():
     gen = MoleculeGenerator3D("5202")
 
     gen.configure_rendering(
-        stick_radius=0.15,           # Thin sticks
-        sphere_scale=0.20,           # Small spheres
-        stick_ball_ratio=1.5,        # Subtle balls
-        ambient=0.3,                 # Bright ambient
-        specular=0.5,                # Less specular
+        stick_radius=0.15,  # Thin sticks
+        sphere_scale=0.20,  # Small spheres
+        stick_ball_ratio=1.5,  # Subtle balls
+        ambient=0.3,  # Bright ambient
+        specular=0.5,  # Less specular
         bg_color="white",
     )
 
@@ -204,15 +194,16 @@ def example_dramatic_lighting():
     gen = MoleculeGenerator3D("chloroquine")
 
     gen.configure_rendering(
-        ambient=0.1,                 # Low ambient (darker)
-        specular=1.5,                # High specular (shiny)
-        shininess=50,                # Very shiny
-        direct=0.7,                  # Strong direct light
-        reflect=0.3,                 # Some reflection
-        bg_color="black",            # Dark background
+        ambient=0.1,  # Low ambient (darker)
+        specular=1.5,  # High specular (shiny)
+        shininess=50,  # Very shiny
+        direct=0.7,  # Strong direct light
+        reflect=0.3,  # Some reflection
+        bg_color="black",  # Dark background
     )
 
     gen.generate(optimize=True, render=True, output_base="examples/3D/chloroquine_dramatic")
+
 
 def main():
     """Run all examples."""

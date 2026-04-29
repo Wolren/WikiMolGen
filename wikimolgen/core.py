@@ -10,11 +10,13 @@ from rdkit import Chem
 
 class CompoundFetchError(Exception):
     """Raised when compound data cannot be fetched from PubChem."""
+
     pass
 
 
 class SMILESValidationError(Exception):
     """Raised when SMILES string is invalid."""
+
     pass
 
 
@@ -46,17 +48,17 @@ def fetch_compound(identifier: str) -> tuple[str, str]:
     if identifier.isdigit():
         try:
             compound = pcp.Compound.from_cid(int(identifier))
-            smiles = getattr(compound, 'smiles', None) or compound.canonical_smiles
+            smiles = getattr(compound, "smiles", None) or compound.canonical_smiles
             return smiles, compound.iupac_name or f"CID_{identifier}"
         except Exception as e:
             raise CompoundFetchError(f"Failed to fetch PubChem CID {identifier}: {e}")
 
     # Strategy 2: Try PubChem compound name lookup
     try:
-        compounds = pcp.get_compounds(identifier, 'name')
+        compounds = pcp.get_compounds(identifier, "name")
         if compounds:
             compound = compounds[0]
-            smiles = getattr(compound, 'smiles', None) or compound.canonical_smiles
+            smiles = getattr(compound, "smiles", None) or compound.canonical_smiles
             return smiles, compound.iupac_name or identifier
     except Exception:
         pass  # Not a valid compound name, continue to SMILES check
