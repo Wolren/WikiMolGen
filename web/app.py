@@ -46,63 +46,6 @@ from template.theme import apply_theme
 
 apply_theme()
 
-st.markdown("""
-       <style>
-       .compound-preview-container {
-           padding: 8px;
-           background-color: rgba(255, 255, 255, 0);
-           display: flex;
-           align-items: center;
-           justify-content: center;
-       }
-
-       .compound-preview-image-2d {
-            filter: invert(1);
-       }
-
-       .compound-preview-image[data-type="2D"] {
-            max-width: 100%;
-       }
-
-       .compound-preview-image[data-type="3D"] {
-            width: auto;
-            height: auto;
-            max-width: 800px;
-       }
-
-       .compound-preview-image {
-            max-width: 100%;
-            height: auto;
-            display: block;
-            border: 3px dashed rgba(100, 150, 200, 1);
-            border-radius: 4px;
-       }
-
-       .compound-preview-image {
-           max-width: 100%;
-           height: auto;
-           display: block;
-       }
-
-       .protein-preview-container {
-           display: flex;
-           align-items: center;
-           justify-content: center;
-           max-width: 800px;
-           margin: 0 auto;
-       }
-
-       .protein-preview-image {
-           max-width: 800px;
-           width: 100%;
-           height: auto;
-           display: block;
-           border: 3px dashed rgba(100, 150, 200, 1);
-           border-radius: 4px;
-       }
-       </style>
-   """, unsafe_allow_html=True)
-
 
 def encode_image_to_base64(image_path: Path) -> tuple:
     """
@@ -481,8 +424,8 @@ def main() -> None:
     # Footer
     st.divider()
     st.markdown("""
-    <div style='text-align: center; color: #666; padding: 20px;'>
-    <strong>WikiMolGen</strong>, a chemical structure generator for Wikipedia & Wikimedia Commons | Wolren<br>
+    <div class='footer-text'>
+    <strong>WikiMolGen</strong>, a chemical structure generator for Wikipedia &amp; Wikimedia Commons | Wolren<br>
     </div>
     """, unsafe_allow_html=True)
 
