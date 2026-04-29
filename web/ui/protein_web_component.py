@@ -5,13 +5,14 @@ wikimolgen.web.protein_components - Streamlit Components for Protein Visualizati
 Reusable Streamlit UI components for protein structure rendering.
 """
 
-import streamlit as st
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Any
+
+import streamlit as st
 
 from wikimolgen.rendering.protein import (
-    ProteinGenerator,
     ColorScheme,
+    ProteinGenerator,
     ProteinVisualizationError,
 )
 
@@ -46,7 +47,7 @@ def render_protein_selector() -> str:
     return pdb_id
 
 
-def render_protein_cartoon_settings() -> Dict[str, Any]:
+def render_protein_cartoon_settings() -> dict[str, Any]:
     """Render protein cartoon rendering controls."""
 
     config = {}
@@ -117,7 +118,7 @@ def render_protein_cartoon_settings() -> Dict[str, Any]:
     return config
 
 
-def render_protein_ligand_settings() -> Dict[str, Any]:
+def render_protein_ligand_settings() -> dict[str, Any]:
     """Render ligand/heteroatom rendering controls."""
 
     config = {}
@@ -166,7 +167,7 @@ def render_protein_ligand_settings() -> Dict[str, Any]:
     return config
 
 
-def render_protein_canvas_settings() -> Dict[str, Any]:
+def render_protein_canvas_settings() -> dict[str, Any]:
     """Render canvas and rendering quality controls."""
 
     config = {}
@@ -248,9 +249,9 @@ def render_protein_canvas_settings() -> Dict[str, Any]:
 
 def render_protein_structure(
     pdb_id: str,
-    cartoon_config: Dict[str, Any],
-    ligand_config: Dict[str, Any],
-    canvas_config: Dict[str, Any],
+    cartoon_config: dict[str, Any],
+    ligand_config: dict[str, Any],
+    canvas_config: dict[str, Any],
     output_base: Path,
 ) -> Path:
     """Render protein structure and save to file.
@@ -307,9 +308,7 @@ def render_protein_structure(
             helix_color=cartoon_config.get("helix_color", "#00FF00"),
             sheet_color=cartoon_config.get("sheet_color", "#00FFFF"),
             loop_color=cartoon_config.get("loop_color", "#FFA500"),
-            transgender_pink=cartoon_config.get("transgender_pink", "#FF1493"),
-            transgender_white=cartoon_config.get("transgender_white", "#FFFFFF"),
-            transgender_blue=cartoon_config.get("transgender_blue", "#1493FF"),
+
             width=canvas_config["width"],
             height=canvas_config["height"],
             bg_color=canvas_config["bg_color"],

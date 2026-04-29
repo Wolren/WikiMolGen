@@ -13,21 +13,20 @@ import tempfile
 from pathlib import Path
 
 import streamlit as st
-
 from rendering.base import render_structure_dynamic
 from session.state import initialize_session_state
 from ui.components import (
-    render_compound_input,
-    render_template_manager,
-    render_mode_selector,
     render_2d_settings,
     render_3d_settings,
-    render_canvas_settings,
-    render_rendering_settings,
-    render_lighting_settings,
-    render_effects_settings,
     render_auto_generate_checkbox,
+    render_canvas_settings,
+    render_compound_input,
+    render_effects_settings,
     render_generate_button,
+    render_lighting_settings,
+    render_mode_selector,
+    render_rendering_settings,
+    render_template_manager,
 )
 from ui.protein_web_component import render_protein_structure
 from wikipedia.boxes import render_wikipedia_metadata_section
@@ -167,10 +166,10 @@ def render_sidebar() -> tuple:
         elif structure_type == "Protein":
             # Protein-specific settings
             from ui.protein_web_component import (
-                render_protein_selector,
+                render_protein_canvas_settings,
                 render_protein_cartoon_settings,
                 render_protein_ligand_settings,
-                render_protein_canvas_settings,
+                render_protein_selector,
             )
             st.markdown("#### Protein Rendering Settings")
             pdb_id = render_protein_selector()

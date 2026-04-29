@@ -1,50 +1,27 @@
-"""
-web/utils.py
-======================
-Template management utilities for WikiMolGen web interface.
-Handles template export, import, and application to generators.
-"""
-
 import json
 from datetime import datetime
-from typing import Dict, Any, Optional, Union
+from typing import Any
 
 import streamlit as st
 
-from wikimolgen.predefined_templates import ColorStyleTemplate, SettingsTemplate
 
-
-def export_current_settings_as_template(gen_type: str) -> Dict[str, Any]:
-    """
-    Export current UI settings as a template dictionary.
-
-    Parameters
-    ----------
-    gen_type : str
-        Generator type: "2D" or "3D"
-
-    Returns
-    -------
-    Dict[str, Any]
-        Template dictionary ready for JSON export
-    """
+def export_current_settings_as_template(gen_type: str) -> dict[str, Any]:
     if gen_type == "2D":
         settings_dict = {
             "scale": st.session_state.get("scale", 30.0),
-            "margin": st.session_state.get("margin", 0.8),
-            "bond_length": st.session_state.get("bond_length", 50.0),
+            "margin": st.session_state.get("margin", 0.5),
+            "bond_length": st.session_state.get("bond_length", 45.0),
             "min_font_size": st.session_state.get("min_font_size", 36),
-            "padding": st.session_state.get("padding", 0.07),
-            "use_bw_palette": st.session_state.get("use_bw", True),
-            "transparent_background": st.session_state.get("transparent", True),
+            "padding": st.session_state.get("padding", 0.03),
+            "use_bw_palette": st.session_state.get("use_bw_palette", True),
+            "transparent_background": st.session_state.get("transparent_background", True),
             "auto_orient_2d": st.session_state.get("auto_orient_2d", True),
         }
         template_dict = {
-            "type": "settings",
+            "type": "2d",
             "name": "Custom 2D",
             "description": "Exported from web interface",
-            "dimension": "2D",
-            "settings": settings_dict
+            "settings": settings_dict,
         }
     else:
         settings_dict = {
@@ -73,61 +50,34 @@ def export_current_settings_as_template(gen_type: str) -> Dict[str, Any]:
             "crop_margin": st.session_state.get("crop_margin", 10),
         }
         template_dict = {
-            "type": "settings",
+            "type": "3d",
             "name": "Custom 3D",
             "description": "Exported from web interface",
-            "dimension": "3D",
-            "settings": settings_dict
+            "settings": settings_dict,
         }
 
     return template_dict
 
 
-def export_color_template() -> Dict[str, Any]:
-    """
-    Export current color settings as a color template.
-
-    Returns
-    -------
-    Dict[str, Any]
-        Color template dictionary ready for JSON export
-    """
+def export_color_template() -> dict[str, Any]:
     color_dict = {
-        "type": "color_style",
         "name": f"Custom Colors - {datetime.now().strftime('%Y%m%d_%H%M%S')}",
         "description": "Exported from web interface",
         "element_colors": {},
         "stick_color": None,
-        "use_bw_palette": st.session_state.get("use_bw", False),
-        "transparent_background": st.session_state.get("transparent", False),
+        "bg_color": st.session_state.get("bg_color", "white"),
     }
     return color_dict
 
 
 def load_custom_template(
-        uploaded_file,
-        template_type: str
-) -> Optional[Dict[str, Any]]:
-    """
-    Load a custom template from uploaded JSON file.
-
-    Parameters
-    ----------
-    uploaded_file : UploadedFile
-        Streamlit uploaded file object
-    template_type : str
-        Type of template: "color" or "settings"
-
-    Returns
-    -------
-    Optional[Dict[str, Any]]
-        Template data dictionary, or None if loading failed
-    """
+    uploaded_file,
+    template_type: str,
+) -> dict[str, Any] | None:
     try:
         template_data = json.load(uploaded_file)
         template_name = template_data.get(
-            'name',
-            f'Custom_{datetime.now().strftime("%H%M%S")}'
+            "name", f'Custom_{datetime.now().strftime("%H%M%S")}'
         )
         return {"name": template_name, "data": template_data}
     except Exception as e:
@@ -136,22 +86,10 @@ def load_custom_template(
 
 
 def save_template_to_session(
-        template_name: str,
-        template_data: Dict[str, Any],
-        template_type: str
+    template_name: str,
+    template_data: dict[str, Any],
+    template_type: str,
 ) -> None:
-    """
-    Save template to session state for persistence.
-
-    Parameters
-    ----------
-    template_name : str
-        Name of the template
-    template_data : Dict[str, Any]
-        Template data dictionary
-    template_type : str
-        Type: "color" or "settings"
-    """
     if template_type == "color":
         st.session_state.custom_color_templates[template_name] = template_data
         st.session_state.uploaded_color_template = template_data
@@ -159,93 +97,61 @@ def save_template_to_session(
         st.session_state.custom_settings_templates[template_name] = template_data
         st.session_state.uploaded_settings_template = template_data
 
-        # Sync settings to UI sliders
-        for key, value in template_data.get("settings", {}).items():
+        settings = template_data.get("settings", template_data)
+        for key, value in settings.items():
             if key in st.session_state:
                 st.session_state[key] = value
         st.session_state.template_applied_once = True
 
 
 def apply_templates_to_generator(
-        gen: Union['MoleculeGenerator2D', 'MoleculeGenerator3D'],
-        gen_type: str
+    gen: Any,
+    gen_type: str,
 ) -> bool:
-    """
-    Apply selected template to a molecule generator.
-
-    Parameters
-    ----------
-    gen : MoleculeGenerator2D or MoleculeGenerator3D
-        Generator instance to apply template to
-    gen_type : str
-        Generator type: "2D" or "3D"
-
-    Returns
-    -------
-    bool
-        True if any template was applied, False otherwise
-    """
-    # Skip if template already applied once (allows manual override)
     if st.session_state.get("template_applied_once", False):
         return False
 
     template_applied = False
 
-    # Apply color template
-    color_choice = st.session_state.get('color_template_selector', 'None')
+    color_choice = st.session_state.get("color_template_selector", "None")
     if color_choice != "None":
         try:
             if color_choice in st.session_state.custom_color_templates:
-                color_tmpl = ColorStyleTemplate(
+                gen.load_color_template(
                     st.session_state.custom_color_templates[color_choice]
                 )
-                gen.load_color_template(color_tmpl)
             else:
                 gen.load_color_template(color_choice)
             template_applied = True
         except Exception as e:
             st.warning(f"Color template error: {e}")
 
-    # Apply uploaded color template
     if st.session_state.uploaded_color_template:
         try:
-            color_tmpl = ColorStyleTemplate(
-                st.session_state.uploaded_color_template
-            )
-            gen.load_color_template(color_tmpl)
+            gen.load_color_template(st.session_state.uploaded_color_template)
             template_applied = True
         except Exception as e:
             st.warning(f"Uploaded color template error: {e}")
 
-    # Apply settings template
-    settings_choice = st.session_state.get('settings_template_selector', 'None')
+    settings_choice = st.session_state.get("settings_template_selector", "None")
     if settings_choice != "None":
         try:
             if settings_choice in st.session_state.custom_settings_templates:
-                settings_tmpl = SettingsTemplate(
+                st.session_state.template_applied_once = True
+                gen.load_settings_template(
                     st.session_state.custom_settings_templates[settings_choice]
                 )
-                if settings_tmpl.dimension == gen_type:
-                    gen.load_settings_template(settings_tmpl)
-                    template_applied = True
-            elif gen_type == "2D" and "2d" in settings_choice.lower():
-                gen.load_settings_template(settings_choice)
                 template_applied = True
-            elif gen_type == "3D" and "3d" in settings_choice.lower():
+            else:
                 gen.load_settings_template(settings_choice)
                 template_applied = True
         except Exception as e:
             st.warning(f"Settings template error: {e}")
 
-    # Apply uploaded settings template
     if st.session_state.uploaded_settings_template:
         try:
-            settings_tmpl = SettingsTemplate(
-                st.session_state.uploaded_settings_template
-            )
-            if settings_tmpl.dimension == gen_type:
-                gen.load_settings_template(settings_tmpl)
-                template_applied = True
+            gen.load_settings_template(st.session_state.uploaded_settings_template)
+            template_applied = True
         except Exception as e:
             st.warning(f"Uploaded settings template error: {e}")
 

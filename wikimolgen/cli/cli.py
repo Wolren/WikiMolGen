@@ -310,14 +310,65 @@ Examples:
         help="Auto-crop margin in pixels (default: 10)"
     )
 
+    # ===== PROTEIN SUBCOMMAND =====
+    parser_protein = subparsers.add_parser("protein", help="Render protein structures from PDB")
+
+    parser_protein.add_argument(
+        "pdb_id",
+        help="PDB identifier (e.g., 8F7W)"
+    )
+    parser_protein.add_argument(
+        "--output", "-o",
+        help="Output PNG filename"
+    )
+    parser_protein.add_argument(
+        "--color-scheme",
+        choices=["secondary_structure", "rainbow", "chain", "hydrophobicity"],
+        default="secondary_structure",
+        help="Color scheme for protein (default: secondary_structure)"
+    )
+    parser_protein.add_argument(
+        "--show-ligand",
+        action="store_true",
+        default=True,
+        help="Show ligand/heteroatoms (default: True)"
+    )
+    parser_protein.add_argument(
+        "--no-ligand",
+        action="store_false",
+        dest="show_ligand",
+        help="Hide ligand/heteroatoms"
+    )
+    parser_protein.add_argument(
+        "--show-water",
+        action="store_true",
+        default=False,
+        help="Show water molecules"
+    )
+    parser_protein.add_argument(
+        "--width",
+        type=int,
+        default=1920,
+        help="Image width (default: 1920)"
+    )
+    parser_protein.add_argument(
+        "--height",
+        type=int,
+        default=1080,
+        help="Image height (default: 1080)"
+    )
+    parser_protein.add_argument(
+        "--ray-trace",
+        action="store_true",
+        default=False,
+        help="Enable ray tracing"
+    )
+
     return parser
 
 
 def run_2d(args: argparse.Namespace) -> None:
-    """Execute 2D generation with comprehensive template support."""
-
     try:
-        # Create generator with settings
         gen = MoleculeGenerator2D(
             identifier=args.compound,
             angle_degrees=args.angle if not args.auto_orient else None,
@@ -328,10 +379,9 @@ def run_2d(args: argparse.Namespace) -> None:
             padding=args.padding,
             use_bw_palette=args.use_bw,
             transparent_background=args.transparent_bg,
-            auto_orient=args.auto_orient,
+            auto_orient_2d=args.auto_orient,
         )
 
-        # Apply template if provided
         if args.template:
             print(f"Loading settings template: {args.template}")
             gen.load_settings_template(args.template)
@@ -340,8 +390,7 @@ def run_2d(args: argparse.Namespace) -> None:
             print(f"Loading color template: {args.color_template}")
             gen.load_color_template(args.color_template)
 
-        # Generate output
-        gen.generate(output=args.output)
+        gen.draw(output=args.output)
 
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
@@ -349,15 +398,11 @@ def run_2d(args: argparse.Namespace) -> None:
 
 
 def run_3d(args: argparse.Namespace) -> None:
-    """Execute 3D generation with comprehensive settings and template support."""
-
     try:
-        # Create generator
         gen = MoleculeGenerator3D(identifier=args.compound)
 
-        # Configure rendering with all settings
         gen.configure_rendering(
-            auto_orient=args.auto_orient,
+            auto_orient_3d=args.auto_orient,
             x_rotation=args.x_rotation if not args.auto_orient else 0.0,
             y_rotation=args.y_rotation if not args.auto_orient else 200.0,
             z_rotation=args.z_rotation if not args.auto_orient else 0.0,
@@ -383,7 +428,6 @@ def run_3d(args: argparse.Namespace) -> None:
             crop_margin=args.crop_margin,
         )
 
-        # Apply template if provided
         if args.template:
             print(f"Loading settings template: {args.template}")
             gen.load_settings_template(args.template)
@@ -392,7 +436,6 @@ def run_3d(args: argparse.Namespace) -> None:
             print(f"Loading color template: {args.color_template}")
             gen.load_color_template(args.color_template)
 
-        # Generate output
         gen.generate(
             optimize=args.optimize,
             force_field=args.force_field,
@@ -406,8 +449,6 @@ def run_3d(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
-    """Main entry point for CLI."""
-
     parser = create_parser()
     args = parser.parse_args()
 
@@ -415,6 +456,9 @@ def main() -> None:
         run_2d(args)
     elif args.mode == "3d":
         run_3d(args)
+    elif args.mode == "protein":
+        from wikimolgen.cli.protein_cli import run_protein_render
+        run_protein_render(args)
 
 
 if __name__ == "__main__":

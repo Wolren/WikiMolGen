@@ -8,12 +8,9 @@ import logging
 from datetime import datetime
 
 import streamlit as st
+from template.utils import export_color_template, export_current_settings_as_template
 
-from template.utils import (
-    export_current_settings_as_template,
-    export_color_template
-)
-from wikimolgen.predefined_templates import list_predefined_templates
+from wikimolgen.configs import ConfigLoader
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +52,7 @@ def render_template_manager() -> None:
         tab1, tab2, tab3 = st.tabs(["Predefined", "Upload", "Save"])
 
         with tab1:
-            template_list = list_predefined_templates()
+            template_list = ConfigLoader.list_templates()
 
             # Predefined + custom template combined
             all_color_templates = (

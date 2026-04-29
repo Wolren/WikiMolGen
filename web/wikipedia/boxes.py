@@ -8,8 +8,8 @@ Displays automatically when structure is rendered, with Wikimedia metadata and d
 from datetime import datetime
 
 import streamlit as st
+from wikipedia.generator import fetch_pubchem_data, generate_chembox_code, generate_drugbox_code
 
-from wikipedia.generator import fetch_pubchem_data, generate_drugbox_code, generate_chembox_code
 
 def render_wikipedia_metadata_section(compound: str, structure_type: str) -> None:
     """
