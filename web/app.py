@@ -21,6 +21,7 @@ from ui.components import (
     render_auto_generate_checkbox,
     render_canvas_settings,
     render_compound_input,
+    render_conformer_settings,
     render_effects_settings,
     render_generate_button,
     render_lighting_settings,
@@ -102,6 +103,7 @@ def render_sidebar() -> tuple:
             render_2d_settings()
         elif structure_type == "3D":
             render_3d_settings()
+            render_conformer_settings()
             render_canvas_settings()
             render_rendering_settings()
             render_lighting_settings()

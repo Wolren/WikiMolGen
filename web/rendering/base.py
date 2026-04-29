@@ -5,13 +5,20 @@ from pathlib import Path
 from typing import Any, Literal
 
 import streamlit as st
-from session.config import ConfigSessionManager
-from template.utils import apply_templates_to_generator
-
 from wikimolgen.rendering.wikimol2d import MoleculeGenerator2D
 from wikimolgen.rendering.wikimol3d import MoleculeGenerator3D
 
+from session.config import ConfigSessionManager
+from template.utils import apply_templates_to_generator
+
 logger = logging.getLogger(__name__)
+
+_CONFORMER_SESSION_KEYS = [
+    "num_conformers", "use_random_coords", "clear_confs",
+    "use_basic_knowledge", "enforce_chirality", "use_small_ring_torsions",
+    "use_macrocycle_torsions", "use_exp_torsion_prefs",
+    "max_iterations", "prune_rms_thresh",
+]
 
 
 def get_config_manager(config_type: Literal["2d", "3d"]) -> ConfigSessionManager:
@@ -38,6 +45,20 @@ def build_2d_config() -> dict[str, Any]:
         "auto_orient_2d": auto_orient_2d,
         "acs_mode": st.session_state.get("acs_mode", True),
         "additional_atom_label_padding": st.session_state.get("additional_atom_label_padding", 0.2),
+        "auto_orient_amines": st.session_state.get("auto_orient_amines", True),
+        "amine_target_angle": st.session_state.get("amine_target_angle", 0.0),
+        "phenethylamine_target": st.session_state.get("phenethylamine_target", 90.0),
+        "bond_line_width": st.session_state.get("bond_line_width", 1.0),
+        "add_stereo_annotation": st.session_state.get("add_stereo_annotation", False),
+        "include_radicals": st.session_state.get("include_radicals", False),
+        "explicit_methyl": st.session_state.get("explicit_methyl", False),
+        "scaling_factor": st.session_state.get("scaling_factor", 1.0),
+        "no_atom_labels": st.session_state.get("no_atom_labels", False),
+        "multiple_bond_offset": st.session_state.get("multiple_bond_offset", 0.15),
+        "include_atom_tags": st.session_state.get("include_atom_tags", False),
+        "include_chiral_flag": st.session_state.get("include_chiral_flag", False),
+        "comic_mode": st.session_state.get("comic_mode", False),
+        "fixed_font_size": st.session_state.get("fixed_font_size", -1),
     }
 
 
@@ -49,6 +70,8 @@ def build_3d_config() -> dict[str, Any]:
         "stick_radius": st.session_state.get("stick_radius", 0.2),
         "sphere_scale": st.session_state.get("sphere_scale", 0.3),
         "stick_ball_ratio": st.session_state.get("stick_ball_ratio", 1.8),
+        "stick_quality": st.session_state.get("stick_quality", 64),
+        "sphere_quality": st.session_state.get("sphere_quality", 6),
         "stick_transparency": st.session_state.get("stick_transparency", 0.0),
         "sphere_transparency": st.session_state.get("sphere_transparency", 0.0),
         "valence": st.session_state.get("valence", 0.0),
@@ -62,6 +85,20 @@ def build_3d_config() -> dict[str, Any]:
         "height": st.session_state.get("height", 1400),
         "auto_crop": st.session_state.get("auto_crop", True),
         "crop_margin": st.session_state.get("crop_margin", 10),
+        "bg_color": st.session_state.get("bg_color", "white"),
+        "stick_color": st.session_state.get("stick_color", "gray40"),
+        "representation": st.session_state.get("representation", "sticks+spheres"),
+        "two_sided_lighting": st.session_state.get("two_sided_lighting", True),
+        "transparency_mode": st.session_state.get("transparency_mode", 1),
+        "ambient_occlusion": st.session_state.get("ambient_occlusion", False),
+        "ambient_occlusion_scale": st.session_state.get("ambient_occlusion_scale", 20.0),
+        "ray_trace_fog": st.session_state.get("ray_trace_fog", 0.0),
+        "fog_start": st.session_state.get("fog_start", 1.0),
+        "zoom_buffer": st.session_state.get("zoom_buffer", 2.0),
+        "ray_trace_mode": st.session_state.get("ray_trace_mode", 0),
+        "ray_shadows": 1 if st.session_state.get("ray_shadows", False) else 0,
+        "opaque_background": st.session_state.get("opaque_background", False),
+        "stick_ball": st.session_state.get("stick_ball", True),
     }
 
     if not auto_orient_3d:
@@ -168,6 +205,11 @@ def render_structure_3d(compound: str, structure_type: str) -> str | None:
             apply_templates_to_generator(gen, "3D")
 
             gen.configure_rendering(**render_config)
+
+            conformer_config = {k: st.session_state.get(k) for k in _CONFORMER_SESSION_KEYS if st.session_state.get(k) is not None}
+            if conformer_config:
+                gen.configure_conformer(**conformer_config)
+
             sdf_path, png_path = gen.generate(
                 optimize=True,
                 render=True,

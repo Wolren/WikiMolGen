@@ -24,6 +24,7 @@ class ConformerConfig:
     conf_energy_threshold: float = 10.0
     num_conformers: int = 1
     prune_rms_thresh: float = 0.5
+    use_exp_torsion_prefs: bool = False
 
 
 @dataclass
@@ -58,7 +59,7 @@ class RenderConfig3D:
     ray_transparency_contrast: float = 1.0
     ray_transparency_oblique: float = 0.0
     ambient: float = 0.25
-    specular: int = 1
+    specular: float = 1.0
     shininess: int = 30
     ray_shadows: int = 0
     antialias: int = 4
@@ -72,6 +73,14 @@ class RenderConfig3D:
     z_rotation: float = 0.0
     bg_color: str = "white"
     stick_color: str | None = "gray40"
+    representation: str = "sticks+spheres"
+    two_sided_lighting: bool = True
+    transparency_mode: int = 1
+    ambient_occlusion: bool = False
+    ambient_occlusion_scale: float = 20.0
+    ray_trace_fog: float = 0.0
+    opaque_background: bool = False
+    stick_ball: bool = True
 
 
 @dataclass
@@ -104,6 +113,17 @@ class Config2D:
     amine_target_angle: float = 0.0
     phenethylamine_target: float = 90.0
     additional_atom_label_padding: float = 0.2
+    bond_line_width: float = 1.0
+    add_stereo_annotation: bool = False
+    include_radicals: bool = False
+    explicit_methyl: bool = False
+    scaling_factor: float = 1.0
+    no_atom_labels: bool = False
+    multiple_bond_offset: float = 0.15
+    include_atom_tags: bool = False
+    include_chiral_flag: bool = False
+    comic_mode: bool = False
+    fixed_font_size: int = -1
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

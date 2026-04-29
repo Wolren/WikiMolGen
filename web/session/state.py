@@ -17,12 +17,15 @@ def get_2d_defaults() -> dict[str, Any]:
 def get_3d_defaults() -> dict[str, Any]:
     cfg = ConfigLoader.get_3d_config()
     d = asdict(cfg.render) if hasattr(cfg, 'render') else {}
+    conf = asdict(cfg.conformer) if hasattr(cfg, 'conformer') else {}
+    d.update(conf)
     d["x_rot_slider"] = 0.0
     d["y_rot_slider"] = 0.0
     d["z_rot_slider"] = 0.0
-    d["ray_trace"] = bool(cfg.render.ray_trace_mode)
+
     d["ray_shadows"] = bool(cfg.render.ray_shadows)
     d["depth_cue"] = bool(cfg.render.depth_cue)
+    d["ambient_occlusion"] = bool(cfg.render.ambient_occlusion)
     return d
 
 

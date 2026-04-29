@@ -9,7 +9,7 @@ Uses split Config3D structure (render + conformer) from ConfigLoader.
 
 import json
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 from rdkit import Chem
 from rdkit.Chem import AllChem, rdForceFieldHelpers, rdmolfiles
@@ -130,6 +130,8 @@ class MoleculeGenerator3D:
         params.useBasicKnowledge = self.config.conformer.use_basic_knowledge
         params.enforceChirality = self.config.conformer.enforce_chirality
         params.useSmallRingTorsions = self.config.conformer.use_small_ring_torsions
+        params.useMacrocycleTorsions = self.config.conformer.use_macrocycle_torsions
+        params.useExpTorsionAnglePrefs = self.config.conformer.use_exp_torsion_prefs
 
         if self.config.conformer.num_conformers == 1:
             result = AllChem.EmbedMolecule(self.mol, params)
@@ -271,8 +273,11 @@ class MoleculeGenerator3D:
             # Load molecule
             cmd.load(str(sdf_path))
             cmd.hide("everything")
-            cmd.show("sticks", "all")
-            cmd.show("spheres", "all")
+
+            representations = cfg.representation.split("+")
+            for rep in representations:
+                cmd.show(rep.strip(), "all")
+
             cmd.bg_color(cfg.bg_color)
 
             element_colors = {
@@ -345,7 +350,7 @@ class MoleculeGenerator3D:
             cmd.set("sphere_transparency", cfg.sphere_transparency)
 
             # Stick ball properties
-            cmd.set("stick_ball", "on")
+            cmd.set("stick_ball", "on" if cfg.stick_ball else "off")
             cmd.set("stick_ball_ratio", cfg.stick_ball_ratio)
 
             # Valence display
@@ -358,11 +363,24 @@ class MoleculeGenerator3D:
             cmd.set("shininess", cfg.shininess)
             cmd.set("ray_shadows", cfg.ray_shadows)
             cmd.set("antialias", cfg.antialias)
-            cmd.set("ray_opaque_background", 0)
+            cmd.set("ray_opaque_background", 1 if cfg.opaque_background else 0)
             cmd.set("depth_cue", cfg.depth_cue)
 
             if cfg.depth_cue:
                 cmd.set("fog_start", cfg.fog_start)
+
+            # Two-sided lighting
+            cmd.set("two_sided_lighting", 1 if cfg.two_sided_lighting else 0)
+
+            # Transparency rendering mode
+            cmd.set("transparency_mode", cfg.transparency_mode)
+
+            # Ambient occlusion
+            if cfg.ambient_occlusion:
+                cmd.set("ambient_occlusion_mode", 1)
+                cmd.set("ambient_occlusion_scale", cfg.ambient_occlusion_scale)
+            else:
+                cmd.set("ambient_occlusion_mode", 0)
 
             # Direct lighting control
             cmd.set("direct", cfg.direct)
@@ -374,6 +392,7 @@ class MoleculeGenerator3D:
             cmd.set("ray_trace_color", cfg.ray_trace_color)
             cmd.set("ray_transparency_contrast", cfg.ray_transparency_contrast)
             cmd.set("ray_transparency_oblique", cfg.ray_transparency_oblique)
+            cmd.set("ray_trace_fog", cfg.ray_trace_fog)
 
             # Position and orientation
             if cfg.auto_orient_3d:
