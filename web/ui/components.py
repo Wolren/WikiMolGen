@@ -854,3 +854,21 @@ def render_generate_button(auto_generate: bool) -> bool:
         st.session_state.manual_generate = True
 
     return clicked
+
+
+def render_theme_toggle() -> None:
+    """Render theme switcher in sidebar."""
+    st.markdown("---")
+    st.markdown("**Theme**")
+    current = st.session_state.get("wiki_theme", "system")
+    choice = st.radio(
+        "Appearance",
+        ["system", "dark", "light"],
+        index=["system", "dark", "light"].index(current),
+        key="wiki_theme",
+        label_visibility="collapsed",
+        horizontal=True,
+        help="System = follow OS setting, Dark/Light = override",
+    )
+    if choice != current:
+        st.rerun()
