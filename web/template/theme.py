@@ -23,6 +23,7 @@ def _fallback_css() -> str:
     --border-color: #404348; --border-light: #333639;
     --button-primary: #6f8cff; --button-primary-hover: #8aa7ff;
     --code-bg: #1c2024; --code-text: #eaecf0;
+    --header-bg: #101418; --header-border: #404348;
 }
 [data-theme="light"] {
     --bg-primary: #ffffff; --bg-secondary: #f8f9fa; --bg-tertiary: #eaecf0;
@@ -31,12 +32,16 @@ def _fallback_css() -> str:
     --border-color: #c8ccd1; --border-light: #eaecf0;
     --button-primary: #3366cc; --button-primary-hover: #447ff5;
     --code-bg: #f8f9fa; --code-text: #202122;
+    --header-bg: #f8f9fa; --header-border: #c8ccd1;
 }
 .stApp { background-color: var(--bg-primary); }
+header, [data-testid="stHeader"] { background-color: var(--header-bg) !important; border-bottom: 1px solid var(--header-border) !important; }
+[data-testid="stToolbar"], [data-testid="stDecoration"] { background-color: var(--header-bg) !important; }
+[data-testid="stToolbar"] button { color: var(--text-primary) !important; }
 [data-testid="stSidebar"] { background-color: var(--bg-secondary); border-right: 1px solid var(--border-color); }
 [data-testid="stSidebar"] * { color: var(--text-primary) !important; }
 h1, h2, h3 { color: var(--text-primary) !important; font-weight: 600 !important; }
-.stButton>button { background-color: var(--button-primary) !important; border: none !important; font-weight: 600 !important; border-radius: 4px !important; color: var(--bg-primary) !important; }
+.stButton>button { background-color: var(--button-primary) !important; border: none !important; font-weight: 600 !important; border-radius: 4px !important; color: #ffffff !important; }
 .stButton>button:hover { background-color: var(--button-primary-hover) !important; }
 .streamlit-expanderHeader { background-color: var(--bg-secondary) !important; border: 1px solid var(--border-color) !important; border-radius: 4px !important; }
 .stSelectbox>div>div { background-color: var(--bg-primary) !important; border: 1px solid var(--border-color) !important; }

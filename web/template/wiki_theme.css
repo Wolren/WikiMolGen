@@ -26,6 +26,8 @@
     --button-secondary-border: #404348;
     --code-bg: #1c2024;
     --code-text: #eaecf0;
+    --header-bg: #101418;
+    --header-border: #404348;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
@@ -58,12 +60,27 @@
     --button-secondary-border: #a2a9b1;
     --code-bg: #f8f9fa;
     --code-text: #202122;
+    --header-bg: #f8f9fa;
+    --header-border: #c8ccd1;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
     --shadow-md: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 .stApp {
     background-color: var(--bg-primary);
+}
+
+header, [data-testid="stHeader"] {
+    background-color: var(--header-bg) !important;
+    border-bottom: 1px solid var(--header-border) !important;
+}
+
+[data-testid="stToolbar"], [data-testid="stDecoration"] {
+    background-color: var(--header-bg) !important;
+}
+
+[data-testid="stToolbar"] button {
+    color: var(--text-primary) !important;
 }
 
 [data-testid="stSidebar"] {
@@ -150,17 +167,13 @@ h1, h2, h3 {
 
 .stButton>button {
     background-color: var(--button-primary) !important;
-    color: #101418 !important;
+    color: #ffffff !important;
     border: none !important;
     font-weight: 600 !important;
     border-radius: 4px !important;
     padding: 0.5rem 1rem !important;
     box-shadow: var(--shadow-sm);
     transition: background-color 0.15s ease;
-}
-
-[data-theme="light"] .stButton>button {
-    color: #ffffff !important;
 }
 
 .stButton>button:hover {
