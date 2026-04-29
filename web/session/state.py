@@ -23,9 +23,9 @@ def get_3d_defaults() -> dict[str, Any]:
     d["y_rot_slider"] = 0.0
     d["z_rot_slider"] = 0.0
 
-    d["ray_shadows"] = bool(cfg.render.ray_shadows)
-    d["depth_cue"] = bool(cfg.render.depth_cue)
-    d["ambient_occlusion"] = bool(cfg.render.ambient_occlusion)
+    d["ray_shadows"] = bool(getattr(cfg.render, "ray_shadows", 0))
+    d["depth_cue"] = bool(getattr(cfg.render, "depth_cue", 0))
+    d["ambient_occlusion"] = bool(getattr(cfg.render, "ambient_occlusion", False))
     return d
 
 
