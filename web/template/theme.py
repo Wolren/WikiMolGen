@@ -3,25 +3,8 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-_THEME_OVERRIDE_CSS = {
-    "dark": """
-<style>
-:root { color-scheme: dark !important; }
-* { color-scheme: dark !important; }
-.compound-preview-image[data-type="2D"] { filter: invert(1) hue-rotate(180deg) !important; }
-</style>
-""",
-    "light": """
-<style>
-:root { color-scheme: light !important; }
-* { color-scheme: light !important; }
-.compound-preview-image[data-type="2D"] { filter: none !important; }
-</style>
-""",
-}
 
-
-def _load_base_css() -> str:
+def _load_css() -> str:
     css_path = Path(__file__).parent / "wiki_theme.css"
     try:
         with open(css_path, encoding="utf-8") as f:
@@ -41,18 +24,14 @@ def _fallback_css() -> str:
     --button-primary: #6f8cff; --button-primary-hover: #8aa7ff;
     --code-bg: #1c2024; --code-text: #eaecf0;
 }
-@media (prefers-color-scheme: light) {
-    :root {
-        --bg-primary: #ffffff; --bg-secondary: #f8f9fa; --bg-tertiary: #eaecf0;
-        --text-primary: #202122; --text-secondary: #54595d; --text-muted: #72777d;
-        --accent-blue: #3366cc; --accent-blue-light: #447ff5;
-        --border-color: #c8ccd1; --border-light: #eaecf0;
-        --button-primary: #3366cc; --button-primary-hover: #447ff5;
-        --code-bg: #f8f9fa; --code-text: #202122;
-    }
+[data-theme="light"] {
+    --bg-primary: #ffffff; --bg-secondary: #f8f9fa; --bg-tertiary: #eaecf0;
+    --text-primary: #202122; --text-secondary: #54595d; --text-muted: #72777d;
+    --accent-blue: #3366cc; --accent-blue-light: #447ff5;
+    --border-color: #c8ccd1; --border-light: #eaecf0;
+    --button-primary: #3366cc; --button-primary-hover: #447ff5;
+    --code-bg: #f8f9fa; --code-text: #202122;
 }
-* { color-scheme: dark; }
-@media (prefers-color-scheme: light) { * { color-scheme: light; } }
 .stApp { background-color: var(--bg-primary); }
 [data-testid="stSidebar"] { background-color: var(--bg-secondary); border-right: 1px solid var(--border-color); }
 [data-testid="stSidebar"] * { color: var(--text-primary) !important; }
@@ -62,7 +41,7 @@ h1, h2, h3 { color: var(--text-primary) !important; font-weight: 600 !important;
 .streamlit-expanderHeader { background-color: var(--bg-secondary) !important; border: 1px solid var(--border-color) !important; border-radius: 4px !important; }
 .stSelectbox>div>div { background-color: var(--bg-primary) !important; border: 1px solid var(--border-color) !important; }
 .compound-preview-image[data-type="2D"] { max-width: 100%; filter: invert(1) hue-rotate(180deg); }
-@media (prefers-color-scheme: light) { .compound-preview-image[data-type="2D"] { filter: none; } }
+[data-theme="light"] .compound-preview-image[data-type="2D"] { filter: none; }
 .compound-preview-image[data-type="3D"] { filter: none; }
 a { color: var(--link-color) !important; }
 </style>"""
@@ -70,10 +49,4 @@ a { color: var(--link-color) !important; }
 
 def apply_theme() -> None:
     import streamlit as st
-
-    css = _load_base_css()
-    st.markdown(css, unsafe_allow_html=True)
-
-    choice = st.session_state.get("wiki_theme", "system")
-    if choice in _THEME_OVERRIDE_CSS:
-        st.markdown(_THEME_OVERRIDE_CSS[choice], unsafe_allow_html=True)
+    st.markdown(_load_css(), unsafe_allow_html=True)
