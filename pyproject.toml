@@ -125,14 +125,24 @@ ignore = [
     "E501",
 
     # ── web/wikipedia/generator.py ──────────────────────────────────────────
-    # W291  — trailing whitespace in multi-line Wikipedia template strings
+    # W291  — trailing whitespace inside Wikipedia wikitext template strings
+    #          (stripping would corrupt the template field values)
     "W291",
+
+    # ── web/app.py ───────────────────────────────────────────────────
+    # E402  — import after non-import code (theme must be applied before other
+    #          Streamlit imports to take effect; order is intentional)
+    "E402",
+
+    # ── web/ui/components.py ─────────────────────────────────────────
+    # N806  — `ACS_mode` variable not lowercase (acronym, rename deferred)
+    "N806",
 
     # ── wikimolgen/examples/examples.py ────────────────────────────────────
     # N802  — function name `example_4_MeO_DiPT` not lowercase (chemical name)
     "N802",
 
-    # ── wikimolgen/rendering/ (amine_canonicalization, optimization, protein)
+    # ── wikimolgen/rendering/ (amine_canonicalization, optimization, protein) ─
     # I001  — unsorted/unformatted import blocks
     "I001",
     # UP035 — deprecated typing imports (Optional/List/Tuple/Dict from typing)
