@@ -106,20 +106,37 @@ select = ["E", "F", "W", "I", "N", "UP"]
 # Deferred fixes — tracked, not yet actioned.  Remove each entry once fixed.
 # ---------------------------------------------------------------------------
 ignore = [
-    # UP042 — StrEnum migration (SecondaryStructureType, ColorScheme in protein.py)
+    # ── protein.py ──────────────────────────────────────────────────────────
+    # UP042 — StrEnum migration (SecondaryStructureType, ColorScheme)
     "UP042",
-    # UP045 — Optional[X] → X | None  (protein.py)
+    # UP045 — Optional[X] → X | None
     "UP045",
-    # UP006 — List/Tuple/Dict → built-in generics  (protein.py)
+    # UP006 — List/Tuple/Dict → built-in generics
     "UP006",
-    # F841  — unused local variable tmpdir_path  (protein.py:223)
+    # F841  — unused local variable `tmpdir_path` (line 223)
     "F841",
-    # E722  — bare except  (protein.py:257, 265)
+    # E722  — bare except (lines 257, 265)
     "E722",
-    # F541  — f-string without placeholders  (protein.py:319, 321)
+    # F541  — f-string without placeholders (lines 319, 321)
     "F541",
-    # W292  — no newline at end of file  (protein.py:616)
+    # W292  — no newline at end of file (line 616)
     "W292",
-    # E501  — lines > 100 chars  (wikimol2d.py, wikimol3d.py)
+    # E501  — lines > 100 chars (wikimol2d.py, wikimol3d.py)
     "E501",
+
+    # ── web/wikipedia/generator.py ──────────────────────────────────────────
+    # W291  — trailing whitespace in multi-line Wikipedia template strings
+    "W291",
+
+    # ── wikimolgen/examples/examples.py ────────────────────────────────────
+    # N802  — function name `example_4_MeO_DiPT` not lowercase (chemical name)
+    "N802",
+
+    # ── wikimolgen/rendering/ (amine_canonicalization, optimization, protein)
+    # I001  — unsorted/unformatted import blocks
+    "I001",
+    # UP035 — deprecated typing imports (Optional/List/Tuple/Dict from typing)
+    "UP035",
+    # F401  — unused imports (AllChem in amine_canonicalization, List in optimization)
+    "F401",
 ]
