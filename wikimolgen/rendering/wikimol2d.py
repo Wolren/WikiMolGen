@@ -217,6 +217,19 @@ class MoleculeGenerator2D:
         if self.config.transparent_background:
             opts.setBackgroundColour((0, 0, 0, 0))
 
+        opts.bondLineWidth = self.config.bond_line_width
+        opts.addStereoAnnotation = self.config.add_stereo_annotation
+        opts.includeRadicals = self.config.include_radicals
+        opts.scalingFactor = self.config.scaling_factor
+        opts.explicitMethyl = self.config.explicit_methyl
+        opts.noAtomLabels = self.config.no_atom_labels
+        opts.multipleBondOffset = self.config.multiple_bond_offset
+        opts.includeAtomTags = self.config.include_atom_tags
+        opts.includeChiralFlagLabel = self.config.include_chiral_flag
+        opts.comicMode = self.config.comic_mode
+        if self.config.fixed_font_size > 0:
+            opts.fixedFontSize = self.config.fixed_font_size
+
         rdMolDraw2D.PrepareAndDrawMolecule(drawer, self.mol)
         drawer.FinishDrawing()
 

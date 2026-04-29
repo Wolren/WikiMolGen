@@ -332,6 +332,122 @@ def render_2d_settings() -> None:
             )
             save_config_to_session("2d")
 
+        # Amine orientation settings
+        with st.expander("Amine Orientation", expanded=False):
+            st.markdown("**Automatic amine group rotation for Wikipedia-style drawings**")
+            auto_orient_amines = st.checkbox(
+                "Auto-orient amines", value=True,
+                key="auto_orient_amines",
+                help="Automatically rotate amine groups for Wikipedia-style 2D drawings"
+            )
+            save_config_to_session("2d")
+
+            if auto_orient_amines:
+                amine_target_angle = st.slider(
+                    "Amine target angle (°)", 0, 360, 0, 5,
+                    key="amine_target_angle",
+                    help="Target rotation angle for amine groups"
+                )
+                save_config_to_session("2d")
+
+                phenethylamine_target = st.slider(
+                    "Phenethylamine angle (°)", 0, 360, 90, 5,
+                    key="phenethylamine_target",
+                    help="Target rotation angle for phenethylamine sidechains"
+                )
+                save_config_to_session("2d")
+
+        # Advanced RDKit drawing options
+        with st.expander("Advanced Drawing", expanded=False):
+            st.markdown("**RDKit Drawing Options**")
+            col1, col2 = st.columns(2)
+            with col1:
+                bond_line_width = st.slider(
+                    "Bond Line Width", 0.5, 5.0, 1.0, 0.5,
+                    key="bond_line_width",
+                    help="Thickness of bond lines in pixels"
+                )
+                save_config_to_session("2d")
+
+                scaling_factor = st.slider(
+                    "Font Scale", 0.5, 3.0, 1.0, 0.1,
+                    key="scaling_factor",
+                    help="Scaling factor for fonts and symbols"
+                )
+                save_config_to_session("2d")
+
+                multiple_bond_offset = st.slider(
+                    "Multi-bond offset", 0.0, 0.5, 0.15, 0.05,
+                    key="multiple_bond_offset",
+                    help="Spacing between lines in double/triple bonds"
+                )
+                save_config_to_session("2d")
+
+            with col2:
+                add_stereo_annotation = st.checkbox(
+                    "Stereo labels (R/S)", value=False,
+                    key="add_stereo_annotation",
+                    help="Show stereocenter annotations (R/S labels)"
+                )
+                save_config_to_session("2d")
+
+                include_radicals = st.checkbox(
+                    "Show radicals", value=False,
+                    key="include_radicals",
+                    help="Show radical electrons as dots"
+                )
+                save_config_to_session("2d")
+
+                include_chiral_flag = st.checkbox(
+                    "Chiral flag", value=False,
+                    key="include_chiral_flag",
+                    help="Show chiral flag label on stereocenters"
+                )
+                save_config_to_session("2d")
+
+            st.markdown("**Atom Labels**")
+            col1, col2 = st.columns(2)
+            with col1:
+                no_atom_labels = st.checkbox(
+                    "Hide all atom labels", value=False,
+                    key="no_atom_labels",
+                    help="Hide all atom symbols (clean structure only)"
+                )
+                save_config_to_session("2d")
+
+                explicit_methyl = st.checkbox(
+                    "Explicit methyl (CH3)", value=False,
+                    key="explicit_methyl",
+                    help="Show CH3 instead of Me abbreviation"
+                )
+                save_config_to_session("2d")
+
+            with col2:
+                include_atom_tags = st.checkbox(
+                    "Atom map numbers", value=False,
+                    key="include_atom_tags",
+                    help="Include atom map/tag numbers (reaction mapping)"
+                )
+                save_config_to_session("2d")
+
+            st.markdown("**Style**")
+            col1, col2 = st.columns(2)
+            with col1:
+                comic_mode = st.checkbox(
+                    "Comic style", value=False,
+                    key="comic_mode",
+                    help="Hand-drawn comic-style rendering"
+                )
+                save_config_to_session("2d")
+
+            with col2:
+                fixed_font_size = st.slider(
+                    "Fixed font size (-1 = auto)", -1, 60, -1, 1,
+                    key="fixed_font_size",
+                    help="Lock font size to fixed value (-1 for automatic)"
+                )
+                save_config_to_session("2d")
+
 
 def render_3d_settings() -> None:
     """Render 3D-specific settings controls."""
@@ -419,10 +535,11 @@ def render_rendering_settings() -> None:
         col1, col2 = st.columns(2)
 
         with col1:
-            ray_trace = st.checkbox(
-                "Ray Tracing", value=False,
-                key="ray_trace",
-                help="Enable ray tracing for photorealistic rendering"
+            ray_trace_mode = st.selectbox(
+                "Ray Tracing", [0, 1, 2, 3],
+                index=0,
+                key="ray_trace_mode",
+                help="0=Off, 1=Ray trace, 2=Realtime, 3=Realtime strip"
             )
             save_config_to_session("3d")
 
@@ -438,6 +555,84 @@ def render_rendering_settings() -> None:
                 "Antialiasing", [0, 1, 2, 3, 4], 2,
                 key="antialias",
                 help="0=Off, 1=On, 2-4=Multisample levels"
+            )
+            save_config_to_session("3d")
+
+        st.markdown("**Render Quality**")
+        col1, col2 = st.columns(2)
+        with col1:
+            stick_quality = st.slider(
+                "Stick Quality", 16, 128, 64, 8,
+                key="stick_quality",
+                help="Stick rendering smoothness (higher = smoother)"
+            )
+            save_config_to_session("3d")
+        with col2:
+            sphere_quality = st.slider(
+                "Sphere Quality", 2, 12, 6, 1,
+                key="sphere_quality",
+                help="Sphere rendering quality (higher = smoother)"
+            )
+            save_config_to_session("3d")
+
+        st.markdown("**Representation**")
+        representation = st.selectbox(
+            "Style",
+            ["sticks+spheres", "sticks", "spheres", "lines"],
+            key="representation",
+            help="Molecular representation style"
+        )
+        save_config_to_session("3d")
+
+        st.markdown("**Colors**")
+        col1, col2 = st.columns(2)
+        with col1:
+            bg_color = st.selectbox(
+                "Background", ["white", "black", "gray", "transparent"],
+                key="bg_color",
+                help="Canvas background color"
+            )
+            save_config_to_session("3d")
+        with col2:
+            stick_color = st.text_input(
+                "Stick Color", value="gray40",
+                key="stick_color",
+                help="PyMOL color name for bonds (e.g. gray40, black, custom)"
+            )
+            save_config_to_session("3d")
+
+        st.markdown("**Lighting Mode**")
+        col1, col2 = st.columns(2)
+        with col1:
+            two_sided_lighting = st.checkbox(
+                "Two-sided lighting", value=True,
+                key="two_sided_lighting",
+                help="Enable two-sided polygon lighting"
+            )
+            save_config_to_session("3d")
+        with col2:
+            transparency_mode = st.selectbox(
+                "Transparency Mode", [0, 1, 2],
+                index=1,
+                key="transparency_mode",
+                help="0=Off, 1=Additive, 2=Weighted average"
+            )
+            save_config_to_session("3d")
+
+        st.markdown("**Miscellaneous**")
+        col1, col2 = st.columns(2)
+        with col1:
+            stick_ball = st.checkbox(
+                "Stick-ball style", value=True,
+                key="stick_ball",
+                help="Use ball-shaped stick joins"
+            )
+            save_config_to_session("3d")
+        with col2:
+            opaque_background = st.checkbox(
+                "Opaque background", value=False,
+                key="opaque_background",
+                help="Use solid background (instead of transparent)"
             )
             save_config_to_session("3d")
 
@@ -519,6 +714,120 @@ def render_effects_settings() -> None:
                 "Depth Cueing", value=False,
                 key="depth_cue",
                 help="Enable fog effect for depth perception"
+            )
+            save_config_to_session("3d")
+
+        if st.session_state.get("depth_cue", False):
+            fog_start = st.slider(
+                "Fog Start", 0.0, 10.0, 1.0, 0.5,
+                key="fog_start",
+                help="Distance at which fog effect begins"
+            )
+            save_config_to_session("3d")
+
+        st.markdown("**Ambient Occlusion**")
+        col1, col2 = st.columns(2)
+        with col1:
+            ambient_occlusion = st.checkbox(
+                "Ambient Occlusion", value=False,
+                key="ambient_occlusion",
+                help="Enable ambient occlusion for depth shading"
+            )
+            save_config_to_session("3d")
+        with col2:
+            if st.session_state.get("ambient_occlusion", False):
+                ambient_occlusion_scale = st.slider(
+                    "AO Scale", 5.0, 50.0, 20.0, 5.0,
+                    key="ambient_occlusion_scale",
+                    help="Ambient occlusion radius scale"
+                )
+                save_config_to_session("3d")
+
+        st.markdown("**Ray Tracing Fog**")
+        ray_trace_fog = st.slider(
+            "RT Fog", 0.0, 1.0, 0.0, 0.05,
+            key="ray_trace_fog",
+            help="Ray tracing fog density (0=off)"
+        )
+        save_config_to_session("3d")
+
+        st.markdown("**Zoom**")
+        zoom_buffer = st.slider(
+            "Zoom Buffer", 0.5, 5.0, 2.0, 0.1,
+            key="zoom_buffer",
+            help="Padding around molecule (lower = zoomed in)"
+        )
+        save_config_to_session("3d")
+
+
+def render_conformer_settings() -> None:
+    """Render conformer generation settings."""
+    with st.expander("⚙️ Conformer Generation", expanded=False):
+        st.markdown("**RDKit ETKDG Conformer Engine**")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            num_conformers = st.number_input(
+                "Conformers", 1, 100, 1,
+                key="num_conformers",
+                help="Number of 3D conformers to generate"
+            )
+            save_config_to_session("3d")
+
+            max_iterations = st.slider(
+                "Max Iterations", 50, 1000, 200, 50,
+                key="max_iterations",
+                help="Force field optimization iterations"
+            )
+            save_config_to_session("3d")
+
+            prune_rms_thresh = st.slider(
+                "Prune RMSD", 0.1, 2.0, 0.5, 0.1,
+                key="prune_rms_thresh",
+                help="RMSD threshold to prune similar conformers"
+            )
+            save_config_to_session("3d")
+
+        with col2:
+            use_random_coords = st.checkbox(
+                "Random coords", value=False,
+                key="use_random_coords",
+                help="Use random starting coordinates (instead of ETKDG)"
+            )
+            save_config_to_session("3d")
+
+            use_basic_knowledge = st.checkbox(
+                "Basic knowledge", value=True,
+                key="use_basic_knowledge",
+                help="Use ETKDG basic knowledge terms"
+            )
+            save_config_to_session("3d")
+
+            enforce_chirality = st.checkbox(
+                "Chirality", value=True,
+                key="enforce_chirality",
+                help="Enforce stereochemistry during embedding"
+            )
+            save_config_to_session("3d")
+
+            use_small_ring_torsions = st.checkbox(
+                "Small ring torsions", value=False,
+                key="use_small_ring_torsions",
+                help="Use small ring torsion knowledge"
+            )
+            save_config_to_session("3d")
+
+            use_macrocycle_torsions = st.checkbox(
+                "Macrocycle torsions", value=False,
+                key="use_macrocycle_torsions",
+                help="Use macrocycle torsion knowledge (for large rings)"
+            )
+            save_config_to_session("3d")
+
+            use_exp_torsion_prefs = st.checkbox(
+                "Exp. torsion prefs", value=False,
+                key="use_exp_torsion_prefs",
+                help="Use experimental torsion angle preferences"
             )
             save_config_to_session("3d")
 
