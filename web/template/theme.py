@@ -81,6 +81,7 @@ a { color: var(--link-color) !important; }
 
 def apply_theme() -> None:
     import streamlit as st
+
     st.markdown(_load_css(), unsafe_allow_html=True)
     if st.session_state.get("wiki_theme") == "Light":
         st.markdown(_LIGHT_OVERRIDE, unsafe_allow_html=True)

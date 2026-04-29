@@ -28,25 +28,41 @@ def color_name_to_rgb(color_name: str) -> tuple:
     """Convert color name to RGB tuple for PyMOL."""
     color_map = {
         # Grays
-        "gray10": (0.10, 0.10, 0.10), "gray20": (0.20, 0.20, 0.20),
-        "gray25": (0.25, 0.25, 0.25), "gray30": (0.30, 0.30, 0.30),
-        "gray40": (0.40, 0.40, 0.40), "gray50": (0.50, 0.50, 0.50),
-        "gray60": (0.60, 0.60, 0.60), "gray70": (0.70, 0.70, 0.70),
-        "gray80": (0.80, 0.80, 0.80), "gray85": (0.85, 0.85, 0.85),
+        "gray10": (0.10, 0.10, 0.10),
+        "gray20": (0.20, 0.20, 0.20),
+        "gray25": (0.25, 0.25, 0.25),
+        "gray30": (0.30, 0.30, 0.30),
+        "gray40": (0.40, 0.40, 0.40),
+        "gray50": (0.50, 0.50, 0.50),
+        "gray60": (0.60, 0.60, 0.60),
+        "gray70": (0.70, 0.70, 0.70),
+        "gray80": (0.80, 0.80, 0.80),
+        "gray85": (0.85, 0.85, 0.85),
         "gray90": (0.90, 0.90, 0.90),
         # Extended colors
-        "palegreen": (0.596, 0.984, 0.596), "firebrick": (0.698, 0.133, 0.133),
-        "darkorange": (1.0, 0.549, 0.0), "chocolate": (0.824, 0.412, 0.118),
-        "goldenrod": (0.855, 0.647, 0.125), "gold": (1.0, 0.843, 0.0),
+        "palegreen": (0.596, 0.984, 0.596),
+        "firebrick": (0.698, 0.133, 0.133),
+        "darkorange": (1.0, 0.549, 0.0),
+        "chocolate": (0.824, 0.412, 0.118),
+        "goldenrod": (0.855, 0.647, 0.125),
+        "gold": (1.0, 0.843, 0.0),
         # PyMOL native (fallback)
-        "white": (1.0, 1.0, 1.0), "black": (0.0, 0.0, 0.0),
-        "red": (1.0, 0.0, 0.0), "green": (0.0, 1.0, 0.0),
-        "blue": (0.0, 0.0, 1.0), "yellow": (1.0, 1.0, 0.0),
-        "cyan": (0.0, 1.0, 1.0), "magenta": (1.0, 0.0, 1.0),
-        "orange": (1.0, 0.647, 0.0), "purple": (0.627, 0.125, 0.941),
-        "pink": (1.0, 0.753, 0.796), "brown": (0.647, 0.165, 0.165),
-        "gray": (0.502, 0.502, 0.502), "slate": (0.439, 0.502, 0.565),
-        "salmon": (0.980, 0.502, 0.447), "violet": (0.933, 0.510, 0.933),
+        "white": (1.0, 1.0, 1.0),
+        "black": (0.0, 0.0, 0.0),
+        "red": (1.0, 0.0, 0.0),
+        "green": (0.0, 1.0, 0.0),
+        "blue": (0.0, 0.0, 1.0),
+        "yellow": (1.0, 1.0, 0.0),
+        "cyan": (0.0, 1.0, 1.0),
+        "magenta": (1.0, 0.0, 1.0),
+        "orange": (1.0, 0.647, 0.0),
+        "purple": (0.627, 0.125, 0.941),
+        "pink": (1.0, 0.753, 0.796),
+        "brown": (0.647, 0.165, 0.165),
+        "gray": (0.502, 0.502, 0.502),
+        "slate": (0.439, 0.502, 0.565),
+        "salmon": (0.980, 0.502, 0.447),
+        "violet": (0.933, 0.510, 0.933),
         "forest": (0.133, 0.545, 0.133),
     }
     return color_map.get(color_name.lower(), (0.5, 0.5, 0.5))
@@ -84,11 +100,7 @@ class MoleculeGenerator3D:
     """
 
     def __init__(
-        self,
-        identifier: str,
-        config: Config3D | None = None,
-        random_seed: int = 1,
-        **kwargs
+        self, identifier: str, config: Config3D | None = None, random_seed: int = 1, **kwargs
     ):
         """
         Initialize 3D molecule generator with config-driven setup.
@@ -143,7 +155,7 @@ class MoleculeGenerator3D:
                 self.mol,
                 numConfs=self.config.conformer.num_conformers,
                 params=params,
-                pruneRmsThresh=self.config.conformer.prune_rms_thresh
+                pruneRmsThresh=self.config.conformer.prune_rms_thresh,
             )
             if len(result) == 0:
                 raise ValueError("Failed to generate 3D conformers")
@@ -169,7 +181,9 @@ class MoleculeGenerator3D:
                     ff = rdForceFieldHelpers.MMFFGetMoleculeForceField(self.mol, props)
                     self.energy = ff.CalcEnergy()
             else:
-                results = rdForceFieldHelpers.MMFFOptimizeMoleculeConfs(self.mol, maxIters=max_iters)
+                results = rdForceFieldHelpers.MMFFOptimizeMoleculeConfs(
+                    self.mol, maxIters=max_iters
+                )
                 energies = [r[1] for r in results]
                 self.energy = min(energies)
 
@@ -204,7 +218,9 @@ class MoleculeGenerator3D:
         rdmolfiles.MolToMolFile(self.mol, str(output_path))
         return output_path
 
-    def _auto_crop_image(self, image_path: Path, margin: int = 10, contrast_factor: float = 1.15) -> None:
+    def _auto_crop_image(
+        self, image_path: Path, margin: int = 10, contrast_factor: float = 1.15
+    ) -> None:
         """
         Auto-crop PNG to molecule bounds using alpha channel only (no white compositing).
 
@@ -288,20 +304,17 @@ class MoleculeGenerator3D:
                 "O": "red",  # Oxygen - red
                 "S": "yellow",  # Sulfur - yellow
                 "P": "orange",  # Phosphorus - orange
-
                 # Halogens
                 "F": "palegreen",  # Fluorine - pale green
                 "Cl": "green",  # Chlorine - green
                 "Br": "firebrick",  # Bromine - dark red/brown
                 "I": "purple",  # Iodine - purple
-
                 # Metals (alkali & alkaline earth)
                 "Li": "violet",  # Lithium
                 "Na": "slate",  # Sodium
                 "K": "violet",  # Potassium
                 "Mg": "forest",  # Magnesium
                 "Ca": "forest",  # Calcium
-
                 # Transition metals (common in organometallics)
                 "Fe": "darkorange",  # Iron
                 "Cu": "chocolate",  # Copper
@@ -314,13 +327,11 @@ class MoleculeGenerator3D:
                 "Pt": "gray50",  # Platinum
                 "Au": "gold",  # Gold
                 "Ag": "gray70",  # Silver
-
                 # Other common elements
                 "B": "salmon",  # Boron
                 "Si": "goldenrod",  # Silicon
                 "Se": "orange",  # Selenium
                 "As": "violet",  # Arsenic
-
                 "He": "cyan",
                 "Ne": "cyan",
                 "Ar": "cyan",
@@ -508,8 +519,9 @@ class MoleculeGenerator3D:
             If an unknown rendering parameter is provided
         """
         valid_render_params = {
-            attr for attr in dir(self.config.render)
-            if not attr.startswith('_') and not callable(getattr(self.config.render, attr))
+            attr
+            for attr in dir(self.config.render)
+            if not attr.startswith("_") and not callable(getattr(self.config.render, attr))
         }
 
         for key, value in kwargs.items():
@@ -537,8 +549,9 @@ class MoleculeGenerator3D:
             If an unknown conformer parameter is provided
         """
         valid_conformer_params = {
-            attr for attr in dir(self.config.conformer)
-            if not attr.startswith('_') and not callable(getattr(self.config.conformer, attr))
+            attr
+            for attr in dir(self.config.conformer)
+            if not attr.startswith("_") and not callable(getattr(self.config.conformer, attr))
         }
 
         for key, value in kwargs.items():
@@ -550,9 +563,7 @@ class MoleculeGenerator3D:
                     f"Valid parameters: {', '.join(sorted(valid_conformer_params))}"
                 )
 
-    def load_color_template(
-        self, template: str | Path | dict | ColorConfig
-    ) -> None:
+    def load_color_template(self, template: str | Path | dict | ColorConfig) -> None:
         if isinstance(template, str):
             try:
                 color_cfg = ConfigLoader.load_color_template(template)
@@ -575,15 +586,15 @@ class MoleculeGenerator3D:
             self.config.render.stick_color = color_cfg.stick_color
             self.config.render.bg_color = color_cfg.bg_color
         elif isinstance(template, dict):
-            self.config.render.stick_color = template.get("stick_color", self.config.render.stick_color)
+            self.config.render.stick_color = template.get(
+                "stick_color", self.config.render.stick_color
+            )
             self.config.render.bg_color = template.get("bg_color", self.config.render.bg_color)
         else:
             self.config.render.stick_color = template.stick_color
             self.config.render.bg_color = template.bg_color
 
-    def load_settings_template(
-        self, template: str | Path | Config3D | dict
-    ) -> None:
+    def load_settings_template(self, template: str | Path | Config3D | dict) -> None:
         if isinstance(template, str):
             try:
                 cfg = ConfigLoader.load_template(template)

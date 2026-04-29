@@ -35,7 +35,7 @@ def hex_to_rgb(hex_color: str) -> Tuple[float, float, float]:
     """
     hex_color = hex_color.lstrip("#")
     try:
-        return tuple(int(hex_color[i:i+2], 16) / 255.0 for i in (0, 2, 4))
+        return tuple(int(hex_color[i : i + 2], 16) / 255.0 for i in (0, 2, 4))
     except (ValueError, IndexError):
         # Fallback to white if parsing fails
         return (1.0, 1.0, 1.0)
@@ -94,16 +94,19 @@ def initialize_pymol() -> None:
 
 class ProteinVisualizationError(Exception):
     """Raised when protein visualization fails."""
+
     pass
 
 
 class ProteinFetchError(Exception):
     """Raised when protein structure cannot be fetched."""
+
     pass
 
 
 class SecondaryStructureType(str, Enum):
     """Secondary structure representation types."""
+
     CARTOON = "cartoon"
     RIBBON = "ribbon"
     CARTOON_FANCY = "cartoon_fancy"
@@ -114,6 +117,7 @@ class SecondaryStructureType(str, Enum):
 
 class ColorScheme(str, Enum):
     """Protein coloring schemes."""
+
     SECONDARY_STRUCTURE = "secondary_structure"
     RAINBOW = "rainbow"
     CHAIN = "chain"
@@ -240,17 +244,32 @@ class BiotiteStructureProvider:
             return Path(pdb_path), metadata
 
         except Exception as e:
-            raise ProteinFetchError(
-                f"Failed to fetch PDB {pdb_id}: {type(e).__name__}: {e}"
-            )
+            raise ProteinFetchError(f"Failed to fetch PDB {pdb_id}: {type(e).__name__}: {e}")
 
     @staticmethod
     def _has_hetatm(structure) -> bool:
         """Check if structure contains heteroatoms (ligands)."""
         standard_aa = {
-            'ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLU', 'GLN',
-            'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE',
-            'PRO', 'SER', 'THR', 'TRP', 'TYR', 'VAL'
+            "ALA",
+            "ARG",
+            "ASN",
+            "ASP",
+            "CYS",
+            "GLU",
+            "GLN",
+            "GLY",
+            "HIS",
+            "ILE",
+            "LEU",
+            "LYS",
+            "MET",
+            "PHE",
+            "PRO",
+            "SER",
+            "THR",
+            "TRP",
+            "TYR",
+            "VAL",
         }
         try:
             return any(res_name not in standard_aa for res_name in set(structure.res_name))
@@ -261,7 +280,7 @@ class BiotiteStructureProvider:
     def _has_water(structure) -> bool:
         """Check if structure contains water molecules."""
         try:
-            return 'HOH' in set(structure.res_name)
+            return "HOH" in set(structure.res_name)
         except:
             return False
 
@@ -418,10 +437,7 @@ class ProteinGenerator:
 
             # Ray trace and render
             if self.cartoon_config.ray_trace_mode > 0:
-                cmd.ray(
-                    width=self.cartoon_config.width,
-                    height=self.cartoon_config.height
-                )
+                cmd.ray(width=self.cartoon_config.width, height=self.cartoon_config.height)
 
             cmd.png(
                 str(output_path),
@@ -432,9 +448,7 @@ class ProteinGenerator:
             # Autocrop if enabled (same as 3D generator)
             if self.cartoon_config.autocrop:
                 autocrop_image(
-                    output_path,
-                    margin=self.cartoon_config.crop_margin,
-                    contrast_factor=1.15
+                    output_path, margin=self.cartoon_config.crop_margin, contrast_factor=1.15
                 )
                 print(f"✓ Auto-cropped with {self.cartoon_config.crop_margin}px margin")
 
@@ -442,9 +456,7 @@ class ProteinGenerator:
             return output_path
 
         except Exception as e:
-            raise ProteinVisualizationError(
-                f"Failed to render: {type(e).__name__}: {e}"
-            )
+            raise ProteinVisualizationError(f"Failed to render: {type(e).__name__}: {e}")
 
     def configure_cartoon(self, **kwargs) -> None:
         """Update cartoon rendering configuration.
@@ -607,7 +619,7 @@ def get_optimal_dynorphin_kor_view() -> Dict:
             "bg_color": "black",
             "antialias": 4,
             "auto_orient": True,
-        }
+        },
     }
 
 

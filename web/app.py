@@ -39,8 +39,9 @@ def configure_page() -> None:
         page_title="WikiMolGen",
         page_icon="media/wikimolgen_logo.png",
         layout="wide",
-        initial_sidebar_state="expanded"
+        initial_sidebar_state="expanded",
     )
+
 
 # Apply theme
 from template.theme import apply_theme
@@ -116,6 +117,7 @@ def render_sidebar() -> tuple:
                 render_protein_ligand_settings,
                 render_protein_selector,
             )
+
             st.markdown("#### Protein Rendering Settings")
             pdb_id = render_protein_selector()
             cartoon_cfg = render_protein_cartoon_settings()
@@ -124,6 +126,7 @@ def render_sidebar() -> tuple:
             protein_inputs = (pdb_id, cartoon_cfg, ligand_cfg, canvas_cfg)
 
         from ui.components import render_theme_toggle
+
         render_theme_toggle()
 
     return compound, structure_type, auto_generate, protein_inputs
@@ -145,12 +148,13 @@ def apply_2d_styling_to_image(image_html: str) -> str:
     """
     # Add the 2D-specific class to the img tag for color inversion
     return image_html.replace(
-        'class="compound-preview-image"',
-        'class="compound-preview-image compound-preview-image-2d"'
+        'class="compound-preview-image"', 'class="compound-preview-image compound-preview-image-2d"'
     )
 
 
-def render_protein_structure_dynamic(pdb_id: str, cartoon_cfg: dict, ligand_cfg: dict, canvas_cfg: dict) -> str:
+def render_protein_structure_dynamic(
+    pdb_id: str, cartoon_cfg: dict, ligand_cfg: dict, canvas_cfg: dict
+) -> str:
     """
     Render protein structure dynamically (same pattern as render_structure_dynamic for 2D/3D).
 
@@ -206,7 +210,9 @@ def render_protein_structure_dynamic(pdb_id: str, cartoon_cfg: dict, ligand_cfg:
             return None
 
 
-def render_main_content(compound: str, structure_type: str, auto_generate: bool, protein_inputs: tuple = None) -> None:
+def render_main_content(
+    compound: str, structure_type: str, auto_generate: bool, protein_inputs: tuple = None
+) -> None:
     """
     Render main content area.
 
@@ -230,9 +236,9 @@ def render_main_content(compound: str, structure_type: str, auto_generate: bool,
 
         # Check if image should be rendered at the moment
         should_render = (
-                auto_generate
-                or st.session_state.get("manual_generate", False)
-                or st.session_state.get("last_compound") != compound
+            auto_generate
+            or st.session_state.get("manual_generate", False)
+            or st.session_state.get("last_compound") != compound
         )
 
         if should_render and compound:
@@ -252,7 +258,7 @@ def render_main_content(compound: str, structure_type: str, auto_generate: bool,
                 with preview_placeholder.container():
                     st.markdown(
                         f'<div class="compound-preview-container">{image_html}</div>',
-                        unsafe_allow_html=True
+                        unsafe_allow_html=True,
                     )
                 # finalize_and_save_config(structure_type.lower())
 
@@ -266,7 +272,7 @@ def render_main_content(compound: str, structure_type: str, auto_generate: bool,
                 with preview_placeholder.container():
                     st.markdown(
                         f'<div class="compound-preview-container">{cached_html}</div>',
-                        unsafe_allow_html=True
+                        unsafe_allow_html=True,
                     )
             else:
                 with preview_placeholder.container():
@@ -283,7 +289,7 @@ def render_main_content(compound: str, structure_type: str, auto_generate: bool,
             with preview_placeholder.container():
                 st.markdown(
                     f'<div class="compound-preview-container">{cached_html}</div>',
-                    unsafe_allow_html=True
+                    unsafe_allow_html=True,
                 )
 
     else:  # structure_type == "Protein"
@@ -292,8 +298,12 @@ def render_main_content(compound: str, structure_type: str, auto_generate: bool,
             pdb_id, cartoon_cfg, ligand_cfg, canvas_cfg = protein_inputs
 
             # Generate button always visible at top
-            if st.button("Generate Protein Structure", use_container_width=True, key="protein_gen_btn"):
-                image_html = render_protein_structure_dynamic(pdb_id, cartoon_cfg, ligand_cfg, canvas_cfg)
+            if st.button(
+                "Generate Protein Structure", use_container_width=True, key="protein_gen_btn"
+            ):
+                image_html = render_protein_structure_dynamic(
+                    pdb_id, cartoon_cfg, ligand_cfg, canvas_cfg
+                )
 
             # Show success message and metrics if rendered
             if st.session_state.get("last_protein_image_html"):
@@ -310,12 +320,14 @@ def render_main_content(compound: str, structure_type: str, auto_generate: bool,
                     with col3:
                         st.metric("Residues", metadata.get("num_residues", 0))
                     with col4:
-                        st.metric("Has Ligand", "âœ“" if metadata.get("has_ligand", False) else "âœ—")
+                        st.metric(
+                            "Has Ligand", "âœ“" if metadata.get("has_ligand", False) else "âœ—"
+                        )
 
                 # Display protein image
                 st.markdown(
                     f'<div class="protein-preview-container">{st.session_state.last_protein_image_html}</div>',
-                    unsafe_allow_html=True
+                    unsafe_allow_html=True,
                 )
         else:
             st.info("Configure protein settings in the sidebar to render a structure.")
@@ -360,10 +372,7 @@ def render_download_section() -> None:
 
         with col_reset:
             st.button(
-                "Reset",
-                use_container_width=True,
-                key="reset_filename_btn",
-                on_click=on_reset
+                "Reset", use_container_width=True, key="reset_filename_btn", on_click=on_reset
             )
 
         with col_rename:
@@ -372,7 +381,7 @@ def render_download_section() -> None:
                 value=st.session_state.download_filename_input,
                 label_visibility="collapsed",
                 placeholder="Enter filename...",
-                key="download_filename_input"
+                key="download_filename_input",
             )
             clean_base = Path(custom_base_name).stem
             st.session_state.last_file_name = clean_base
@@ -383,7 +392,7 @@ def render_download_section() -> None:
                 file_data,
                 file_name=st.session_state.last_file_name,
                 mime=mime_type,
-                use_container_width=True
+                use_container_width=True,
             )
 
 
@@ -401,7 +410,7 @@ def render_protein_download_section() -> None:
             file_name=file_name,
             mime=mime_type,
             use_container_width=True,
-            key="protein_download_btn"
+            key="protein_download_btn",
         )
 
 
@@ -428,11 +437,14 @@ def main() -> None:
 
     # Footer
     st.divider()
-    st.markdown("""
+    st.markdown(
+        """
     <div class='footer-text'>
     <strong>WikiMolGen</strong>, a chemical structure generator for Wikipedia &amp; Wikimedia Commons | Wolren<br>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
 
 if __name__ == "__main__":

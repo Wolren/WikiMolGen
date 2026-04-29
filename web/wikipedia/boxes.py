@@ -45,9 +45,9 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
         pubchem_data = st.session_state.get("pubchem_data")
 
         if pubchem_data:
-            synonyms = pubchem_data.get('synonyms', [])
-            cid = pubchem_data.get('cid', 'NA')
-            iupac = pubchem_data.get('iupac_name', '')
+            synonyms = pubchem_data.get("synonyms", [])
+            cid = pubchem_data.get("cid", "NA")
+            iupac = pubchem_data.get("iupac_name", "")
             primary_name = synonyms[0] if synonyms else (iupac if iupac else f"Compound {cid}")
         else:
             primary_name = compound

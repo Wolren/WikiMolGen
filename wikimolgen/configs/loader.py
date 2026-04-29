@@ -222,15 +222,41 @@ _BULITIN_TEMPLATES = {
 _BULITIN_COLOR_TEMPLATES = {
     "cpk_standard": {
         "element_colors": {
-            "C": "gray25", "H": "gray85", "N": "blue", "O": "red",
-            "S": "yellow", "P": "orange",
-            "F": "palegreen", "Cl": "green", "Br": "firebrick", "I": "purple",
-            "Li": "violet", "Na": "slate", "K": "violet", "Mg": "forest", "Ca": "forest",
-            "Fe": "darkorange", "Cu": "chocolate", "Zn": "brown", "Ni": "forest",
-            "Co": "salmon", "Mn": "violet", "Cr": "gray50", "Pd": "forest",
-            "Pt": "gray50", "Au": "gold", "Ag": "gray70",
-            "B": "salmon", "Si": "goldenrod", "Se": "orange", "As": "violet",
-            "He": "cyan", "Ne": "cyan", "Ar": "cyan", "Kr": "cyan", "Xe": "cyan",
+            "C": "gray25",
+            "H": "gray85",
+            "N": "blue",
+            "O": "red",
+            "S": "yellow",
+            "P": "orange",
+            "F": "palegreen",
+            "Cl": "green",
+            "Br": "firebrick",
+            "I": "purple",
+            "Li": "violet",
+            "Na": "slate",
+            "K": "violet",
+            "Mg": "forest",
+            "Ca": "forest",
+            "Fe": "darkorange",
+            "Cu": "chocolate",
+            "Zn": "brown",
+            "Ni": "forest",
+            "Co": "salmon",
+            "Mn": "violet",
+            "Cr": "gray50",
+            "Pd": "forest",
+            "Pt": "gray50",
+            "Au": "gold",
+            "Ag": "gray70",
+            "B": "salmon",
+            "Si": "goldenrod",
+            "Se": "orange",
+            "As": "violet",
+            "He": "cyan",
+            "Ne": "cyan",
+            "Ar": "cyan",
+            "Kr": "cyan",
+            "Xe": "cyan",
         },
         "stick_color": "gray40",
         "bg_color": "white",
@@ -297,8 +323,7 @@ class ConfigLoader:
         if template_name in _BULITIN_TEMPLATES:
             return _load_builtin_template(template_name)
         raise ValueError(
-            f"Unknown template: {template_name}. "
-            f"Available: {list(_BULITIN_TEMPLATES.keys())}"
+            f"Unknown template: {template_name}. " f"Available: {list(_BULITIN_TEMPLATES.keys())}"
         )
 
     @staticmethod

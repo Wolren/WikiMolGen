@@ -29,10 +29,10 @@ class ConfigSessionManager:
             self.metadata_key: {
                 "exported_at": datetime.now().isoformat(),
                 "version": "1.0",
-            }
+            },
         }
 
-        with open(path, 'w') as f:
+        with open(path, "w") as f:
             json.dump(data, f, indent=2)
 
         return str(path)
@@ -47,8 +47,8 @@ class ConfigSessionManager:
         return self._get_config_with_overrides(config_dict)
 
     def compare_configs(self, cfg1, cfg2) -> dict[str, Any]:
-        dict1 = cfg1.to_dict() if hasattr(cfg1, 'to_dict') else cfg1
-        dict2 = cfg2.to_dict() if hasattr(cfg2, 'to_dict') else cfg2
+        dict1 = cfg1.to_dict() if hasattr(cfg1, "to_dict") else cfg1
+        dict2 = cfg2.to_dict() if hasattr(cfg2, "to_dict") else cfg2
 
         differences = {}
         all_keys = set(

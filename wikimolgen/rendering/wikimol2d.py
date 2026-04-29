@@ -66,11 +66,11 @@ class MoleculeGenerator2D:
     """
 
     def __init__(
-            self,
-            identifier: str,
-            config: Config2D | None = None,
-            angle_degrees: float | None = None,
-            **kwargs
+        self,
+        identifier: str,
+        config: Config2D | None = None,
+        angle_degrees: float | None = None,
+        **kwargs,
     ):
         """
         Initialize 2D molecule generator with config-driven setup.
@@ -97,7 +97,7 @@ class MoleculeGenerator2D:
             # Build from parameters
             overrides = {}
             if angle_degrees is not None:
-                overrides['angle_degrees'] = angle_degrees  # Degrees directly
+                overrides["angle_degrees"] = angle_degrees  # Degrees directly
             overrides.update(kwargs)
 
             if overrides:
@@ -118,16 +118,13 @@ class MoleculeGenerator2D:
             angle_rad = find_optimal_2d_rotation(self.mol)
 
         # Build rotation matrix
-        rotation_matrix = np.array([
-            [np.cos(angle_rad), -np.sin(angle_rad)],
-            [np.sin(angle_rad), np.cos(angle_rad)]
-        ])
+        rotation_matrix = np.array(
+            [[np.cos(angle_rad), -np.sin(angle_rad)], [np.sin(angle_rad), np.cos(angle_rad)]]
+        )
 
         return centered @ rotation_matrix.T
 
-    def _compute_canvas_size(
-            self, coords: np.ndarray
-    ) -> tuple[int, int, float, float]:
+    def _compute_canvas_size(self, coords: np.ndarray) -> tuple[int, int, float, float]:
         """
         Calculate canvas dimensions with margins to prevent clipping.
 
@@ -239,8 +236,13 @@ class MoleculeGenerator2D:
 
         if self.config.acs_mode:
             import re
-            svg = re.sub(r"width=['\"](\d+)px['\"]", lambda m: f'width="{int(m.group(1)) * 3}px"', svg)
-            svg = re.sub(r"height=['\"](\d+)px['\"]", lambda m: f'height="{int(m.group(1)) * 3}px"', svg)
+
+            svg = re.sub(
+                r"width=['\"](\d+)px['\"]", lambda m: f'width="{int(m.group(1)) * 3}px"', svg
+            )
+            svg = re.sub(
+                r"height=['\"](\d+)px['\"]", lambda m: f'height="{int(m.group(1)) * 3}px"', svg
+            )
 
         # Save file
         output_path = Path(output)
@@ -290,9 +292,7 @@ class MoleculeGenerator2D:
             "phenethylamine_target": self.config.phenethylamine_target,
         }
 
-    def load_color_template(
-            self, template: str | Path | ColorConfig | dict
-    ) -> None:
+    def load_color_template(self, template: str | Path | ColorConfig | dict) -> None:
         if isinstance(template, str):
             try:
                 color_cfg = ConfigLoader.load_color_template(template)
@@ -301,9 +301,11 @@ class MoleculeGenerator2D:
                 if template_path.exists():
                     with open(template_path) as f:
                         data = json.load(f)
-                    color_cfg = ColorConfig(**data.get("element_colors", {}),
-                                            stick_color=data.get("stick_color"),
-                                            bg_color=data.get("bg_color", "white"))
+                    color_cfg = ColorConfig(
+                        **data.get("element_colors", {}),
+                        stick_color=data.get("stick_color"),
+                        bg_color=data.get("bg_color", "white"),
+                    )
                 else:
                     color_cfg = ConfigLoader.load_color_template("cpk_standard")
             self.config.use_bw_palette = False
@@ -321,9 +323,7 @@ class MoleculeGenerator2D:
 
         self.config.transparent_background = color_cfg.bg_color == "white"
 
-    def load_settings_template(
-            self, template: str | Path | Config2D | dict
-    ) -> None:
+    def load_settings_template(self, template: str | Path | Config2D | dict) -> None:
         if isinstance(template, str):
             try:
                 cfg = ConfigLoader.load_template(template)
@@ -370,9 +370,7 @@ class MoleculeGenerator2D:
                 "target_angle": self.config.phenethylamine_target,
             }
 
-        amine_count = orient_all_amines(
-            self.mol, target_angle=self.config.amine_target_angle
-        )
+        amine_count = orient_all_amines(self.mol, target_angle=self.config.amine_target_angle)
         if amine_count > 0:
             return {
                 "type": "amines",
@@ -383,9 +381,7 @@ class MoleculeGenerator2D:
 
         return {}
 
-    def _print_generation_summary(
-            self, width: int, height: int, amine_orientation: dict
-    ) -> None:
+    def _print_generation_summary(self, width: int, height: int, amine_orientation: dict) -> None:
         """
         Print generation summary to console.
 
@@ -412,9 +408,7 @@ class MoleculeGenerator2D:
 
         if amine_orientation:
             if amine_orientation["type"] == "phenethylamine":
-                print(
-                    f"  Phenethylamine detected, sidechain: {amine_orientation['target_angle']}°"
-                )
+                print(f"  Phenethylamine detected, sidechain: {amine_orientation['target_angle']}°")
             elif amine_orientation["type"] == "amines":
                 print(
                     f"  Amines oriented: {amine_orientation['count']} groups @ {amine_orientation['target_angle']}°"

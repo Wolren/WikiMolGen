@@ -15,15 +15,23 @@ from template.utils import apply_templates_to_generator
 logger = logging.getLogger(__name__)
 
 _CONFORMER_SESSION_KEYS = [
-    "num_conformers", "use_random_coords", "clear_confs",
-    "use_basic_knowledge", "enforce_chirality", "use_small_ring_torsions",
-    "use_macrocycle_torsions", "use_exp_torsion_prefs",
-    "max_iterations", "prune_rms_thresh",
+    "num_conformers",
+    "use_random_coords",
+    "clear_confs",
+    "use_basic_knowledge",
+    "enforce_chirality",
+    "use_small_ring_torsions",
+    "use_macrocycle_torsions",
+    "use_exp_torsion_prefs",
+    "max_iterations",
+    "prune_rms_thresh",
 ]
 
 
 def _filter_config(config: dict, ref_obj: object) -> dict:
-    valid = {k for k in dir(ref_obj) if not k.startswith("_") and not callable(getattr(ref_obj, k, None))}
+    valid = {
+        k for k in dir(ref_obj) if not k.startswith("_") and not callable(getattr(ref_obj, k, None))
+    }
     return {k: v for k, v in config.items() if k in valid}
 
 
@@ -109,25 +117,23 @@ def build_3d_config() -> dict[str, Any]:
     }
 
     if not auto_orient_3d:
-        config.update({
-            "x_rotation": st.session_state.get("x_rot_slider", 0.0),
-            "y_rotation": st.session_state.get("y_rot_slider", 0.0),
-            "z_rotation": st.session_state.get("z_rot_slider", 0.0),
-        })
+        config.update(
+            {
+                "x_rotation": st.session_state.get("x_rot_slider", 0.0),
+                "y_rotation": st.session_state.get("y_rot_slider", 0.0),
+                "z_rotation": st.session_state.get("z_rot_slider", 0.0),
+            }
+        )
 
     return _filter_config(config, Config3D().render)
 
 
 def generate_dynamic_filename(
-    compound: str,
-    structure_type: str,
-    file_extension: str = None
+    compound: str, structure_type: str, file_extension: str = None
 ) -> str:
     compound.replace("@", "at").replace("/", "sl").replace("\\", "bs").replace("#", "hash")
 
-    safe_compound = "".join(
-        c for c in compound if c.isalnum() or c in ('-', '_', ' ')
-    ).strip()
+    safe_compound = "".join(c for c in compound if c.isalnum() or c in ("-", "_", " ")).strip()
 
     if len(safe_compound) > 30:
         safe_compound = safe_compound[:30]
@@ -135,7 +141,7 @@ def generate_dynamic_filename(
     if not safe_compound or len(safe_compound) > 50:
         safe_compound = "structure"
 
-    return f"{safe_compound}_{structure_type}".replace(' ', '_')
+    return f"{safe_compound}_{structure_type}".replace(" ", "_")
 
 
 def encode_image_to_base64(image_path: Path) -> tuple[str, str]:
@@ -168,12 +174,12 @@ def render_structure_2d(compound: str, structure_type: str) -> str | None:
 
                 image_html = (
                     f'<div style="max-width: 800px; height: 500px; '
-                    f'display: flex; align-items: center; justify-content: center; '
+                    f"display: flex; align-items: center; justify-content: center; "
                     f'background: transparent;">'
                     f'<img src="data:image/{mime_type};base64,{img_base64}" '
                     f'{data_type} class="compound-preview-image" '
                     f'style="width: 100%; height: 100%; object-fit: contain; display: block;" />'
-                    f'</div>'
+                    f"</div>"
                 )
 
                 with open(output_path, "rb") as f:
@@ -213,15 +219,17 @@ def render_structure_3d(compound: str, structure_type: str) -> str | None:
 
             gen.configure_rendering(**render_config)
 
-            raw = {k: st.session_state.get(k) for k in _CONFORMER_SESSION_KEYS if st.session_state.get(k) is not None}
+            raw = {
+                k: st.session_state.get(k)
+                for k in _CONFORMER_SESSION_KEYS
+                if st.session_state.get(k) is not None
+            }
             conformer_config = _filter_config(raw, gen.config.conformer)
             if conformer_config:
                 gen.configure_conformer(**conformer_config)
 
             sdf_path, png_path = gen.generate(
-                optimize=True,
-                render=True,
-                output_base=str(output_base)
+                optimize=True, render=True, output_base=str(output_base)
             )
 
             if png_path and Path(png_path).exists():

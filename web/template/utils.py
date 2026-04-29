@@ -76,9 +76,7 @@ def load_custom_template(
 ) -> dict[str, Any] | None:
     try:
         template_data = json.load(uploaded_file)
-        template_name = template_data.get(
-            "name", f'Custom_{datetime.now().strftime("%H%M%S")}'
-        )
+        template_name = template_data.get("name", f'Custom_{datetime.now().strftime("%H%M%S")}')
         return {"name": template_name, "data": template_data}
     except Exception as e:
         st.error(f"Failed to load {template_type} template: {e}")
@@ -117,9 +115,7 @@ def apply_templates_to_generator(
     if color_choice != "None":
         try:
             if color_choice in st.session_state.custom_color_templates:
-                gen.load_color_template(
-                    st.session_state.custom_color_templates[color_choice]
-                )
+                gen.load_color_template(st.session_state.custom_color_templates[color_choice])
             else:
                 gen.load_color_template(color_choice)
             template_applied = True
