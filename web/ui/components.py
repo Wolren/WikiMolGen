@@ -856,4 +856,16 @@ def render_generate_button(auto_generate: bool) -> bool:
     return clicked
 
 
+def render_theme_toggle() -> None:
+    st.markdown("---")
+    current = st.session_state.get("wiki_theme", "Dark")
+    choice = st.selectbox(
+        "Theme",
+        ["Dark", "Light"],
+        index=0 if current == "Dark" else 1,
+        key="wiki_theme",
+        help="Switch between dark and light appearance",
+    )
+
+
 

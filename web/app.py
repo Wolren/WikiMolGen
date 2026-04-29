@@ -123,6 +123,9 @@ def render_sidebar() -> tuple:
             canvas_cfg = render_protein_canvas_settings()
             protein_inputs = (pdb_id, cartoon_cfg, ligand_cfg, canvas_cfg)
 
+        from ui.components import render_theme_toggle
+        render_theme_toggle()
+
     return compound, structure_type, auto_generate, protein_inputs
 
 
