@@ -45,18 +45,18 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
         pubchem_data = st.session_state.get("pubchem_data")
 
         if pubchem_data:
-            synonyms = pubchem_data.get('synonyms', [])
-            cid = pubchem_data.get('cid', 'NA')
-            iupac = pubchem_data.get('iupac_name', '')
+            synonyms = pubchem_data.get("synonyms", [])
+            cid = pubchem_data.get("cid", "NA")
+            iupac = pubchem_data.get("iupac_name", "")
             primary_name = synonyms[0] if synonyms else (iupac if iupac else f"Compound {cid}")
         else:
             primary_name = compound
 
         with col_dl1:
-            st.subheader("🗃️ Wikimedia Metadata")
+            st.subheader("Wikimedia Metadata")
             metadata = f"""{{{{Information
 |description={{{{en|1={st.session_state.get("structure_type")} structure of {primary_name} generated using WikiMolGen (RDKit and PyMOL-based tool)}}}}
-|date={datetime.now().strftime('%Y-%m-%d')}
+|date={datetime.now().strftime("%Y-%m-%d")}
 |source={{{{Own work}}}}
 |author=
 }}}}
@@ -68,7 +68,7 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
             st.code(metadata, language="wiki")
 
         with col_dl2:
-            st.subheader("🔗 Chemical Links")
+            st.subheader("Chemical Links")
             identifiers_placeholder = st.empty()
 
         pubchem_data = st.session_state.get("pubchem_data")
@@ -89,7 +89,7 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
 | **InChIKey**    | `{inchikey}` |
 | **SMILES**      | `{smiles}` |
 | **IUPAC Name**  | `{iupac}` |
-| **Wikidata**    | {'[' + wikidata_q + '](https://www.wikidata.org/wiki/' + wikidata_q + ')' if wikidata_q else 'N/A'} |
+| **Wikidata**    | {"[" + wikidata_q + "](https://www.wikidata.org/wiki/" + wikidata_q + ")" if wikidata_q else "N/A"} |
 """
 
             identifiers_placeholder.markdown(identifiers_markdown)

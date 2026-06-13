@@ -30,7 +30,7 @@
     --header-border: #404348;
 }
 
-.theme-light {
+html.wiki-light {
     --bg-primary: #ffffff;
     --bg-secondary: #f8f9fa;
     --bg-tertiary: #eaecf0;
@@ -61,6 +61,8 @@
     --header-bg: #f8f9fa;
     --header-border: #c8ccd1;
 }
+
+html.wiki-light .compound-preview-image[data-type="2D"] { filter: none !important; }
 
 .stApp { background-color: var(--bg-primary); }
 
@@ -158,6 +160,37 @@ code {
     border: 1px solid var(--border-light) !important; border-radius: 3px; padding: 1px 4px;
 }
 
+pre, [data-testid="stCodeBlock"], .stCodeBlock {
+    background-color: var(--code-bg) !important; color: var(--code-text) !important;
+    border: 1px solid var(--border-color) !important; border-radius: 4px;
+}
+
+pre code {
+    background-color: transparent !important; border: none !important;
+}
+
+.streamlit-expanderContent {
+    background-color: var(--bg-primary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-top: none !important;
+    border-radius: 0 0 4px 4px !important;
+}
+
+[data-testid="stTable"], table {
+    background-color: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-testid="stTable"] th, [data-testid="stTable"] td, table th, table td {
+    background-color: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+.stMarkdown p, .stMarkdown li, .stMarkdown div {
+    color: var(--text-primary) !important;
+}
+
 hr { border-color: var(--border-color) !important; }
 
 .stSelectbox>div>div {
@@ -196,3 +229,83 @@ a:hover { color: var(--link-hover) !important; text-decoration: underline; }
 .stMetric { background-color: var(--bg-secondary); border: 1px solid var(--border-light); border-radius: 4px; padding: 8px; }
 .stMetric label { color: var(--text-muted) !important; }
 .stMetric [data-testid="stMetricValue"] { color: var(--text-primary) !important; font-weight: 700; }
+
+[data-testid="stFileUploaderDropzone"] {
+    background-color: var(--bg-primary) !important;
+    border: 1px dashed var(--border-color) !important;
+    border-radius: 4px !important;
+    color: var(--text-secondary) !important;
+}
+
+[data-testid="stFileUploaderDropzone"] * { color: var(--text-secondary) !important; }
+
+[data-testid="stFileUploaderDropzone"]:hover {
+    border-color: var(--accent-blue) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-testid="stFileUploaderDropzone"] svg,
+[data-testid="stFileUploaderDropzone"] svg path {
+    fill: var(--text-secondary) !important;
+    color: var(--text-secondary) !important;
+    stroke: var(--text-secondary) !important;
+}
+
+.stFileUploader button,
+[data-testid="stFileUploader"] button {
+    background-color: var(--button-secondary) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--button-secondary-border) !important;
+}
+
+.stFileUploader button:hover,
+[data-testid="stFileUploader"] button:hover {
+    background-color: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+}
+
+[data-testid="stFileUploaderFile"] {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 4px !important;
+}
+
+[data-testid="stFileUploaderFileName"] { color: var(--text-primary) !important; }
+[data-testid="stFileUploaderFileSize"] { color: var(--text-muted) !important; }
+
+[data-testid="stFileUploaderFile"] button { color: var(--text-secondary) !important; }
+
+.wk-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: -0.2em;
+    line-height: 1;
+    color: var(--text-primary);
+}
+
+.wk-icon svg { display: block; }
+
+.wk-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin: 0.35rem 0 0.4rem 0;
+    padding: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--accent-blue);
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+}
+
+.wk-section-header__icon { color: var(--accent-blue); display: inline-flex; }
+.wk-section-header__icon svg { display: block; }
+.wk-section-header__text { color: var(--accent-blue); }
+
+.wk-success-icon { color: var(--success-border); }
+.wk-info-icon { color: var(--info-border); }
+.wk-warning-icon { color: var(--warning-border); }
+.wk-error-icon { color: var(--error-border); }
+.wk-muted-icon { color: var(--text-muted); }
