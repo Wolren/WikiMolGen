@@ -1,2 +1,10 @@
 [theme]
-primaryColor="#6f8cff"
+base = "dark"
+primaryColor = "#6f8cff"
+backgroundColor = "#101418"
+secondaryBackgroundColor = "#1c2024"
+textColor = "#eaecf0"
+borderColor = "#404348"
+linkColor = "#6f8cff"
+baseRadius = "0.4rem"
+showWidgetBorder = false

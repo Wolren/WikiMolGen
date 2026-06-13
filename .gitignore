@@ -1,2 +1,48 @@
-.idea
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# --- Distribution / packaging ---
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+pip-wheel-metadata/
+setuptools-wheel-metadata/
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+.env
+.envrc
+
+# --- IDE / editor ---
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# --- Tooling caches ---
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.cache/
+
+# --- Streamlit ---
+.streamlit/secrets.toml
+
+# --- Project-local notes ---
 /todo.txt
+/media/
+/output/
+/exports/
+*.log
