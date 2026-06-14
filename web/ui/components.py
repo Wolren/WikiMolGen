@@ -562,40 +562,6 @@ def render_3d_settings() -> None:
         key="auto_orient_3d",
     )
 
-    # Manual rotation sliders (if not auto-orient)
-    if not auto_orient_3d:
-        x_rot = st.slider(
-            "X Rotation",
-            0.0,
-            360.0,
-            0.0,
-            5.0,
-            key="x_rot_slider",
-        )
-        save_config_to_session("3d")
-
-        y_rot = st.slider(
-            "Y Rotation",
-            0.0,
-            360.0,
-            0.0,
-            5.0,
-            key="y_rot_slider",
-        )
-        save_config_to_session("3d")
-
-        z_rot = st.slider(
-            "Z Rotation",
-            0.0,
-            360.0,
-            0.0,
-            5.0,
-            key="z_rot_slider",
-        )
-        save_config_to_session("3d")
-    else:
-        x_rot, y_rot, z_rot = 0.0, 0.0, 0.0
-
 
 def render_canvas_settings() -> None:
     """Render canvas/dimension settings."""
@@ -1040,3 +1006,108 @@ def render_generate_button(auto_generate: bool) -> bool:
         st.session_state.manual_generate = True
 
     return clicked
+
+
+def render_3d_preview(compound: str = "") -> None:
+    """Interactive 3Dmol.js preview in sidebar — drag to rotate, click Apply to send to render."""
+    sdf_content = st.session_state.get("sdf_content")
+    if not sdf_content:
+        if not compound:
+            compound = st.session_state.get("last_compound", "")
+        if compound:
+            _cache_3d_preview_sdf(compound)
+            sdf_content = st.session_state.get("sdf_content")
+
+    if not sdf_content:
+        st.caption("Enter a compound and click Generate to preview")
+        return
+
+    bg_color = st.session_state.get("bg_color", "white")
+    representation = st.session_state.get("representation", "sticks+spheres")
+    stick_radius = st.session_state.get("stick_radius", 0.2)
+    sphere_scale = st.session_state.get("sphere_scale", 0.3)
+    stick_color = st.session_state.get("stick_color", None)
+    apply_element_colors = st.session_state.get("apply_element_colors", True)
+    stick_transparency = st.session_state.get("stick_transparency", 0.0)
+    sphere_transparency = st.session_state.get("sphere_transparency", 0.0)
+
+    style: dict = {}
+    if representation in ("sticks+spheres", "sticks"):
+        stick: dict = {"radius": stick_radius}
+        if stick_transparency > 0:
+            stick["opacity"] = 1.0 - stick_transparency
+        style["stick"] = stick
+    if representation in ("sticks+spheres", "spheres"):
+        sphere: dict = {"radius": sphere_scale}
+        if sphere_transparency > 0:
+            sphere["opacity"] = 1.0 - sphere_transparency
+        style["sphere"] = sphere
+    if representation == "lines":
+        style["line"] = {}
+    if not apply_element_colors and stick_color:
+        c = stick_color.strip().lower()
+        for spec in style.values():
+            if isinstance(spec, dict):
+                spec["color"] = c
+
+    style_json = json.dumps(style)
+    sdf_escaped = sdf_content.replace("\\", "\\\\").replace("`", "\\`").replace("${", "\\${")
+
+    transparent_bg = bg_color == "transparent"
+
+    html = f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+  * {{ margin:0; padding:0; box-sizing:border-box; }}
+  body, #mol-container {{ background:transparent !important; }}
+  #mol-container {{ width:100%; height:340px; }}
+  #toolbar {{ text-align:center; padding:4px; }}
+  #toolbar button {{
+    background:#4a5568; color:#fff; border:none; padding:6px 12px;
+    border-radius:4px; cursor:pointer; font-size:12px;
+  }}
+  #toolbar button:hover {{ background:#2d3748; }}
+  #copy-status {{ font-size:11px; margin-left:6px; color:#48bb78; }}
+</style></head><body>
+<div id="mol-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/3dmol@2.5.5/build/3Dmol-min.js"></script>
+<script>
+var viewer=$3Dmol.createViewer(document.getElementById("mol-container"),{{backgroundColor:"white"}});
+{"viewer.setBackgroundColor(0xffffff,0);" if transparent_bg else ""}
+viewer.addModel(`{sdf_escaped}`,"sdf");
+viewer.setStyle({style_json});
+viewer.zoomTo();
+viewer.render();
+(function(){{
+  var c=document.getElementById("mol-container");
+  c.addEventListener("wheel",function(e){{
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    var d=e.deltaY>0?0.92:1.08;
+    viewer.zoom(d);
+  }},{{passive:false,capture:true}});
+}})();
+
+</script></body></html>"""
+
+    st.components.v1.html(html, height=400)
+
+    st.caption("Drag to orbit, scroll to zoom.")
+
+
+def _cache_3d_preview_sdf(compound: str) -> None:
+    """Generate 3D SDF for preview and cache in session state."""
+    try:
+        from rdkit import Chem
+        from rdkit.Chem import AllChem
+
+        from wikimolgen.core import fetch_compound, validate_smiles
+
+        smiles, _name = fetch_compound(compound)
+        mol = validate_smiles(smiles)
+        mol = Chem.AddHs(mol)
+        AllChem.EmbedMolecule(mol, AllChem.ETKDGv3())
+        sdf_block = Chem.MolToMolBlock(mol)
+        st.session_state.sdf_content = sdf_block
+    except Exception as exc:
+        logger.warning("Could not generate 3D preview SDF for %s: %s", compound, exc)

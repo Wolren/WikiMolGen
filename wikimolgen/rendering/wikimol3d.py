@@ -265,7 +265,9 @@ class MoleculeGenerator3D:
             cmd.bg_color(cfg.bg_color)
 
             if cfg.apply_element_colors:
-                element_colors = cfg.element_colors or dict(DEFAULT_ELEMENT_COLORS)
+                element_colors = dict(DEFAULT_ELEMENT_COLORS)
+                if cfg.element_colors:
+                    element_colors.update(cfg.element_colors)
                 for element, color_name in element_colors.items():
                     rgb = color_name_to_rgb(color_name)
                     custom_color = f"custom_{color_name}"
@@ -333,7 +335,10 @@ class MoleculeGenerator3D:
             cmd.set("ray_trace_fog", cfg.ray_trace_fog)
 
             # Position and orientation
-            if cfg.auto_orient_3d:
+            if cfg.pymol_view is not None:
+                cmd.set_view(cfg.pymol_view)
+                print(f" [pymol] Used captured view: {len(cfg.pymol_view)} floats")
+            elif cfg.auto_orient_3d:
                 x_opt, y_opt, z_opt = find_optimal_3d_orientation(self.mol)
                 zoom_opt = optimize_zoom_buffer(
                     self.mol,
@@ -347,7 +352,7 @@ class MoleculeGenerator3D:
                 cmd.turn("z", z_opt)
                 cmd.zoom("all", buffer=zoom_opt)
                 print(
-                    f" Auto-oriented: x={x_opt:.1f}+{cfg.auto_orient_tilt_x:.0f}°, y={y_opt:.1f}+{cfg.auto_orient_tilt_y:.0f}°, z={z_opt:.1f}°"
+                    f" [pymol] Auto-oriented: x={x_opt:.1f}+{cfg.auto_orient_tilt_x:.0f}°, y={y_opt:.1f}+{cfg.auto_orient_tilt_y:.0f}°, z={z_opt:.1f}°"
                 )
                 print(f" Auto-zoom: {zoom_opt:.2f}")
             else:
@@ -356,6 +361,9 @@ class MoleculeGenerator3D:
                 cmd.turn("y", cfg.y_rotation)
                 cmd.turn("z", cfg.z_rotation)
                 cmd.zoom("all", buffer=cfg.zoom_buffer)
+                print(
+                    f" [pymol] Manual: x={cfg.x_rotation:.1f}° y={cfg.y_rotation:.1f}° z={cfg.z_rotation:.1f}°"
+                )
 
             # Render
             if cfg.ray_trace_mode > 0:

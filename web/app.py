@@ -18,6 +18,7 @@ from rendering.base import render_structure_dynamic
 from session.state import initialize_session_state
 from ui.components import (
     render_2d_settings,
+    render_3d_preview,
     render_3d_settings,
     render_auto_generate_checkbox,
     render_canvas_settings,
@@ -118,6 +119,8 @@ def render_sidebar() -> tuple:
         elif structure_type == "3D":
             st.markdown("#### **3D Display**", unsafe_allow_html=True)
             render_3d_settings()
+            with st.expander("3D Preview", expanded=True):
+                render_3d_preview(compound)
             if st.button(
                 "Reset 3D to defaults",
                 use_container_width=True,
@@ -276,33 +279,24 @@ def render_main_content(
         )
 
         if should_render and compound:
-            # Clear manual trigger
             st.session_state.manual_generate = False
 
-            # Render structure
             with st.spinner("Generating structure..."):
                 image_html = render_structure_dynamic(compound, structure_type)
 
             if image_html:
-                # Apply 2D-specific styling (color inversion) only for 2D renders
                 if structure_type == "2D":
                     image_html = apply_2d_styling_to_image(image_html)
 
-                # Render in fixed container with border and transparent background
                 with preview_placeholder.container():
                     st.markdown(
                         f'<div class="compound-preview-container">{image_html}</div>',
                         unsafe_allow_html=True,
                     )
-                # finalize_and_save_config(structure_type.lower())
-
             elif st.session_state.get("last_image_html"):
-                # Show cached image in the same container
                 cached_html = st.session_state.last_image_html
-                # Apply 2D styling if this was a 2D render
                 if st.session_state.get("structure_type") == "2D":
                     cached_html = apply_2d_styling_to_image(cached_html)
-
                 with preview_placeholder.container():
                     st.markdown(
                         f'<div class="compound-preview-container">{cached_html}</div>',
@@ -314,9 +308,7 @@ def render_main_content(
                         "Enter a compound and adjust settings, then click 'Generate Now' or enable auto-update."
                     )
         elif st.session_state.get("last_image_html"):
-            # Show cached image
             cached_html = st.session_state.last_image_html
-            # Apply 2D styling if this was a 2D render
             if st.session_state.get("structure_type") == "2D":
                 cached_html = apply_2d_styling_to_image(cached_html)
 
@@ -324,6 +316,11 @@ def render_main_content(
                 st.markdown(
                     f'<div class="compound-preview-container">{cached_html}</div>',
                     unsafe_allow_html=True,
+                )
+        else:
+            with preview_placeholder.container():
+                st.info(
+                    "Enter a compound and adjust settings, then click 'Generate Now' or enable auto-update."
                 )
 
     else:  # structure_type == "Protein"

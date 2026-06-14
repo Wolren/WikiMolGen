@@ -36,10 +36,6 @@ def get_3d_defaults() -> dict[str, Any]:
     for k in _WIDGET_MANAGED_KEYS:
         if k in conf:
             d[k] = conf[k]
-    d["x_rot_slider"] = 0.0
-    d["y_rot_slider"] = 0.0
-    d["z_rot_slider"] = 0.0
-
     d["ray_shadows"] = bool(getattr(cfg.render, "ray_shadows", 0))
     d["depth_cue"] = bool(getattr(cfg.render, "depth_cue", 0))
     d["ambient_occlusion"] = bool(getattr(cfg.render, "ambient_occlusion", False))
@@ -72,6 +68,7 @@ def get_session_defaults() -> dict[str, Any]:
         "settings_template_selector": "None",
         "config_manager_2d": None,
         "config_manager_3d": None,
+        "sdf_content": None,
     }
 
     defaults.update(get_2d_defaults())
