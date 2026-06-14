@@ -18,31 +18,18 @@ class ConformerConfig:
     use_macrocycle_torsions: bool = False
     use_basic_knowledge: bool = True
     enforce_chirality: bool = True
-    use_small_ring_torsions: bool = False
-    max_iterations: int = 200
-    vdw_thresh: float = 10.0
-    conf_energy_threshold: float = 10.0
-    num_conformers: int = 1
-    prune_rms_thresh: float = 0.5
-    use_exp_torsion_prefs: bool = False
+    use_small_ring_torsions: bool = True
+    max_iterations: int = 500
+    num_conformers: int = 50
+    prune_rms_thresh: float = 0.1
+    use_exp_torsion_prefs: bool = True
 
 
 @dataclass
 class RenderConfig3D:
-    num_conformers: int = 1
-    use_random_coords: bool = False
-    clear_confs: bool = True
-    use_macrocycle_torsions: bool = False
-    use_basic_knowledge: bool = True
-    enforce_chirality: bool = True
-    use_small_ring_torsions: bool = False
-    max_iterations: int = 200
-    vdw_thresh: float = 10.0
-    auto_orient_2d: bool = True
-    acs_mode: bool = True
-    auto_orient_3d: bool = True
+    auto_orient_3d: bool = False
     width: int = 1800
-    height: int = 1400
+    height: int = 1600
     auto_crop: bool = True
     crop_margin: int = 10
     stick_radius: float = 0.2
@@ -65,22 +52,32 @@ class RenderConfig3D:
     antialias: int = 4
     depth_cue: int = 0
     fog_start: float = 1.0
-    direct: float = 0.5
-    reflect: float = 0.5
+    direct: float = 0.45
+    reflect: float = 0.45
+    auto_orient_tilt_x: float = 10.0
+    auto_orient_tilt_y: float = 20.0
     zoom_buffer: float = 2.0
     x_rotation: float = 0.0
     y_rotation: float = 0.0
     z_rotation: float = 0.0
     bg_color: str = "white"
-    stick_color: str | None = "gray40"
+    stick_color: str | None = "gray50"
+    element_colors: dict[str, str] | None = None
     representation: str = "sticks+spheres"
     two_sided_lighting: bool = True
     transparency_mode: int = 1
     ambient_occlusion: bool = False
     ambient_occlusion_scale: float = 20.0
+    ambient_occlusion_mode: int = 1
+    apply_element_colors: bool = True
     ray_trace_fog: float = 0.0
+    ray_width: int | None = None
+    ray_height: int | None = None
     opaque_background: bool = False
     stick_ball: bool = True
+    zoom_buffer_linear: float = 1.5
+    zoom_buffer_elongated: float = 2.0
+    zoom_buffer_compact: float = 2.5
 
 
 @dataclass
@@ -98,21 +95,20 @@ class Config3D:
 
 @dataclass
 class Config2D:
-    auto_orient_2d: bool = True
+    auto_orient_2d: bool = False
     acs_mode: bool = True
-    auto_orient_3d: bool = True
-    angle_degrees: float = 180.0
+    angle_degrees: float = 0.0
     scale: float = 30.0
-    margin: float = 0.5
-    bond_length: float = 45.0
-    min_font_size: int = 36
-    padding: float = 0.03
+    margin: float = 0.8
+    bond_length: float = 50.0
+    min_font_size: int = 32
+    padding: float = 0.07
     use_bw_palette: bool = True
     transparent_background: bool = True
     auto_orient_amines: bool = True
     amine_target_angle: float = 0.0
     phenethylamine_target: float = 90.0
-    additional_atom_label_padding: float = 0.2
+    additional_atom_label_padding: float = 0.1
     bond_line_width: float = 1.0
     add_stereo_annotation: bool = False
     include_radicals: bool = False
@@ -124,6 +120,13 @@ class Config2D:
     include_chiral_flag: bool = False
     comic_mode: bool = False
     fixed_font_size: int = -1
+    strip_annotation_markers: bool = True
+    use_coord_gen: bool = False
+    legend_font_size: int = 12
+    max_font_size: int = 40
+    dots_per_angstrom: int = 100
+    font_size_scale: float = 1.0
+    svg_min_display_size: int = 600
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -149,7 +152,6 @@ _BULITIN_TEMPLATES = {
             "padding": 0.05,
             "margin": 0.8,
             "auto_orient_2d": False,
-            "auto_orient_3d": False,
         },
     },
     "web_optimized_2d": {
@@ -161,7 +163,6 @@ _BULITIN_TEMPLATES = {
             "padding": 0.03,
             "margin": 0.5,
             "auto_orient_2d": False,
-            "auto_orient_3d": False,
         },
     },
     "high_quality_3d": {
@@ -219,26 +220,204 @@ _BULITIN_TEMPLATES = {
     },
 }
 
-_BULITIN_COLOR_TEMPLATES = {
+# Single source of truth for CPK-style element → color mappings.
+# Used by both 3D rendering and color template loading.
+DEFAULT_ELEMENT_COLORS: dict[str, str] = {
+    "C": "gray35",
+    "H": "gray85",
+    "N": "blue",
+    "O": "red",
+    "S": "yellow",
+    "P": "orange",
+    "F": "palegreen",
+    "Cl": "green",
+    "Br": "firebrick",
+    "I": "purple",
+    "Li": "violet",
+    "Na": "slate",
+    "K": "violet",
+    "Mg": "forest",
+    "Ca": "forest",
+    "Fe": "darkorange",
+    "Cu": "chocolate",
+    "Zn": "brown",
+    "Ni": "forest",
+    "Co": "salmon",
+    "Mn": "violet",
+    "Cr": "gray50",
+    "Pd": "forest",
+    "Pt": "gray50",
+    "Au": "gold",
+    "Ag": "gray70",
+    "B": "salmon",
+    "Si": "goldenrod",
+    "Se": "orange",
+    "As": "violet",
+    "He": "cyan",
+    "Ne": "cyan",
+    "Ar": "cyan",
+    "Kr": "cyan",
+    "Xe": "cyan",
+}
+
+BULITIN_COLOR_TEMPLATES: dict[str, dict[str, Any]] = {
     "cpk_standard": {
-        "element_colors": {
-            "C": "gray25", "H": "gray85", "N": "blue", "O": "red",
-            "S": "yellow", "P": "orange",
-            "F": "palegreen", "Cl": "green", "Br": "firebrick", "I": "purple",
-            "Li": "violet", "Na": "slate", "K": "violet", "Mg": "forest", "Ca": "forest",
-            "Fe": "darkorange", "Cu": "chocolate", "Zn": "brown", "Ni": "forest",
-            "Co": "salmon", "Mn": "violet", "Cr": "gray50", "Pd": "forest",
-            "Pt": "gray50", "Au": "gold", "Ag": "gray70",
-            "B": "salmon", "Si": "goldenrod", "Se": "orange", "As": "violet",
-            "He": "cyan", "Ne": "cyan", "Ar": "cyan", "Kr": "cyan", "Xe": "cyan",
-        },
-        "stick_color": "gray40",
+        "element_colors": dict(DEFAULT_ELEMENT_COLORS),
+        "stick_color": "gray50",
         "bg_color": "white",
     },
     "minimal_bw": {
         "element_colors": {},
         "stick_color": None,
         "bg_color": "white",
+    },
+    "jmol": {
+        "element_colors": {
+            "C": "gray40",
+            "H": "white",
+            "N": "skyblue",
+            "O": "red",
+            "S": "yellow",
+            "P": "orange",
+            "F": "palegreen",
+            "Cl": "green",
+            "Br": "firebrick",
+            "I": "purple",
+            "Li": "violet",
+            "Na": "slate",
+            "K": "violet",
+            "Mg": "forest",
+            "Ca": "forest",
+            "Fe": "darkorange",
+            "Cu": "chocolate",
+            "Zn": "brown",
+            "Ni": "forest",
+            "Co": "salmon",
+            "Mn": "violet",
+            "Cr": "gray50",
+            "Pd": "forest",
+            "Pt": "gray50",
+            "Au": "gold",
+            "Ag": "gray70",
+            "B": "salmon",
+            "Si": "goldenrod",
+            "Se": "orange",
+            "As": "violet",
+            "He": "cyan",
+            "Ne": "cyan",
+            "Ar": "cyan",
+            "Kr": "cyan",
+            "Xe": "cyan",
+            "Fe": "brown",
+        },
+        "stick_color": "gray50",
+        "bg_color": "white",
+    },
+    "rasmol": {
+        "element_colors": {
+            "C": "gray30",
+            "H": "white",
+            "N": "lightblue",
+            "O": "red",
+            "S": "yellow",
+            "P": "orange",
+            "F": "green",
+            "Cl": "green",
+            "Br": "firebrick",
+            "I": "purple",
+            "Li": "violet",
+            "Na": "slate",
+            "K": "violet",
+            "Mg": "forest",
+            "Ca": "forest",
+            "Fe": "salmon",
+            "Cu": "chocolate",
+            "Zn": "brown",
+            "Ni": "forest",
+            "Co": "salmon",
+            "Mn": "violet",
+            "Cr": "gray50",
+            "Pd": "forest",
+            "Pt": "gray50",
+            "Au": "gold",
+            "Ag": "gray70",
+            "B": "salmon",
+            "Si": "goldenrod",
+            "Se": "orange",
+            "As": "violet",
+        },
+        "stick_color": "gray40",
+        "bg_color": "white",
+    },
+    "chemdraw": {
+        "element_colors": {
+            "C": "black",
+            "H": "white",
+            "N": "blue",
+            "O": "red",
+            "S": "yellow",
+            "P": "orange",
+            "F": "green",
+            "Cl": "green",
+            "Br": "firebrick",
+            "I": "purple",
+            "B": "salmon",
+            "Si": "goldenrod",
+            "Se": "orange",
+            "As": "violet",
+        },
+        "stick_color": "black",
+        "bg_color": "white",
+    },
+    "vmd": {
+        "element_colors": {
+            "C": "cyan",
+            "H": "white",
+            "N": "blue",
+            "O": "red",
+            "S": "yellow",
+            "P": "tan",
+            "F": "palegreen",
+            "Cl": "green",
+            "Br": "firebrick",
+            "I": "purple",
+            "Fe": "darkorange",
+            "Cu": "chocolate",
+            "Zn": "brown",
+            "Mg": "forest",
+            "Ca": "forest",
+            "Na": "slate",
+            "K": "violet",
+        },
+        "stick_color": "gray50",
+        "bg_color": "black",
+    },
+}
+
+COLOR_TEMPLATE_META: dict[str, dict[str, str]] = {
+    "cpk_standard": {
+        "name": "CPK Standard",
+        "desc": "Traditional Corey-Pauling-Koltun coloring, the classic chemical convention",
+    },
+    "minimal_bw": {
+        "name": "Minimal B/W",
+        "desc": "Black-and-white only, no element-specific colors",
+    },
+    "jmol": {
+        "name": "Jmol Default",
+        "desc": "Jmol molecular viewer default color scheme — lighter nitrogen, darker carbon",
+    },
+    "rasmol": {
+        "name": "RasMol",
+        "desc": "RasMol / Chime default colors — light blue nitrogen, darker carbons",
+    },
+    "chemdraw": {
+        "name": "ChemDraw Style",
+        "desc": "ChemDraw-style rendering — black carbons for high contrast",
+    },
+    "vmd": {
+        "name": "VMD Default",
+        "desc": "VMD molecular viewer scheme — cyan carbons, tan phosphorus",
     },
 }
 
@@ -297,25 +476,24 @@ class ConfigLoader:
         if template_name in _BULITIN_TEMPLATES:
             return _load_builtin_template(template_name)
         raise ValueError(
-            f"Unknown template: {template_name}. "
-            f"Available: {list(_BULITIN_TEMPLATES.keys())}"
+            f"Unknown template: {template_name}. Available: {list(_BULITIN_TEMPLATES.keys())}"
         )
 
     @staticmethod
     def load_color_template(template_name: str) -> ColorConfig:
-        if template_name in _BULITIN_COLOR_TEMPLATES:
-            data = _BULITIN_COLOR_TEMPLATES[template_name]
+        if template_name in BULITIN_COLOR_TEMPLATES:
+            data = BULITIN_COLOR_TEMPLATES[template_name]
             return ColorConfig(**data)
         raise ValueError(
             f"Unknown color template: {template_name}. "
-            f"Available: {list(_BULITIN_COLOR_TEMPLATES.keys())}"
+            f"Available: {list(BULITIN_COLOR_TEMPLATES.keys())}"
         )
 
     @staticmethod
     def list_templates() -> dict[str, Any]:
         return {
             "settings_templates": list(_BULITIN_TEMPLATES.keys()),
-            "color_templates": list(_BULITIN_COLOR_TEMPLATES.keys()),
+            "color_templates": list(BULITIN_COLOR_TEMPLATES.keys()),
         }
 
     @staticmethod

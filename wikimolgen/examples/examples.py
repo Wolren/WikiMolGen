@@ -6,6 +6,7 @@ Demonstrates both manual and auto-orientation for 2D and 3D structures.
 """
 
 import os
+
 from wikimolgen.rendering.wikimol2d import MoleculeGenerator2D
 from wikimolgen.rendering.wikimol3d import MoleculeGenerator3D
 
@@ -102,12 +103,12 @@ def example_batch_processing():
 
         try:
             # 2D with auto-orientation
-            print(f"  Generating 2D structure...")
+            print("  Generating 2D structure...")
             gen_2d = MoleculeGenerator2D(cid, auto_orient=True)
             gen_2d.generate(f"examples/batch/{name}_2d.svg")
 
             # 3D with auto-orientation (SDF only for batch efficiency)
-            print(f"  Generating 3D structure...")
+            print("  Generating 3D structure...")
             gen_3d = MoleculeGenerator3D(cid)
             gen_3d.generate(
                 optimize=True,

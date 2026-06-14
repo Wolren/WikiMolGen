@@ -6,6 +6,8 @@ Uses ConfigLoader for centralized configuration management.
 """
 
 import json
+import re
+import dataclasses
 from pathlib import Path
 
 import numpy as np
@@ -66,11 +68,11 @@ class MoleculeGenerator2D:
     """
 
     def __init__(
-            self,
-            identifier: str,
-            config: Config2D | None = None,
-            angle_degrees: float | None = None,
-            **kwargs
+        self,
+        identifier: str,
+        config: Config2D | None = None,
+        angle_degrees: float | None = None,
+        **kwargs,
     ):
         """
         Initialize 2D molecule generator with config-driven setup.
@@ -97,7 +99,7 @@ class MoleculeGenerator2D:
             # Build from parameters
             overrides = {}
             if angle_degrees is not None:
-                overrides['angle_degrees'] = angle_degrees  # Degrees directly
+                overrides["angle_degrees"] = angle_degrees  # Degrees directly
             overrides.update(kwargs)
 
             if overrides:
@@ -118,16 +120,13 @@ class MoleculeGenerator2D:
             angle_rad = find_optimal_2d_rotation(self.mol)
 
         # Build rotation matrix
-        rotation_matrix = np.array([
-            [np.cos(angle_rad), -np.sin(angle_rad)],
-            [np.sin(angle_rad), np.cos(angle_rad)]
-        ])
+        rotation_matrix = np.array(
+            [[np.cos(angle_rad), -np.sin(angle_rad)], [np.sin(angle_rad), np.cos(angle_rad)]]
+        )
 
         return centered @ rotation_matrix.T
 
-    def _compute_canvas_size(
-            self, coords: np.ndarray
-    ) -> tuple[int, int, float, float]:
+    def _compute_canvas_size(self, coords: np.ndarray) -> tuple[int, int, float, float]:
         """
         Calculate canvas dimensions with margins to prevent clipping.
 
@@ -169,8 +168,14 @@ class MoleculeGenerator2D:
             Path to saved SVG file
         """
         # Compute 2D coordinates
-        if self.mol.GetNumConformers() == 0:  # ← Only compute if needed
-            AllChem.Compute2DCoords(self.mol)
+        if self.mol.GetNumConformers() == 0:
+            if self.config.use_coord_gen:
+                from rdkit.Chem import rdDepictor
+
+                rdDepictor.SetPreferCoordGen(True)
+                AllChem.Compute2DCoords(self.mol)
+            else:
+                AllChem.Compute2DCoords(self.mol)
 
         # Apply amine orientation
         amine_orientation = self._apply_amine_orientation()
@@ -195,40 +200,47 @@ class MoleculeGenerator2D:
             newy = pos[1] - miny
             conf.SetAtomPosition(i, (newx, newy, 0.0))
 
-        # Draw molecule
-        drawer = rdMolDraw2D.MolDraw2DSVG(-1, -1)
-        if not self.config.acs_mode:
-            drawer = rdMolDraw2D.MolDraw2DSVG(width, height)
-
-        opts = drawer.drawOptions()
-
+        # ACS mode uses auto-size drawer + post-generation scaling to target
+        # dimensions, with SetACS1996Mode handling all styling internally.
+        # Non-ACS mode draws directly at the calculated canvas size with
+        # user-configurable options.
         if self.config.acs_mode:
+            drawer = rdMolDraw2D.MolDraw2DSVG(-1, -1)
+            opts = drawer.drawOptions()
             rdMolDraw2D.SetACS1996Mode(opts, rdMolDraw2D.MeanBondLength(self.mol))
-
-        if not self.config.acs_mode:
+            if self.config.transparent_background:
+                opts.setBackgroundColour((0, 0, 0, 0))
+        else:
+            drawer = rdMolDraw2D.MolDraw2DSVG(width, height)
+            opts = drawer.drawOptions()
             opts.fixedBondLength = self.config.bond_length
             opts.padding = self.config.padding
             opts.minFontSize = self.config.min_font_size
             opts.additionalAtomLabelPadding = self.config.additional_atom_label_padding
-
-        if self.config.use_bw_palette:
-            opts.useBWAtomPalette()
-
-        if self.config.transparent_background:
-            opts.setBackgroundColour((0, 0, 0, 0))
-
-        opts.bondLineWidth = self.config.bond_line_width
-        opts.addStereoAnnotation = self.config.add_stereo_annotation
-        opts.includeRadicals = self.config.include_radicals
-        opts.scalingFactor = self.config.scaling_factor
-        opts.explicitMethyl = self.config.explicit_methyl
-        opts.noAtomLabels = self.config.no_atom_labels
-        opts.multipleBondOffset = self.config.multiple_bond_offset
-        opts.includeAtomTags = self.config.include_atom_tags
-        opts.includeChiralFlagLabel = self.config.include_chiral_flag
-        opts.comicMode = self.config.comic_mode
-        if self.config.fixed_font_size > 0:
-            opts.fixedFontSize = self.config.fixed_font_size
+            opts.legendFontSize = self.config.legend_font_size
+            opts.maxFontSize = self.config.max_font_size
+            if hasattr(opts, "annotationFontScale"):
+                opts.annotationFontScale = self.config.font_size_scale
+            elif hasattr(opts, "fontSizeScale"):
+                opts.fontSizeScale = self.config.font_size_scale
+            if hasattr(opts, "setDotsPerAngstrom"):
+                opts.setDotsPerAngstrom(self.config.dots_per_angstrom)
+            if self.config.use_bw_palette:
+                opts.useBWAtomPalette()
+            if self.config.transparent_background:
+                opts.setBackgroundColour((0, 0, 0, 0))
+            opts.bondLineWidth = self.config.bond_line_width
+            opts.addStereoAnnotation = self.config.add_stereo_annotation
+            opts.includeRadicals = self.config.include_radicals
+            opts.scalingFactor = self.config.scaling_factor
+            opts.explicitMethyl = self.config.explicit_methyl
+            opts.noAtomLabels = self.config.no_atom_labels
+            opts.multipleBondOffset = self.config.multiple_bond_offset
+            opts.includeAtomTags = self.config.include_atom_tags
+            opts.includeChiralFlagLabel = self.config.include_chiral_flag
+            opts.comicMode = self.config.comic_mode
+            if self.config.fixed_font_size > 0:
+                opts.fixedFontSize = self.config.fixed_font_size
 
         rdMolDraw2D.PrepareAndDrawMolecule(drawer, self.mol)
         drawer.FinishDrawing()
@@ -237,10 +249,17 @@ class MoleculeGenerator2D:
         if self.config.transparent_background:
             svg = svg.replace("fill:white", "fill:none")
 
+        # Scale auto-sized ACS SVGs to a minimum display size
         if self.config.acs_mode:
-            import re
-            svg = re.sub(r"width=['\"](\d+)px['\"]", lambda m: f'width="{int(m.group(1)) * 3}px"', svg)
-            svg = re.sub(r"height=['\"](\d+)px['\"]", lambda m: f'height="{int(m.group(1)) * 3}px"', svg)
+            svg = self._scale_svg(svg, self.config.svg_min_display_size)
+
+        # Strip RDKit atom annotation markers (tiny red boxes) across all modes
+        if self.config.strip_annotation_markers:
+            svg = re.sub(
+                r"<path class=\'atom-\d+\'[^>]*stroke:#FF0000[^>]*/>\s*",
+                "",
+                svg,
+            )
 
         # Save file
         output_path = Path(output)
@@ -276,23 +295,9 @@ class MoleculeGenerator2D:
         dict
             Configuration as dictionary (suitable for JSON serialization)
         """
-        return {
-            "scale": self.config.scale,
-            "margin": self.config.margin,
-            "bond_length": self.config.bond_length,
-            "min_font_size": self.config.min_font_size,
-            "padding": self.config.padding,
-            "use_bw_palette": self.config.use_bw_palette,
-            "transparent_background": self.config.transparent_background,
-            "auto_orient_2d": self.config.auto_orient_2d,
-            "auto_orient_amines": self.config.auto_orient_amines,
-            "amine_target_angle": self.config.amine_target_angle,
-            "phenethylamine_target": self.config.phenethylamine_target,
-        }
+        return {f.name: getattr(self.config, f.name) for f in dataclasses.fields(Config2D)}
 
-    def load_color_template(
-            self, template: str | Path | ColorConfig | dict
-    ) -> None:
+    def load_color_template(self, template: str | Path | ColorConfig | dict) -> None:
         if isinstance(template, str):
             try:
                 color_cfg = ConfigLoader.load_color_template(template)
@@ -301,9 +306,11 @@ class MoleculeGenerator2D:
                 if template_path.exists():
                     with open(template_path) as f:
                         data = json.load(f)
-                    color_cfg = ColorConfig(**data.get("element_colors", {}),
-                                            stick_color=data.get("stick_color"),
-                                            bg_color=data.get("bg_color", "white"))
+                    color_cfg = ColorConfig(
+                        **data.get("element_colors", {}),
+                        stick_color=data.get("stick_color"),
+                        bg_color=data.get("bg_color", "white"),
+                    )
                 else:
                     color_cfg = ConfigLoader.load_color_template("cpk_standard")
             self.config.use_bw_palette = False
@@ -321,9 +328,7 @@ class MoleculeGenerator2D:
 
         self.config.transparent_background = color_cfg.bg_color == "white"
 
-    def load_settings_template(
-            self, template: str | Path | Config2D | dict
-    ) -> None:
+    def load_settings_template(self, template: str | Path | Config2D | dict) -> None:
         if isinstance(template, str):
             try:
                 cfg = ConfigLoader.load_template(template)
@@ -370,9 +375,7 @@ class MoleculeGenerator2D:
                 "target_angle": self.config.phenethylamine_target,
             }
 
-        amine_count = orient_all_amines(
-            self.mol, target_angle=self.config.amine_target_angle
-        )
+        amine_count = orient_all_amines(self.mol, target_angle=self.config.amine_target_angle)
         if amine_count > 0:
             return {
                 "type": "amines",
@@ -383,9 +386,7 @@ class MoleculeGenerator2D:
 
         return {}
 
-    def _print_generation_summary(
-            self, width: int, height: int, amine_orientation: dict
-    ) -> None:
+    def _print_generation_summary(self, width: int, height: int, amine_orientation: dict) -> None:
         """
         Print generation summary to console.
 
@@ -412,13 +413,32 @@ class MoleculeGenerator2D:
 
         if amine_orientation:
             if amine_orientation["type"] == "phenethylamine":
-                print(
-                    f"  Phenethylamine detected, sidechain: {amine_orientation['target_angle']}°"
-                )
+                print(f"  Phenethylamine detected, sidechain: {amine_orientation['target_angle']}°")
             elif amine_orientation["type"] == "amines":
                 print(
                     f"  Amines oriented: {amine_orientation['count']} groups @ {amine_orientation['target_angle']}°"
                 )
+
+    @staticmethod
+    def _scale_svg(m_svg: str, min_size: int = 600) -> str:
+        # Parse width/height from SVG (handles both quote styles and "px" suffix)
+        dims = re.findall(r"""(?:width|height)=["'](\d+)""", m_svg)
+        if len(dims) < 2:
+            return m_svg
+        ow, oh = int(dims[0]), int(dims[1])
+
+        s = max(1, min_size // ow, min_size // oh)
+        if s == 1:
+            return m_svg
+
+        # Scale width/height dimensions only. Keep original viewBox so the
+        # browser naturally scales all strokes, fonts, and paths proportionally.
+        m_svg = re.sub(
+            r"""(width|height)=["'](\d+)(?:px)?["']""",
+            lambda mm: f'{mm.group(1)}="{int(mm.group(2)) * s}"',
+            m_svg,
+        )
+        return m_svg
 
     def __repr__(self) -> str:
         return (

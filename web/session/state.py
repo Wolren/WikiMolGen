@@ -14,11 +14,28 @@ def get_2d_defaults() -> dict[str, Any]:
     return cfg.to_dict()
 
 
+_WIDGET_MANAGED_KEYS = {
+    "num_conformers",
+    "max_iterations",
+    "prune_rms_thresh",
+    "use_random_coords",
+    "clear_confs",
+    "use_basic_knowledge",
+    "enforce_chirality",
+    "use_small_ring_torsions",
+    "use_macrocycle_torsions",
+    "use_exp_torsion_prefs",
+}
+
+
 def get_3d_defaults() -> dict[str, Any]:
     cfg = ConfigLoader.get_3d_config()
-    d = asdict(cfg.render) if hasattr(cfg, 'render') else {}
-    conf = asdict(cfg.conformer) if hasattr(cfg, 'conformer') else {}
-    d.update(conf)
+    d = asdict(cfg.render) if hasattr(cfg, "render") else {}
+    conf = asdict(cfg.conformer) if hasattr(cfg, "conformer") else {}
+    # Override render defaults with conformer defaults for widget-managed keys
+    for k in _WIDGET_MANAGED_KEYS:
+        if k in conf:
+            d[k] = conf[k]
     d["x_rot_slider"] = 0.0
     d["y_rot_slider"] = 0.0
     d["z_rot_slider"] = 0.0
@@ -51,6 +68,7 @@ def get_session_defaults() -> dict[str, Any]:
         "manual_generate": False,
         "save_filename": "",
         "color_template_selector": "None",
+        "tmpl_color_selector": "None",
         "settings_template_selector": "None",
         "config_manager_2d": None,
         "config_manager_3d": None,
@@ -80,27 +98,26 @@ def initialize_session_state() -> None:
 
 def reset_to_defaults(dimension: str = "all") -> None:
     if dimension == "2D" or dimension == "all":
-        for key, value in get_2d_defaults().items():
-            st.session_state[key] = value
+        for key in get_2d_defaults():
+            st.session_state.pop(key, None)
 
     if dimension == "3D" or dimension == "all":
-        for key, value in get_3d_defaults().items():
-            st.session_state[key] = value
+        for key in get_3d_defaults():
+            st.session_state.pop(key, None)
 
     if dimension == "all":
-        st.session_state.template_applied_once = False
-        st.session_state.uploaded_color_template = None
-        st.session_state.uploaded_settings_template = None
+        st.session_state.pop("template_applied_once", None)
+        st.session_state.pop("uploaded_color_template", None)
+        st.session_state.pop("uploaded_settings_template", None)
         st.session_state.config_changed = True
 
     logger.info(f"Reset session state to defaults: {dimension}")
 
 
-def get_config_for_rendering(dimension: Literal["2d", "3d"] = "2d") -> dict[str, Any]:
-    if dimension == "2d":
-        return {key: st.session_state.get(key) for key in get_2d_defaults().keys()}
-    elif dimension == "3d":
-        return {key: st.session_state.get(key) for key in get_3d_defaults().keys()}
-    else:
-        logger.warning(f"Unknown dimension: {dimension}")
-        return {}
+def get_mode_keys(mode: str) -> set[str]:
+    """Return the set of setting keys that belong to a given mode."""
+    if mode == "2D":
+        return set(get_2d_defaults().keys())
+    elif mode == "3D":
+        return set(get_3d_defaults().keys())
+    return set()

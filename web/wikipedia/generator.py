@@ -8,6 +8,8 @@ from typing import Any
 
 import pubchempy as pcp
 
+from wikimolgen.core import enrich_compound_data
+
 
 def fetch_pubchem_data(identifier: str) -> dict[str, Any] | None:
     """
@@ -26,12 +28,12 @@ def fetch_pubchem_data(identifier: str) -> dict[str, Any] | None:
     try:
         # Try to get compound by CID first
         if identifier.isdigit():
-            compounds = pcp.get_compounds(identifier, 'cid')
+            compounds = pcp.get_compounds(identifier, "cid")
         else:
             # Try by name, then SMILES
-            compounds = pcp.get_compounds(identifier, 'name')
+            compounds = pcp.get_compounds(identifier, "name")
             if not compounds:
-                compounds = pcp.get_compounds(identifier, 'smiles')
+                compounds = pcp.get_compounds(identifier, "smiles")
 
         if not compounds:
             return None
@@ -39,17 +41,17 @@ def fetch_pubchem_data(identifier: str) -> dict[str, Any] | None:
         compound = compounds[0]
 
         data = {
-            'iupac_name': compound.iupac_name,
-            'molecular_formula': compound.molecular_formula,
-            'molecular_weight': compound.molecular_weight,
-            'smiles': compound.smiles or compound.canonical_smiles,
-            'inchi': compound.inchi,
-            'inchikey': compound.inchikey,
-            'cid': compound.cid,
-            'synonyms': compound.synonyms[:5] if compound.synonyms else []
+            "iupac_name": compound.iupac_name,
+            "molecular_formula": compound.molecular_formula,
+            "molecular_weight": compound.molecular_weight,
+            "smiles": compound.smiles or compound.canonical_smiles,
+            "inchi": compound.inchi,
+            "inchikey": compound.inchikey,
+            "cid": compound.cid,
+            "synonyms": compound.synonyms[:10] if compound.synonyms else [],
         }
 
-        return data
+        return enrich_compound_data(data)
 
     except Exception as e:
         print(f"Error fetching PubChem data: {e}")
@@ -75,11 +77,8 @@ def generate_drugbox_code(compound_data: dict[str, Any], image_filename: str = "
     if not compound_data:
         return "<!-- Unable to generate Drugbox: No compound data available -->"
 
-    # Get primary name (first synonym or IUPAC)
-    primary_name = compound_data['synonyms'][0] if compound_data['synonyms'] else compound_data['iupac_name']
-
     drugbox_template = f"""{{{{Infobox drug
-| image = {image_filename if image_filename else 'Example.png'}
+| image = {image_filename if image_filename else "Example.png"}
 | image_class = skin-invert-image
 | width = 200px
 | alt =
@@ -131,26 +130,24 @@ def generate_drugbox_code(compound_data: dict[str, Any], image_filename: str = "
 | excretion = 
 
 <!--Identifiers-->
-| CAS_number_Ref = 
-| CAS_number = 
-| PubChem = {compound_data.get('cid', '')}
-| ChemSpiderID_Ref = 
-| ChemSpiderID = 
-| ChEMBL_Ref = 
-| ChEMBL = 
-| UNII_Ref = 
-| UNII = 
-| synonyms = {'; '.join(compound_data.get('synonyms', [])[:3])}
+| CAS_number = {compound_data.get("cas_number", "")}
+| PubChem = {compound_data.get("cid", "")}
+| DrugBank = {compound_data.get("drugbank_id", "")}
+| ChemSpiderID = {compound_data.get("chemspider_id", "")}
+| ChEMBL = {compound_data.get("chembl_id", "")}
+| UNII = {compound_data.get("unii", "")}
+| KEGG = {compound_data.get("kegg_id", "")}
+| synonyms = {"; ".join(compound_data.get("synonyms", [])[:3])}
 
 <!--Chemical and physical data-->
-| IUPAC_name = {compound_data.get('iupac_name', '')}
-| chemical_formula = {compound_data.get('molecular_formula', '')}
-| molecular_weight = {compound_data.get('molecular_weight', '')} g/mol
-| SMILES = {compound_data.get('smiles', '')}
+| IUPAC_name = {compound_data.get("iupac_name", "")}
+| chemical_formula = {compound_data.get("molecular_formula", "")}
+| molecular_weight = {compound_data.get("molecular_weight", "")} g/mol
+| SMILES = {compound_data.get("smiles", "")}
 | StdInChI_Ref =
-| StdInChI = {compound_data.get('inchi', '')}
+| StdInChI = {compound_data.get("inchi", "")}
 | StdInChIKey_Ref =
-| StdInChIKey = {compound_data.get('inchikey', '')}
+| StdInChIKey = {compound_data.get("inchikey", "")}
 }}}}"""
 
     return drugbox_template
@@ -177,34 +174,36 @@ def generate_chembox_code(compound_data: dict[str, Any], image_filename: str = "
 
     chembox_template = f"""{{{{Chembox
 <!-- Images -->
-| ImageFile = {image_filename if image_filename else 'Example.png'}
+| ImageFile = {image_filename if image_filename else "Example.png"}
 | ImageSize = 225px
 | ImageAlt = 
 | ImageClass = skin-invert-image
 
 <!-- Names -->
-| IUPACName = {compound_data.get('iupac_name', '')}
-| OtherNames = {'; '.join(compound_data.get('synonyms', [])[:3])}
+| IUPACName = {compound_data.get("iupac_name", "")}
+| OtherNames = {"; ".join(compound_data.get("synonyms", [])[:3])}
 
 <!-- Sections -->
 |Section1={{{{Chembox Identifiers
-| CASNo = 
-| ChEBI = 
-| ChemSpiderID = 
-| StdInChI = {compound_data.get('inchi', '')}
-| StdInChIKey = {compound_data.get('inchikey', '')}
-| KEGG = 
-| UNII = 
-| PubChem = {compound_data.get('cid', '')}
-| SMILES = {compound_data.get('smiles', '')}
+| CASNo = {compound_data.get("cas_number", "")}
+| ChEBI = {compound_data.get("chebi_id", "")}
+| ChemSpiderID = {compound_data.get("chemspider_id", "")}
+| DrugBank = {compound_data.get("drugbank_id", "")}
+| StdInChI = {compound_data.get("inchi", "")}
+| StdInChIKey = {compound_data.get("inchikey", "")}
+| KEGG = {compound_data.get("kegg_id", "")}
+| UNII = {compound_data.get("unii", "")}
+| PubChem = {compound_data.get("cid", "")}
+| SMILES = {compound_data.get("smiles", "")}
 }}}}
 |Section2={{{{Chembox Properties
-| Formula = {compound_data.get('molecular_formula', '')}
-| MolarMass = {compound_data.get('molecular_weight', '')} g/mol
-| Appearance = 
-| Density = 
-| MeltingPt = 
-| BoilingPt = 
+| Formula = {compound_data.get("molecular_formula", "")}
+| MolarMass = {compound_data.get("molecular_weight", "")} g/mol
+| Appearance = {compound_data.get("appearance", "")}
+| Density = {compound_data.get("density", "")}
+| MeltingPt = {compound_data.get("melting_point", "")}
+| BoilingPt = {compound_data.get("boiling_point", "")}
+| LogP = {compound_data.get("xlogp", "")}
 | Solubility = 
 }}}}
 |Section3={{{{Chembox Hazards
