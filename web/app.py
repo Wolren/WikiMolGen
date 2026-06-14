@@ -18,7 +18,6 @@ from rendering.base import render_structure_dynamic
 from session.state import initialize_session_state
 from ui.components import (
     render_2d_settings,
-    render_3d_preview,
     render_3d_settings,
     render_auto_generate_checkbox,
     render_canvas_settings,
@@ -119,8 +118,6 @@ def render_sidebar() -> tuple:
         elif structure_type == "3D":
             st.markdown("#### **3D Display**", unsafe_allow_html=True)
             render_3d_settings()
-            with st.expander("3D Preview", expanded=False):
-                render_3d_preview(compound)
             if st.button(
                 "Reset 3D to defaults",
                 use_container_width=True,
