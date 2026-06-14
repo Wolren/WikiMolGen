@@ -8,7 +8,12 @@ from typing import Any
 
 import pubchempy as pcp
 
-from wikimolgen.core import enrich_compound_data
+try:
+    from wikimolgen.core import enrich_compound_data
+except ImportError:
+
+    def enrich_compound_data(data):
+        return data
 
 
 def fetch_pubchem_data(identifier: str) -> dict[str, Any] | None:
