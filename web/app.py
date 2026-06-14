@@ -119,7 +119,7 @@ def render_sidebar() -> tuple:
         elif structure_type == "3D":
             st.markdown("#### **3D Display**", unsafe_allow_html=True)
             render_3d_settings()
-            with st.expander("3D Preview", expanded=True):
+            with st.expander("3D Preview", expanded=False):
                 render_3d_preview(compound)
             if st.button(
                 "Reset 3D to defaults",
