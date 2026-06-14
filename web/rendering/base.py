@@ -1,5 +1,6 @@
 import base64
 import dataclasses
+import json
 import logging
 import tempfile
 from pathlib import Path
@@ -70,10 +71,6 @@ def build_3d_config() -> dict[str, Any]:
         else:
             config[key] = default
     config["auto_orient_3d"] = auto_orient
-    if not auto_orient:
-        config["x_rotation"] = st.session_state.get("x_rot_slider", 0.0)
-        config["y_rotation"] = st.session_state.get("y_rot_slider", 0.0)
-        config["z_rotation"] = st.session_state.get("z_rot_slider", 0.0)
     return config
 
 
@@ -201,6 +198,11 @@ def render_structure_3d(compound: str, structure_type: str) -> str | None:
 
                 with open(png_path, "rb") as f:
                     file_data = f.read()
+
+                # Cache SDF content for interactive 3D preview
+                if sdf_path and Path(sdf_path).exists():
+                    with open(sdf_path) as f:
+                        st.session_state.sdf_content = f.read()
 
                 filename = generate_dynamic_filename(compound, "3D")
                 _store_result_in_session(

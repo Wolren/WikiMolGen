@@ -148,15 +148,6 @@ def export_3d_settings() -> dict[str, Any]:
             continue  # handled separately by color template system
         settings[key] = st.session_state.get(key, default)
 
-    # Override with rotation slider values (stored under different session keys)
-    for slider, canonical in [
-        ("x_rot_slider", "x_rotation"),
-        ("y_rot_slider", "y_rotation"),
-        ("z_rot_slider", "z_rotation"),
-    ]:
-        if slider in st.session_state:
-            settings[canonical] = st.session_state[slider]
-
     # Convert bool session values to int for dataclass compatibility
     for key in ("ray_shadows", "depth_cue"):
         val = settings.get(key)
@@ -234,14 +225,6 @@ def save_template_to_session(
         for key, value in settings.items():
             if key in st.session_state:
                 st.session_state[key] = value
-        # Sync canonical rotation keys to slider session keys
-        for canonical, slider in [
-            ("x_rotation", "x_rot_slider"),
-            ("y_rotation", "y_rot_slider"),
-            ("z_rotation", "z_rot_slider"),
-        ]:
-            if canonical in settings and slider in st.session_state:
-                st.session_state[slider] = settings[canonical]
         st.session_state.template_applied_once = True
 
 
