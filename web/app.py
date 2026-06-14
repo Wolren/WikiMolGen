@@ -9,11 +9,19 @@ Usage:
 """
 
 import base64
+import sys
 import tempfile
 import time
 from pathlib import Path
 
 import streamlit as st
+
+# Ensure project root and web/ are on sys.path for both local and Streamlit Cloud
+_THIS_DIR = Path(__file__).resolve().parent
+_PROJECT_ROOT = _THIS_DIR.parent
+for p in (_THIS_DIR, _PROJECT_ROOT):
+    if str(p) not in sys.path:
+        sys.path.insert(0, str(p))
 from rendering.base import render_structure_dynamic
 from session.state import initialize_session_state
 from ui.components import (
