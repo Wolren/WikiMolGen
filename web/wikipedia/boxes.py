@@ -75,9 +75,9 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
 
         if pubchem_data:
             cid = str(pubchem_data.get("cid", "N/A"))
-            inchi = pubchem_data.get("standard_inchi", "N/A")
-            inchikey = pubchem_data.get("standard_inchikey", "N/A")
-            smiles = pubchem_data.get("isomeric_smiles", "N/A")
+            inchi = pubchem_data.get("inchi", "N/A")
+            inchikey = pubchem_data.get("inchikey", "N/A")
+            smiles = pubchem_data.get("smiles", "N/A")
             iupac = pubchem_data.get("iupac_name", "N/A")
             wikidata_q = pubchem_data.get("wikidata_qid", None)
 
@@ -101,14 +101,14 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
                 st.session_state.last_drugbox = generate_drugbox_code(
                     pubchem_data, f"{compound}_{structure_type}.png"
                 )
-                st.code(st.session_state.last_drugbox, language="wiki")
+                st.code(st.session_state.last_drugbox, language="html")
 
             with col_chem:
                 st.markdown("#### **Chembox Template** (for chemicals)")
                 st.session_state.last_chembox = generate_chembox_code(
                     pubchem_data, f"{compound}_{structure_type}.png"
                 )
-                st.code(st.session_state.last_chembox, language="wiki")
+                st.code(st.session_state.last_chembox, language="html")
         else:
             st.warning("Not able to fetch compound data from PubChem.")
     else:

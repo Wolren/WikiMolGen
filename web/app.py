@@ -10,6 +10,7 @@ Usage:
 
 import base64
 import tempfile
+import time
 from pathlib import Path
 
 import streamlit as st
@@ -77,47 +78,75 @@ def render_sidebar() -> tuple:
         st.markdown("<div class='sidebar-main-header'>Configuration</div>", unsafe_allow_html=True)
         st.divider()
 
-        # Compound input
-        compound = render_compound_input()
+        # Mode selector at the top
+        structure_type = render_mode_selector()
+        st.divider()
+
+        # Compound/protein input based on mode
+        compound = ""
+        pdb_id = ""
+        if structure_type == "Protein":
+            from ui.protein_web_component import render_protein_selector
+
+            pdb_id = render_protein_selector()
+        else:
+            compound = render_compound_input()
         st.divider()
 
         # Template management
         render_template_manager()
         st.divider()
 
-        # Auto-generate toggle
-        auto_generate = render_auto_generate_checkbox()
-        st.divider()
+        # auto_generate is now a toggle in main content; read from session state
+        auto_generate = st.session_state.get("auto_generate", True)
 
-        # Mode selector (2D/3D/Protein)
-        structure_type = render_mode_selector()
-        st.divider()
-
-        # Mode-specific settings
+        # Mode-specific settings + reset button
         protein_inputs = None
         if structure_type == "2D":
             render_2d_settings()
+            if st.button(
+                "Reset 2D to defaults",
+                use_container_width=True,
+                key="reset_2d_btn",
+                icon=":material/restart_alt:",
+            ):
+                from session.state import reset_to_defaults
+
+                reset_to_defaults("2D")
+                st.toast("2D settings reset to defaults", icon=":material/check_circle:")
+                st.rerun()
         elif structure_type == "3D":
+            st.markdown("#### **3D Display**", unsafe_allow_html=True)
             render_3d_settings()
-            render_conformer_settings()
-            render_canvas_settings()
-            render_rendering_settings()
-            render_lighting_settings()
-            render_effects_settings()
+            if st.button(
+                "Reset 3D to defaults",
+                use_container_width=True,
+                key="reset_3d_btn",
+                icon=":material/restart_alt:",
+            ):
+                from session.state import reset_to_defaults
+
+                reset_to_defaults("3D")
+                st.toast("3D settings reset to defaults", icon=":material/check_circle:")
+                st.rerun()
+            with st.expander("3D Settings", expanded=False):
+                render_canvas_settings()
+                render_rendering_settings()
+                render_lighting_settings()
+                render_effects_settings()
+                render_conformer_settings()
         elif structure_type == "Protein":
-            # Protein-specific settings
             from ui.protein_web_component import (
                 render_protein_canvas_settings,
                 render_protein_cartoon_settings,
                 render_protein_ligand_settings,
-                render_protein_selector,
             )
 
-            st.markdown("#### Protein Rendering Settings")
-            pdb_id = render_protein_selector()
-            cartoon_cfg = render_protein_cartoon_settings()
-            ligand_cfg = render_protein_ligand_settings()
-            canvas_cfg = render_protein_canvas_settings()
+            st.markdown("#### **Protein Display**", unsafe_allow_html=True)
+            with st.expander("Protein Settings", expanded=False):
+                cartoon_cfg = render_protein_cartoon_settings()
+                ligand_cfg = render_protein_ligand_settings()
+                canvas_cfg = render_protein_canvas_settings()
             protein_inputs = (pdb_id, cartoon_cfg, ligand_cfg, canvas_cfg)
 
     return compound, structure_type, auto_generate, protein_inputs
@@ -181,7 +210,7 @@ def render_protein_structure_dynamic(
         )
 
         # Encode and create HTML (same as base_old.py)
-        if output_path.exists():
+        if output_path and output_path.exists():
             img_base64, mime_type = encode_image_to_base64(output_path)
             image_html = f'<img src="data:image/{mime_type};base64,{img_base64}" class="protein-preview-image" alt="Protein Structure">'
 
@@ -218,16 +247,30 @@ def render_main_content(
     protein_inputs : tuple or None
         Protein configuration (pdb_id, cartoon_cfg, ligand_cfg, canvas_cfg)
     """
-    # Only render compound inputs/button for 2D and 3D
+
+    def _debounce_pass() -> bool:
+        """Return True if 500ms have elapsed since last auto-render."""
+        now = time.time()
+        last = st.session_state.get("_last_render_ts", 0.0)
+        if now - last >= 0.5:
+            st.session_state._last_render_ts = now
+            return True
+        return False
+
+    # Auto-update toggle and generate button (2D/3D only)
     if structure_type != "Protein":
-        render_generate_button(auto_generate)
+        col_btn, col_toggle = st.columns([4, 0.7])
+        with col_btn:
+            render_generate_button(auto_generate)
+        with col_toggle:
+            auto_generate = st.toggle("Auto-update", value=True, key="auto_generate")
 
         # Placeholder for the structure image in a fixed container
         preview_placeholder = st.empty()
 
         # Check if image should be rendered at the moment
         should_render = (
-            auto_generate
+            (auto_generate and _debounce_pass())
             or st.session_state.get("manual_generate", False)
             or st.session_state.get("last_compound") != compound
         )
@@ -337,6 +380,14 @@ def render_download_section() -> None:
         file_data = st.session_state.last_file_data
         file_name = st.session_state.get("last_file_name", "structure.png")
         mime_type = st.session_state.get("last_file_mime", "image/png")
+        # Derive extension from mime type if filename lacks it
+        if "." not in file_name:
+            if "svg" in mime_type:
+                file_ext = ".svg"
+            else:
+                file_ext = ".png"
+            file_name += file_ext
+
         file_ext = Path(file_name).suffix
         base_name = Path(file_name).stem
 
@@ -346,16 +397,10 @@ def render_download_section() -> None:
 
         def on_reset():
             """Reset to original compound-based filename with structure type"""
-            # Get compound name and structure type
             compound = st.session_state.get("last_compound", "structure")
             structure_type = st.session_state.get("structure_type", "2D")
-
-            # Construct original filename: "compound_name 2D" or "compound_name 3D"
             original_base = f"{compound} {structure_type}"
-
-            # Reconstruct original filename
-            original_filename = f"{original_base}{file_ext}"
-            st.session_state.last_file_name = original_filename
+            st.session_state.last_file_name = f"{original_base}{file_ext}"
             st.session_state.download_filename_input = original_base
 
         # Create three columns: download button | filename input | reset button
@@ -375,7 +420,7 @@ def render_download_section() -> None:
                 key="download_filename_input",
             )
             clean_base = Path(custom_base_name).stem
-            st.session_state.last_file_name = clean_base
+            st.session_state.last_file_name = f"{clean_base}{file_ext}"
 
         with col_download:
             st.download_button(
@@ -418,9 +463,6 @@ def main() -> None:
 
     # Render sidebar and get settings
     compound, structure_type, auto_generate, protein_inputs = render_sidebar()
-
-    if st.session_state.get("last_structure_type") != structure_type:
-        st.session_state.last_structure_type = structure_type
 
     # Render main content
     render_main_content(compound, structure_type, auto_generate, protein_inputs)

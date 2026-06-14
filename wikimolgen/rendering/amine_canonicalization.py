@@ -15,10 +15,8 @@ Features:
 
 import math
 from enum import Enum
-from typing import Optional, Tuple, List, Dict
 
 from rdkit import Chem
-from rdkit.Chem import AllChem
 
 
 class AmineType(Enum):
@@ -41,7 +39,7 @@ class AmineOrientation(Enum):
     TOWARD = 225.0  # Diagonal down-left (toward)
 
 
-def detect_amine_groups(mol: Chem.Mol) -> List[Tuple[int, AmineType]]:
+def detect_amine_groups(mol: Chem.Mol) -> list[tuple[int, AmineType]]:
     """
     Detect all amine functional groups in molecule.
 
@@ -270,7 +268,7 @@ def get_amine_display_name(amine_type: AmineType, methyl_on_heteroatom: bool = F
         return "N"
 
 
-def find_phenethylamine_amine_index(mol: Chem.Mol) -> Optional[int]:
+def find_phenethylamine_amine_index(mol: Chem.Mol) -> int | None:
     """
     Find the amine nitrogen in phenethylamine-like compounds.
 
@@ -332,7 +330,7 @@ class AmineCanonicalizer:
             self,
             phenethylamine_target: float = 90.0,
             general_target: float = 90.0
-    ) -> Dict[int, bool]:
+    ) -> dict[int, bool]:
         """
         Automatically orient all amine groups.
 
@@ -370,7 +368,7 @@ class AmineCanonicalizer:
 
         return results
 
-    def get_amine_info(self) -> List[Dict]:
+    def get_amine_info(self) -> list[dict]:
         """
         Get comprehensive information about all amines.
 
@@ -429,7 +427,7 @@ def has_amine_groups(mol: Chem.Mol) -> bool:
     return len(detect_amine_groups(mol)) > 0
 
 
-def get_amines_info(mol: Chem.Mol) -> List[Dict]:
+def get_amines_info(mol: Chem.Mol) -> list[dict]:
     """Get all amine information for a molecule."""
     canonicalizer = AmineCanonicalizer(mol)
     return canonicalizer.get_amine_info()

@@ -10,17 +10,14 @@ import tempfile
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Dict, Tuple, List
 
-import pymol
 import biotite.database.rcsb as rcsb
 import biotite.structure.io.pdb as pdb
-
 import nglview as nv
-from PIL import Image, ImageEnhance
+from PIL import Image
 
 
-def hex_to_rgb(hex_color: str) -> Tuple[float, float, float]:
+def hex_to_rgb(hex_color: str) -> tuple[float, float, float]:
     """Convert hex color to normalized RGB tuple for PyMOL.
 
     Parameters
@@ -35,75 +32,35 @@ def hex_to_rgb(hex_color: str) -> Tuple[float, float, float]:
     """
     hex_color = hex_color.lstrip("#")
     try:
-        return tuple(int(hex_color[i:i+2], 16) / 255.0 for i in (0, 2, 4))
+        return tuple(int(hex_color[i : i + 2], 16) / 255.0 for i in (0, 2, 4))
     except (ValueError, IndexError):
         # Fallback to white if parsing fails
         return (1.0, 1.0, 1.0)
 
 
-def autocrop_image(image_path: Path, margin: int = 10, contrast_factor: float = 1.15) -> None:
-    """Auto-crop PNG to protein bounds using alpha channel only.
-
-    Keeps transparency untouched - best for transparent backgrounds.
-    Same implementation as 3D molecular generator.
-
-    Parameters
-    ----------
-    image_path : Path
-        Path to PNG image
-    margin : int
-        Margin around protein in pixels (default: 10)
-    contrast_factor : float
-        Contrast enhancement factor (default: 1.15)
-    """
-    if not image_path.exists():
-        print(f"⚠ Image file not found: {image_path}")
-        return
-
-    img = Image.open(image_path).convert("RGBA")
-    alpha = img.split()[-1]
-
-    # Find bounding box of non-transparent pixels
-    bbox = alpha.getbbox()
-    if bbox is None:
-        return  # Entire image is transparent
-
-    left, top, right, bottom = bbox
-    width, height = img.size
-
-    # Add margin
-    left = max(0, left - margin)
-    top = max(0, top - margin)
-    right = min(width, right + margin)
-    bottom = min(height, bottom + margin)
-
-    # Crop image
-    img = img.crop((left, top, right, bottom))
-
-    # Enhance contrast
-    img = ImageEnhance.Contrast(img).enhance(contrast_factor)
-
-    img.save(image_path)
+from wikimolgen.rendering.utils import autocrop_image
 
 
-def initialize_pymol() -> None:
-    """Initialize PyMOL in headless mode (no GUI)."""
-    cmd = pymol.cmd
-    cmd.reinitialize()
+def initialize_pymol():
+    """No-op: PyMOL is now initialized per-call via pymol2.PyMOL() context manager."""
+    pass
 
 
 class ProteinVisualizationError(Exception):
     """Raised when protein visualization fails."""
+
     pass
 
 
 class ProteinFetchError(Exception):
     """Raised when protein structure cannot be fetched."""
+
     pass
 
 
 class SecondaryStructureType(str, Enum):
     """Secondary structure representation types."""
+
     CARTOON = "cartoon"
     RIBBON = "ribbon"
     CARTOON_FANCY = "cartoon_fancy"
@@ -114,12 +71,16 @@ class SecondaryStructureType(str, Enum):
 
 class ColorScheme(str, Enum):
     """Protein coloring schemes."""
+
     SECONDARY_STRUCTURE = "secondary_structure"
     RAINBOW = "rainbow"
     CHAIN = "chain"
     HYDROPHOBICITY = "hydrophobicity"
     ELEMENT = "element"
     BFACTOR = "bfactor"
+    OCCUPANCY = "occupancy"
+    B_FACTOR_TEMPERATURE = "b_factor_temperature"
+    CHAIN_RAINBOW = "chain_rainbow"
 
 
 @dataclass
@@ -132,16 +93,16 @@ class CartoonRenderConfig:
     cartoon_fancy_sheets: int = 1
     cartoon_transparency: float = 0.0
 
-    helix_color: str = "#00FF00"
-    sheet_color: str = "#00FFFF"
-    loop_color: str = "#FFA500"
+    helix_color: str = "#3399FF"
+    sheet_color: str = "#FFCC00"
+    loop_color: str = "#99AABB"
 
-    ray_trace_mode: int = 0
+    ray_trace_mode: int = 1
     antialias: int = 4
-    ambient: float = 0.4
+    ambient: float = 0.40
     specular: int = 1
-    shininess: int = 40
-    ray_shadows: int = 0
+    shininess: int = 10
+    ray_shadows: int = 1
 
     width: int = 1920
     height: int = 1080
@@ -162,7 +123,7 @@ class LigandRenderConfig:
     ligand_style: str = "sticks"
     ligand_transparency: float = 0.0
     ligand_color_scheme: str = "element"
-    ligand_single_color: Optional[str] = "#FF6B6B"
+    ligand_single_color: str | None = "#FF6B6B"
 
     stick_radius: float = 0.25
     stick_quality: int = 64
@@ -184,8 +145,8 @@ class ProteinStructureMetadata:
     pdb_id: str
     title: str = ""
     organism: str = ""
-    resolution: Optional[float] = None
-    chains: List[str] = field(default_factory=list)
+    resolution: float | None = None
+    chains: list[str] = field(default_factory=list)
     num_atoms: int = 0
     num_residues: int = 0
     has_ligand: bool = False
@@ -196,7 +157,7 @@ class ProteinStructureMetadata:
 class BiotiteStructureProvider:
     """Fetch protein structures using Biotite/RCSB PDB."""
 
-    def fetch_structure(self, pdb_id: str) -> Tuple[Path, ProteinStructureMetadata]:
+    def fetch_structure(self, pdb_id: str) -> tuple[Path, ProteinStructureMetadata]:
         """Fetch PDB structure from RCSB database.
 
         Parameters
@@ -220,7 +181,7 @@ class BiotiteStructureProvider:
 
             # Create temporary directory for PDB file
             tmpdir = tempfile.mkdtemp()
-            tmpdir_path = Path(tmpdir)
+            Path(tmpdir)
 
             # Download PDB file
             pdb_path = rcsb.fetch(pdb_id, "pdb", tmpdir)
@@ -240,29 +201,44 @@ class BiotiteStructureProvider:
             return Path(pdb_path), metadata
 
         except Exception as e:
-            raise ProteinFetchError(
-                f"Failed to fetch PDB {pdb_id}: {type(e).__name__}: {e}"
-            )
+            raise ProteinFetchError(f"Failed to fetch PDB {pdb_id}: {type(e).__name__}: {e}")
 
     @staticmethod
     def _has_hetatm(structure) -> bool:
         """Check if structure contains heteroatoms (ligands)."""
         standard_aa = {
-            'ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLU', 'GLN',
-            'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE',
-            'PRO', 'SER', 'THR', 'TRP', 'TYR', 'VAL'
+            "ALA",
+            "ARG",
+            "ASN",
+            "ASP",
+            "CYS",
+            "GLU",
+            "GLN",
+            "GLY",
+            "HIS",
+            "ILE",
+            "LEU",
+            "LYS",
+            "MET",
+            "PHE",
+            "PRO",
+            "SER",
+            "THR",
+            "TRP",
+            "TYR",
+            "VAL",
         }
         try:
             return any(res_name not in standard_aa for res_name in set(structure.res_name))
-        except:
+        except Exception:
             return False
 
     @staticmethod
     def _has_water(structure) -> bool:
         """Check if structure contains water molecules."""
         try:
-            return 'HOH' in set(structure.res_name)
-        except:
+            return "HOH" in set(structure.res_name)
+        except Exception:
             return False
 
 
@@ -272,7 +248,7 @@ class ProteinGenerator:
     def __init__(
         self,
         pdb_id: str,
-        provider: Optional[BiotiteStructureProvider] = None,
+        provider: BiotiteStructureProvider | None = None,
         random_seed: int = 42,
     ):
         """Initialize protein structure generator.
@@ -295,8 +271,8 @@ class ProteinGenerator:
         self.provider = provider or BiotiteStructureProvider()
         self.random_seed = random_seed
 
-        self.pdb_path: Optional[Path] = None
-        self.metadata: Optional[ProteinStructureMetadata] = None
+        self.pdb_path: Path | None = None
+        self.metadata: ProteinStructureMetadata | None = None
 
         self.cartoon_config = CartoonRenderConfig()
         self.ligand_config = LigandRenderConfig()
@@ -316,9 +292,9 @@ class ProteinGenerator:
         print(f"  Chains: {', '.join(self.metadata.chains)}")
         print(f"  Atoms: {self.metadata.num_atoms} | Residues: {self.metadata.num_residues}")
         if self.metadata.has_ligand:
-            print(f"  Has ligand/heteroatoms")
+            print("  Has ligand/heteroatoms")
         if self.metadata.has_water:
-            print(f"  Contains water molecules")
+            print("  Contains water molecules")
 
     def generate(
         self,
@@ -351,100 +327,114 @@ class ProteinGenerator:
             If PyMOL not available or rendering fails
         """
 
+        try:
+            import pymol2
+        except ImportError:
+            raise ProteinVisualizationError(
+                "pymol2 not installed. Install with: conda install -c conda-forge pymol-open-source"
+            )
+
         output_path = Path(output)
 
         try:
-            # Initialize PyMOL (headless mode, no GUI)
-            initialize_pymol()
-            cmd = pymol.cmd
+            with pymol2.PyMOL() as pymol:
+                cmd = pymol.cmd
 
-            # Load structure
-            cmd.load(str(self.pdb_path), "protein")
-            cmd.hide("everything")
-            cmd.show("cartoon", "polymer.protein")
+                # Load structure
+                cmd.load(str(self.pdb_path), "protein")
+                cmd.hide("everything")
+                cmd.show("cartoon", "polymer.protein")
 
-            # Color by scheme
-            if color_scheme == ColorScheme.SECONDARY_STRUCTURE:
-                # Convert hex colors to RGB tuples for PyMOL
-                helix_rgb = hex_to_rgb(self.cartoon_config.helix_color)
-                sheet_rgb = hex_to_rgb(self.cartoon_config.sheet_color)
-                loop_rgb = hex_to_rgb(self.cartoon_config.loop_color)
+                # Color by scheme
+                if color_scheme == ColorScheme.SECONDARY_STRUCTURE:
+                    helix_rgb = hex_to_rgb(self.cartoon_config.helix_color)
+                    sheet_rgb = hex_to_rgb(self.cartoon_config.sheet_color)
+                    loop_rgb = hex_to_rgb(self.cartoon_config.loop_color)
+                    cmd.set_color("custom_helix", helix_rgb)
+                    cmd.set_color("custom_sheet", sheet_rgb)
+                    cmd.set_color("custom_loop", loop_rgb)
+                    cmd.color("custom_helix", "ss h")
+                    cmd.color("custom_sheet", "ss s")
+                    cmd.color("custom_loop", "ss l+''")
+                elif color_scheme == ColorScheme.RAINBOW:
+                    cmd.spectrum("count", "rainbow", selection="polymer.protein")
+                elif color_scheme == ColorScheme.CHAIN:
+                    cmd.util.cbc()
+                elif color_scheme == ColorScheme.HYDROPHOBICITY:
+                    cmd.spectrum("count", "density", selection="polymer.protein")
+                elif color_scheme == ColorScheme.ELEMENT:
+                    cmd.util.cbaw("polymer.protein")
+                elif color_scheme == ColorScheme.BFACTOR:
+                    cmd.spectrum("b", "rainbow", selection="polymer.protein")
+                elif color_scheme == ColorScheme.OCCUPANCY:
+                    cmd.spectrum("q", "rainbow", selection="polymer.protein")
+                elif color_scheme == ColorScheme.B_FACTOR_TEMPERATURE:
+                    cmd.spectrum("b", "red_white_blue", selection="polymer.protein")
+                elif color_scheme == ColorScheme.CHAIN_RAINBOW:
+                    chains: set[str] = set()
+                    cmd.iterate("polymer.protein", "chains.add(chain)", space={"chains": chains})
+                    for chain_id in sorted(chains):
+                        cmd.spectrum("count", "rainbow", selection=f"chain {chain_id}")
 
-                cmd.set_color("custom_helix", helix_rgb)
-                cmd.set_color("custom_sheet", sheet_rgb)
-                cmd.set_color("custom_loop", loop_rgb)
+                # Cartoon settings
+                cmd.set("cartoon_fancy_helices", self.cartoon_config.cartoon_fancy_helices)
+                cmd.set("cartoon_flat_sheets", self.cartoon_config.cartoon_flat_sheets)
+                cmd.set("cartoon_transparency", self.cartoon_config.cartoon_transparency)
 
-                cmd.color("custom_helix", "ss h")
-                cmd.color("custom_sheet", "ss s")
-                cmd.color("custom_loop", "ss l+''")
-            elif color_scheme == ColorScheme.RAINBOW:
-                cmd.spectrum("count", "rainbow", selection="polymer.protein")
-            elif color_scheme == ColorScheme.CHAIN:
-                cmd.util.cbc()
+                # Rendering settings
+                cmd.set("antialias", self.cartoon_config.antialias)
+                cmd.set("ambient", self.cartoon_config.ambient)
+                cmd.set("specular", self.cartoon_config.specular)
+                cmd.set("shininess", self.cartoon_config.shininess)
+                cmd.set("ray_shadows", self.cartoon_config.ray_shadows)
+                cmd.bg_color(self.cartoon_config.bg_color)
 
-            # Cartoon settings
-            cmd.set("cartoon_fancy_helices", 1)
-            cmd.set("cartoon_flat_sheets", 1)
-            cmd.set("cartoon_transparency", self.cartoon_config.cartoon_transparency)
+                # Show ligand
+                if show_ligand and self.metadata.has_ligand:
+                    cmd.show(self.ligand_config.ligand_style, "organic")
+                    if self.ligand_config.ligand_color_scheme == "element":
+                        cmd.util.cbaw("organic")
+                    elif self.ligand_config.ligand_color_scheme == "single":
+                        ligand_rgb = hex_to_rgb(self.ligand_config.ligand_single_color or "#FF6B6B")
+                        cmd.set_color("custom_ligand", ligand_rgb)
+                        cmd.color("custom_ligand", "organic")
+                    elif self.ligand_config.ligand_color_scheme == "chain":
+                        cmd.util.cbc("organic")
+                    cmd.set("stick_transparency", self.ligand_config.ligand_transparency, "organic")
+                    cmd.set("stick_radius", self.ligand_config.stick_radius, "organic")
 
-            # Rendering settings
-            cmd.set("antialias", self.cartoon_config.antialias)
-            cmd.set("ambient", self.cartoon_config.ambient)
-            cmd.set("specular", self.cartoon_config.specular)
-            cmd.set("shininess", self.cartoon_config.shininess)
-            cmd.set("ray_shadows", self.cartoon_config.ray_shadows)
-            cmd.bg_color(self.cartoon_config.bg_color)
+                # Show water
+                if show_water and self.metadata.has_water:
+                    cmd.show("spheres", "resn HOH")
+                    cmd.color("cyan", "resn HOH")
+                    cmd.set("sphere_scale", 0.4)
 
-            # Show ligand
-            if show_ligand and self.metadata.has_ligand:
-                cmd.show(self.ligand_config.ligand_style, "organic")
-                if self.ligand_config.ligand_color_scheme == "element":
-                    cmd.util.cbaw("organic")
-                elif self.ligand_config.ligand_color_scheme == "single":
-                    ligand_rgb = hex_to_rgb(self.ligand_config.ligand_single_color or "#FF6B6B")
-                    cmd.set_color("custom_ligand", ligand_rgb)
-                    cmd.color("custom_ligand", "organic")
+                # Orient and zoom
+                if self.cartoon_config.auto_orient:
+                    cmd.orient("all")
+                    cmd.zoom("all", buffer=self.cartoon_config.zoom_buffer)
 
-            # Show water
-            if show_water and self.metadata.has_water:
-                cmd.show("spheres", "resn HOH")
-                cmd.color("cyan", "resn HOH")
-                cmd.set("sphere_scale", 0.4)
+                # Ray trace and render
+                if self.cartoon_config.ray_trace_mode > 0:
+                    cmd.ray(width=self.cartoon_config.width, height=self.cartoon_config.height)
 
-            # Orient and zoom
-            if self.cartoon_config.auto_orient:
-                cmd.orient("all")
-                cmd.zoom("all", buffer=self.cartoon_config.zoom_buffer)
-
-            # Ray trace and render
-            if self.cartoon_config.ray_trace_mode > 0:
-                cmd.ray(
+                cmd.png(
+                    str(output_path),
                     width=self.cartoon_config.width,
-                    height=self.cartoon_config.height
+                    height=self.cartoon_config.height,
                 )
 
-            cmd.png(
-                str(output_path),
-                width=self.cartoon_config.width,
-                height=self.cartoon_config.height,
-            )
-
-            # Autocrop if enabled (same as 3D generator)
+            # Autocrop after PyMOL context exits
             if self.cartoon_config.autocrop:
                 autocrop_image(
-                    output_path,
-                    margin=self.cartoon_config.crop_margin,
-                    contrast_factor=1.15
+                    output_path, margin=self.cartoon_config.crop_margin, contrast_factor=1.15
                 )
-                print(f"✓ Auto-cropped with {self.cartoon_config.crop_margin}px margin")
 
             print(f"✓ Rendered: {output_path}")
             return output_path
 
         except Exception as e:
-            raise ProteinVisualizationError(
-                f"Failed to render: {type(e).__name__}: {e}"
-            )
+            raise ProteinVisualizationError(f"Failed to render: {type(e).__name__}: {e}")
 
     def configure_cartoon(self, **kwargs) -> None:
         """Update cartoon rendering configuration.
@@ -577,7 +567,7 @@ class ProteinNGLViewRenderer:
         return self
 
 
-def get_optimal_dynorphin_kor_view() -> Dict:
+def get_optimal_dynorphin_kor_view() -> dict:
     """Get optimized rendering settings for Dynorphin-KOR complex (8F7W).
 
     This is the kappa opioid receptor bound to dynorphin A.
@@ -607,7 +597,7 @@ def get_optimal_dynorphin_kor_view() -> Dict:
             "bg_color": "black",
             "antialias": 4,
             "auto_orient": True,
-        }
+        },
     }
 
 

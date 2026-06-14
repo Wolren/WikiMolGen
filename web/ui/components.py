@@ -73,20 +73,28 @@ def render_template_manager() -> None:
             )
 
             st.markdown("**Color Templates**")
+            prev_color = st.session_state.get("_prev_color_sel", "None")
             color_template_choice = st.selectbox(
                 "Select Color Template:",
                 all_color_templates,
-                key="color_template_selector",
+                key="tmpl_color_selector",
                 label_visibility="collapsed",
             )
+            if color_template_choice != prev_color and color_template_choice != "None":
+                st.toast(f"Color template: {color_template_choice}", icon=":material/palette:")
+                st.session_state._prev_color_sel = color_template_choice
 
             st.markdown("**Settings Templates**")
+            prev_settings = st.session_state.get("_prev_settings_sel", "None")
             settings_template_choice = st.selectbox(
                 "Select Settings Template:",
                 all_settings_templates,
                 key="settings_template_selector",
                 label_visibility="collapsed",
             )
+            if settings_template_choice != prev_settings and settings_template_choice != "None":
+                st.toast(f"Settings template: {settings_template_choice}", icon=":material/tune:")
+                st.session_state._prev_settings_sel = settings_template_choice
 
             # Remove custom template buttons
             if color_template_choice in st.session_state.custom_color_templates:
@@ -194,7 +202,7 @@ def render_template_manager() -> None:
 
                     # Reset to defaults
                     defaults = {
-                        "auto_orient_2d": True,
+                        "auto_orient_2d": False,
                         "scale": 30.0,
                         "margin": 0.8,
                         "bond_length": 50.0,
@@ -202,7 +210,7 @@ def render_template_manager() -> None:
                         "padding": 0.07,
                         "use_bw_palette": True,
                         "transparent_background": True,
-                        "auto_orient_3d": True,
+                        "auto_orient_3d": False,
                         "stick_radius": 0.2,
                         "sphere_scale": 0.3,
                         "stick_ball_ratio": 1.8,
@@ -265,11 +273,43 @@ def render_template_manager() -> None:
                 )
 
 
+def _on_mode_change() -> None:
+    """Snapshot old mode's settings and restore new mode's settings on switch."""
+    new_mode = st.session_state.mode_selector
+    old_mode = st.session_state.get("_last_active_mode", new_mode)
+    if new_mode == old_mode:
+        return
+
+    from session.state import get_mode_keys
+
+    # Snapshot old mode
+    old_keys = get_mode_keys(old_mode)
+    st.session_state[f"_snap_{old_mode}"] = {
+        k: v for k, v in st.session_state.items() if k in old_keys
+    }
+
+    # Restore new mode
+    new_keys = get_mode_keys(new_mode)
+    snap = st.session_state.get(f"_snap_{new_mode}", {})
+    for k, v in snap.items():
+        st.session_state[k] = v
+
+    st.session_state._last_active_mode = new_mode
+
+
 def render_mode_selector() -> str:
-    """Render 2D/3D mode selector."""
+    """Render 2D/3D mode selector as styled segments."""
     structure_type = st.radio(
-        "Mode", ["3D", "2D", "Protein"], horizontal=True, label_visibility="collapsed"
+        "Mode",
+        ["3D", "2D", "Protein"],
+        horizontal=True,
+        label_visibility="collapsed",
+        key="mode_selector",
+        on_change=_on_mode_change,
     )
+    # Ensure _last_active_mode is set on first render
+    if "_last_active_mode" not in st.session_state:
+        st.session_state._last_active_mode = structure_type
     st.session_state.structure_type = structure_type
     return structure_type
 
@@ -283,7 +323,6 @@ def render_2d_settings() -> None:
         "Auto orient",
         value=False,
         key="auto_orient_2d",
-        help="Automatically find optimal viewing angle",
     )
 
     ACS_mode = st.checkbox(
@@ -317,7 +356,7 @@ def render_2d_settings() -> None:
             )
             save_config_to_session("2d")
 
-            margin = st.slider("Margin", 0.0, 5.0, 0.8, 0.1, key="margin", help="Canvas margin")
+            margin = st.slider("Margin", 0.0, 5.0, 0.8, 0.1, key="margin")
             save_config_to_session("2d")
 
         with col2:
@@ -422,7 +461,6 @@ def render_2d_settings() -> None:
                     1.0,
                     0.5,
                     key="bond_line_width",
-                    help="Thickness of bond lines in pixels",
                 )
                 save_config_to_session("2d")
 
@@ -433,7 +471,6 @@ def render_2d_settings() -> None:
                     1.0,
                     0.1,
                     key="scaling_factor",
-                    help="Scaling factor for fonts and symbols",
                 )
                 save_config_to_session("2d")
 
@@ -444,7 +481,6 @@ def render_2d_settings() -> None:
                     0.15,
                     0.05,
                     key="multiple_bond_offset",
-                    help="Spacing between lines in double/triple bonds",
                 )
                 save_config_to_session("2d")
 
@@ -453,7 +489,6 @@ def render_2d_settings() -> None:
                     "Stereo labels (R/S)",
                     value=False,
                     key="add_stereo_annotation",
-                    help="Show stereocenter annotations (R/S labels)",
                 )
                 save_config_to_session("2d")
 
@@ -461,7 +496,6 @@ def render_2d_settings() -> None:
                     "Show radicals",
                     value=False,
                     key="include_radicals",
-                    help="Show radical electrons as dots",
                 )
                 save_config_to_session("2d")
 
@@ -469,7 +503,6 @@ def render_2d_settings() -> None:
                     "Chiral flag",
                     value=False,
                     key="include_chiral_flag",
-                    help="Show chiral flag label on stereocenters",
                 )
                 save_config_to_session("2d")
 
@@ -480,7 +513,6 @@ def render_2d_settings() -> None:
                     "Hide all atom labels",
                     value=False,
                     key="no_atom_labels",
-                    help="Hide all atom symbols (clean structure only)",
                 )
                 save_config_to_session("2d")
 
@@ -488,7 +520,6 @@ def render_2d_settings() -> None:
                     "Explicit methyl (CH3)",
                     value=False,
                     key="explicit_methyl",
-                    help="Show CH3 instead of Me abbreviation",
                 )
                 save_config_to_session("2d")
 
@@ -497,7 +528,6 @@ def render_2d_settings() -> None:
                     "Atom map numbers",
                     value=False,
                     key="include_atom_tags",
-                    help="Include atom map/tag numbers (reaction mapping)",
                 )
                 save_config_to_session("2d")
 
@@ -508,7 +538,6 @@ def render_2d_settings() -> None:
                     "Comic style",
                     value=False,
                     key="comic_mode",
-                    help="Hand-drawn comic-style rendering",
                 )
                 save_config_to_session("2d")
 
@@ -520,7 +549,6 @@ def render_2d_settings() -> None:
                     -1,
                     1,
                     key="fixed_font_size",
-                    help="Lock font size to fixed value (-1 for automatic)",
                 )
                 save_config_to_session("2d")
 
@@ -530,9 +558,8 @@ def render_3d_settings() -> None:
     # Auto-orient checkbox
     auto_orient_3d = st.checkbox(
         "Auto-Orient",
-        value=False,
+        value=True,
         key="auto_orient_3d",
-        help="Automatically optimize 3D orientation",
     )
 
     # Manual rotation sliders (if not auto-orient)
@@ -572,7 +599,6 @@ def render_3d_settings() -> None:
 
 def render_canvas_settings() -> None:
     """Render canvas/dimension settings."""
-    st.markdown(header("ruler", "Canvas"), unsafe_allow_html=True)
     with st.expander("Canvas", expanded=False):
         st.markdown("**Image Dimensions**")
         col1, col2 = st.columns(2)
@@ -592,8 +618,7 @@ def render_canvas_settings() -> None:
 
 def render_rendering_settings() -> None:
     """Render rendering quality settings."""
-    st.markdown(header("palette", "Rendering"), unsafe_allow_html=True)
-    with st.expander("Rendering", expanded=True):
+    with st.expander("Rendering", expanded=False):
         st.markdown("**Molecular Representation**")
         col1, col2, col3 = st.columns(3)
 
@@ -605,7 +630,6 @@ def render_rendering_settings() -> None:
                 0.2,
                 0.05,
                 key="stick_radius",
-                help="Thickness of bond sticks",
             )
             save_config_to_session("3d")
 
@@ -617,7 +641,6 @@ def render_rendering_settings() -> None:
                 0.3,
                 0.05,
                 key="sphere_scale",
-                help="Sphere scale factor for atoms",
             )
             save_config_to_session("3d")
 
@@ -629,7 +652,6 @@ def render_rendering_settings() -> None:
                 1.8,
                 0.1,
                 key="stick_ball_ratio",
-                help="Stick-to-ball proportion",
             )
             save_config_to_session("3d")
 
@@ -658,7 +680,7 @@ def render_rendering_settings() -> None:
             antialias = st.selectbox(
                 "Antialiasing",
                 [0, 1, 2, 3, 4],
-                2,
+                4,
                 key="antialias",
                 help="0=Off, 1=On, 2-4=Multisample levels",
             )
@@ -674,7 +696,6 @@ def render_rendering_settings() -> None:
                 64,
                 8,
                 key="stick_quality",
-                help="Stick rendering smoothness (higher = smoother)",
             )
             save_config_to_session("3d")
         with col2:
@@ -685,7 +706,6 @@ def render_rendering_settings() -> None:
                 6,
                 1,
                 key="sphere_quality",
-                help="Sphere rendering quality (higher = smoother)",
             )
             save_config_to_session("3d")
 
@@ -694,7 +714,6 @@ def render_rendering_settings() -> None:
             "Style",
             ["sticks+spheres", "sticks", "spheres", "lines"],
             key="representation",
-            help="Molecular representation style",
         )
         save_config_to_session("3d")
 
@@ -705,15 +724,13 @@ def render_rendering_settings() -> None:
                 "Background",
                 ["white", "black", "gray", "transparent"],
                 key="bg_color",
-                help="Canvas background color",
             )
             save_config_to_session("3d")
         with col2:
             stick_color = st.text_input(
                 "Stick Color",
-                value="gray40",
+                value="gray50",
                 key="stick_color",
-                help="PyMOL color name for bonds (e.g. gray40, black, custom)",
             )
             save_config_to_session("3d")
 
@@ -724,7 +741,6 @@ def render_rendering_settings() -> None:
                 "Two-sided lighting",
                 value=True,
                 key="two_sided_lighting",
-                help="Enable two-sided polygon lighting",
             )
             save_config_to_session("3d")
         with col2:
@@ -740,24 +756,20 @@ def render_rendering_settings() -> None:
         st.markdown("**Miscellaneous**")
         col1, col2 = st.columns(2)
         with col1:
-            stick_ball = st.checkbox(
-                "Stick-ball style", value=True, key="stick_ball", help="Use ball-shaped stick joins"
-            )
+            stick_ball = st.checkbox("Stick-ball style", value=True, key="stick_ball")
             save_config_to_session("3d")
         with col2:
             opaque_background = st.checkbox(
                 "Opaque background",
                 value=False,
                 key="opaque_background",
-                help="Use solid background (instead of transparent)",
             )
             save_config_to_session("3d")
 
 
 def render_lighting_settings() -> None:
     """Render lighting control settings."""
-    st.markdown(header("lightbulb", "Lighting"), unsafe_allow_html=True)
-    with st.expander("Lighting", expanded=True):
+    with st.expander("Lighting", expanded=False):
         st.markdown("**Light Intensity & Quality**")
         col1, col2 = st.columns(2)
 
@@ -769,7 +781,6 @@ def render_lighting_settings() -> None:
                 0.25,
                 0.05,
                 key="ambient",
-                help="Ambient light intensity (global brightness)",
             )
             save_config_to_session("3d")
 
@@ -780,7 +791,6 @@ def render_lighting_settings() -> None:
                 1.0,
                 0.1,
                 key="specular",
-                help="Specular reflection intensity (shininess)",
             )
             save_config_to_session("3d")
 
@@ -792,7 +802,6 @@ def render_lighting_settings() -> None:
                 0.45,
                 0.05,
                 key="direct",
-                help="Direct light source intensity",
             )
             save_config_to_session("3d")
 
@@ -803,7 +812,6 @@ def render_lighting_settings() -> None:
                 0.45,
                 0.05,
                 key="reflect",
-                help="Environmental reflection intensity",
             )
             save_config_to_session("3d")
 
@@ -814,14 +822,12 @@ def render_lighting_settings() -> None:
             30,
             5,
             key="shininess",
-            help="Surface shininess level (higher = more glossy)",
         )
         save_config_to_session("3d")
 
 
 def render_effects_settings() -> None:
     """Render special effects settings."""
-    st.markdown(header("cloud-fog", "Effects"), unsafe_allow_html=True)
     with st.expander("Effects", expanded=False):
         st.markdown("**Transparency & Special Effects**")
         col1, col2 = st.columns(2)
@@ -834,7 +840,6 @@ def render_effects_settings() -> None:
                 0.0,
                 0.1,
                 key="stick_transparency",
-                help="Bond transparency level",
             )
             save_config_to_session("3d")
 
@@ -845,7 +850,6 @@ def render_effects_settings() -> None:
                 0.0,
                 0.1,
                 key="sphere_transparency",
-                help="Atom transparency level",
             )
             save_config_to_session("3d")
 
@@ -924,14 +928,12 @@ def render_effects_settings() -> None:
             2.0,
             0.1,
             key="zoom_buffer",
-            help="Padding around molecule (lower = zoomed in)",
         )
         save_config_to_session("3d")
 
 
 def render_conformer_settings() -> None:
     """Render conformer generation settings."""
-    st.markdown(header("settings-2", "Conformer Generation"), unsafe_allow_html=True)
     with st.expander("Conformer Generation", expanded=False):
         st.markdown("**RDKit ETKDG Conformer Engine**")
 
@@ -940,8 +942,8 @@ def render_conformer_settings() -> None:
             num_conformers = st.number_input(
                 "Conformers",
                 1,
-                100,
-                1,
+                200,
+                50,
                 key="num_conformers",
                 help="Number of 3D conformers to generate",
             )
@@ -949,10 +951,10 @@ def render_conformer_settings() -> None:
 
             max_iterations = st.slider(
                 "Max Iterations",
-                50,
-                1000,
-                200,
-                50,
+                100,
+                5000,
+                500,
+                100,
                 key="max_iterations",
                 help="Force field optimization iterations",
             )
@@ -960,10 +962,10 @@ def render_conformer_settings() -> None:
 
             prune_rms_thresh = st.slider(
                 "Prune RMSD",
-                0.1,
+                0.05,
                 2.0,
-                0.5,
                 0.1,
+                0.05,
                 key="prune_rms_thresh",
                 help="RMSD threshold to prune similar conformers",
             )
@@ -996,7 +998,7 @@ def render_conformer_settings() -> None:
 
             use_small_ring_torsions = st.checkbox(
                 "Small ring torsions",
-                value=False,
+                value=True,
                 key="use_small_ring_torsions",
                 help="Use small ring torsion knowledge",
             )
@@ -1012,7 +1014,7 @@ def render_conformer_settings() -> None:
 
             use_exp_torsion_prefs = st.checkbox(
                 "Exp. torsion prefs",
-                value=False,
+                value=True,
                 key="use_exp_torsion_prefs",
                 help="Use experimental torsion angle preferences",
             )
