@@ -39,7 +39,6 @@ htmlcov/
 
 # --- Streamlit ---
 .streamlit/secrets.toml
-.streamlit/config.toml  # local dev overrides
 
 # --- Project-local notes ---
 /todo.txt

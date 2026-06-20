@@ -446,21 +446,21 @@ class MoleculeGenerator3D:
 
         # Save SDF
         sdf_path = self._save_sdf(f"{output_base}.sdf")
-        print(f"✓ 3D structure saved: {sdf_path}")
-        print(f" Compound: {self.compound_name}")
-        print(f" Atoms: {self.mol.GetNumAtoms()}, Bonds: {self.mol.GetNumBonds()}")
+        print(f"[OK] 3D structure saved: {sdf_path}")
+        print(f"  Compound: {self.compound_name}")
+        print(f"  Atoms: {self.mol.GetNumAtoms()}, Bonds: {self.mol.GetNumBonds()}")
 
         if self.config.conformer.num_conformers > 1:
-            print(f" Conformers: {self.mol.GetNumConformers()}")
+            print(f"  Conformers: {self.mol.GetNumConformers()}")
 
         if optimize and self.energy is not None:
-            print(f" Energy: {self.energy:.2f} kcal/mol ({force_field})")
+            print(f"  Energy: {self.energy:.2f} kcal/mol ({force_field})")
 
         # Render with PyMOL
         png_path = None
         if render:
             png_path = self._render_pymol(sdf_path, f"{output_base}.png")
-            print(f"✓ Rendered image saved: {png_path}")
+            print(f"[OK] Rendered image saved: {png_path}")
             if self.config.render.auto_crop:
                 print(f" Auto-cropped with {self.config.render.crop_margin}px margin")
             else:

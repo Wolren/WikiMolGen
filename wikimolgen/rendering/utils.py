@@ -15,10 +15,18 @@ from PIL import Image, ImageEnhance
 from wikimolgen.configs import ColorConfig, Config2D, Config3D, ConfigLoader
 
 
-def autocrop_image(image_path: Path, margin: int = 10, contrast_factor: float = 1.15) -> None:
-    """Auto-crop PNG to molecule/protein bounds using alpha channel only.
+def autocrop_image(
+    image_path: Path,
+    margin: int = 10,
+    contrast_factor: float = 1.15,
+    make_transparent: bool = False,
+) -> None:
+    """Auto-crop PNG to molecule/protein bounds.
 
-    Keeps transparency untouched — works for both molecule and protein renders.
+    Uses alpha channel by default.  When ``make_transparent`` is True, the
+    image is expected to have a white background — white pixels are converted
+    to transparent **before** cropping (so the new alpha channel drives
+    ``getbbox`` correctly).
 
     Parameters
     ----------
@@ -28,18 +36,36 @@ def autocrop_image(image_path: Path, margin: int = 10, contrast_factor: float = 
         Margin around content in pixels (default: 10).
     contrast_factor : float
         Contrast enhancement factor for alpha detection (default: 1.15).
+    make_transparent : bool
+        If True, convert white-ish pixels to transparent before cropping
+        (default: False).
     """
     if not image_path.exists():
         return
 
     img = Image.open(image_path).convert("RGBA")
-    alpha = img.split()[-1]
+    r, g, b, a = img.split()
 
+    if make_transparent:
+        from PIL import ImageMath
+
+        thr = 240
+        mask = ImageMath.eval(
+            f"((r > {thr}) & (g > {thr}) & (b > {thr})) * 255",
+            r=r,
+            g=g,
+            b=b,
+        ).convert("L")
+        a = ImageMath.eval("a & ~mask_int", a=a, mask_int=mask).convert("L")
+        img = Image.merge("RGBA", (r, g, b, a))
+
+    alpha = img.split()[-1]
     enhancer = ImageEnhance.Contrast(alpha)
     alpha = enhancer.enhance(contrast_factor)
 
     bbox = alpha.getbbox()
     if bbox is None:
+        img.save(image_path)
         return
 
     left, top, right, bottom = bbox

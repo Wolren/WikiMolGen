@@ -64,7 +64,7 @@ def render_protein_cartoon_settings() -> dict[str, Any]:
                 "B Factor (Temperature)",
                 "Per-Chain Rainbow",
             ],
-            index=0,
+            index=2,
             key="protein_color_scheme",
             help="How to color the protein structure",
         )
@@ -246,18 +246,18 @@ def render_protein_canvas_settings() -> dict[str, Any]:
                 "Specular",
                 0,
                 5,
-                1,
+                0,
                 key="protein_specular",
                 help="Specular reflection intensity",
             )
 
         with col2:
             config["ambient"] = st.slider(
-                "Ambient Light", 0.0, 1.0, 0.40, 0.05, key="protein_ambient"
+                "Ambient Light", 0.0, 1.0, 0.30, 0.05, key="protein_ambient"
             )
 
             config["bg_color"] = st.selectbox(
-                "Background", ["black", "white", "gray"], key="protein_bg"
+                "Background", ["transparent", "white", "black", "gray"], key="protein_bg"
             )
 
             config["shininess"] = st.slider(
@@ -313,7 +313,7 @@ def render_protein_effects_settings() -> dict[str, Any]:
                 "Direct Light",
                 0.0,
                 1.0,
-                0.45,
+                0.50,
                 0.05,
                 key="protein_direct",
                 help="Direct lighting intensity",
@@ -322,7 +322,7 @@ def render_protein_effects_settings() -> dict[str, Any]:
                 "Reflection",
                 0.0,
                 1.0,
-                0.45,
+                0.20,
                 0.05,
                 key="protein_reflect",
                 help="Reflection intensity",
@@ -432,18 +432,18 @@ def render_protein_structure(
             cartoon_flat_sheets=cartoon_config.get("cartoon_flat_sheets", True),
             width=canvas_config["width"],
             height=canvas_config["height"],
-            bg_color=canvas_config["bg_color"],
-            ambient=canvas_config.get("ambient", 0.40),
-            specular=canvas_config.get("specular", 1),
+            bg_color=canvas_config.get("bg_color", "transparent"),
+            ambient=canvas_config.get("ambient", 0.30),
+            specular=canvas_config.get("specular", 0),
             shininess=canvas_config.get("shininess", 10),
             antialias=canvas_config.get("antialias", 2),
             ray_trace_mode=1 if canvas_config.get("ray_trace", False) else 0,
-            ray_shadows=1 if canvas_config.get("ray_shadows", True) else 0,
+            ray_shadows=1 if canvas_config.get("ray_shadows", False) else 0,
             auto_orient=st.session_state.get("protein_auto_rot", True),
             autocrop=canvas_config.get("autocrop", True),
             crop_margin=canvas_config.get("crop_margin", 10),
-            direct=canvas_config.get("direct", 0.45),
-            reflect=canvas_config.get("reflect", 0.45),
+            direct=canvas_config.get("direct", 0.50),
+            reflect=canvas_config.get("reflect", 0.20),
             depth_cue=1 if canvas_config.get("depth_cue", False) else 0,
             ray_opaque_background=1 if canvas_config.get("ray_opaque_background", True) else 0,
             orthoscopic=1 if canvas_config.get("orthoscopic", False) else 0,
