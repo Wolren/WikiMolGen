@@ -4,7 +4,7 @@ from typing import Any
 
 import streamlit as st
 
-from wikimolgen.configs import ConfigLoader, ProteinConfig
+from wikimolgen.configs.loader import ConfigLoader, ProteinConfig
 
 logger = logging.getLogger(__name__)
 
