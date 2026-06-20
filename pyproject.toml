@@ -60,6 +60,7 @@ dependencies = [
     "py3Dmol>=2.0.0",
     "requests>=2.32.0",
     "streamlit>=1.50.0",
+    "charset_normalizer>=3.4.0",
 ]
 
 [project.optional-dependencies]

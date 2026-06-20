@@ -41,6 +41,7 @@ def _apply_settings_to_session(settings: dict) -> None:
 # ============================================================================
 def _sync_slider_to_config(key: str) -> None:
     st.session_state[key] = st.session_state[f"{key}_slider"]
+    st.session_state.config_changed = True
 
 
 def _sync_input_to_slider(key: str) -> None:
@@ -147,6 +148,10 @@ def render_preset_manager() -> None:
             )
 
             st.markdown("**Presets**")
+            # Deferred preset selection from upload (set before widget renders)
+            if "_pending_preset_name" in st.session_state:
+                st.session_state.preset_selector = st.session_state.pop("_pending_preset_name")
+
             prev_selection = st.session_state.get("_prev_preset_sel", "None")
             preset_choice = st.selectbox(
                 "Select Preset:",
@@ -190,7 +195,7 @@ def render_preset_manager() -> None:
 
                     _apply_settings_to_session(data.get("settings", data))
 
-                    st.session_state.preset_selector = name
+                    st.session_state._pending_preset_name = name
                     st.session_state._upload_counter = (
                         st.session_state.get("_upload_counter", 0) + 1
                     )
