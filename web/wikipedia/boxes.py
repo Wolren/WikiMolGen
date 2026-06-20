@@ -78,9 +78,9 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
     iupac = pubchem_data.get("iupac_name", "")
     primary_name = synonyms[0] if synonyms else (iupac if iupac else f"Compound {cid_raw}")
 
-    author = st.session_state.commons_author
-    license_tmpl = st.session_state.commons_license_text
-    license_wp = st.session_state.commons_license
+    author = st.session_state.get("commons_author", "WikiMolGen")
+    license_tmpl = st.session_state.get("commons_license_text", "Self|cc-by-sa-4.0")
+    license_wp = st.session_state.get("commons_license", "cc-by-sa-4.0")
 
     metadata = f"""{{{{Information
 |description={{{{en|1={structure_type} structure of {primary_name} generated using WikiMolGen (RDKit and PyMOL-based tool)}}}}

@@ -62,7 +62,7 @@ def validate_uploaded_json(uploaded_file) -> tuple[dict[str, Any] | None, str | 
 # ── Export ──────────────────────────────────────────────────
 
 
-def export_current_as_preset(gen_type: str) -> dict[str, Any]:
+def export_current_as_preset(gen_type: str, name: str | None = None) -> dict[str, Any]:
     """Build a preset dict from the current session state."""
     if gen_type == "2D":
         defaults = {f.name: getattr(Config2D(), f.name) for f in dataclasses.fields(Config2D)}
@@ -78,7 +78,7 @@ def export_current_as_preset(gen_type: str) -> dict[str, Any]:
 
     return {
         "type": gen_type.lower() if gen_type.lower() in ("2d", "3d", "protein") else "3d",
-        "name": f"Custom {gen_type}",
+        "name": name or f"Custom {gen_type}",
         "description": "Exported from web interface",
         "settings": settings_dict,
     }
