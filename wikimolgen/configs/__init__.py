@@ -4,6 +4,7 @@ from wikimolgen.configs.loader import (
     Config3D,
     ConfigLoader,
     ConformerConfig,
+    ProteinConfig,
     RenderConfig3D,
 )
 
@@ -14,4 +15,5 @@ __all__ = [
     "ConformerConfig",
     "Config3D",
     "ColorConfig",
+    "ProteinConfig",
 ]

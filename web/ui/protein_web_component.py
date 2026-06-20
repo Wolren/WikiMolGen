@@ -54,9 +54,9 @@ def render_protein_cartoon_settings() -> dict[str, Any]:
         color_scheme = st.selectbox(
             "Color Scheme",
             [
+                "Chain",
                 "Secondary Structure",
                 "Rainbow",
-                "Chain",
                 "Hydrophobicity",
                 "Element",
                 "B Factor",
@@ -64,14 +64,15 @@ def render_protein_cartoon_settings() -> dict[str, Any]:
                 "B Factor (Temperature)",
                 "Per-Chain Rainbow",
             ],
+            index=0,
             key="protein_color_scheme",
             help="How to color the protein structure",
         )
 
         config["color_scheme"] = {
+            "Chain": "chain",
             "Secondary Structure": "secondary_structure",
             "Rainbow": "rainbow",
-            "Chain": "chain",
             "Hydrophobicity": "hydrophobicity",
             "Element": "element",
             "B Factor": "bfactor",
@@ -81,30 +82,28 @@ def render_protein_cartoon_settings() -> dict[str, Any]:
         }[color_scheme]
 
         if color_scheme == "Secondary Structure":
-            with st.expander("Secondary Structure Colors", expanded=False):
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    config["helix_color"] = st.color_picker("α-Helix", "#3399FF", key="helix_color")
-                with col2:
-                    config["sheet_color"] = st.color_picker("β-Sheet", "#FFCC00", key="sheet_color")
-                with col3:
-                    config["loop_color"] = st.color_picker("Coil/Loop", "#99AABB", key="loop_color")
-
-        with st.expander("Cartoon Settings", expanded=False):
-            col1, col2 = st.columns(2)
-
+            col1, col2, col3 = st.columns(3)
             with col1:
-                config["cartoon_transparency"] = st.slider(
-                    "Transparency", 0.0, 1.0, 0.0, 0.1, key="cartoon_transparency"
-                )
-                config["cartoon_fancy_helices"] = st.checkbox(
-                    "Fancy Helices", value=True, key="cartoon_fancy"
-                )
-
+                config["helix_color"] = st.color_picker("α-Helix", "#3399FF", key="helix_color")
             with col2:
-                config["cartoon_flat_sheets"] = st.checkbox(
-                    "Flat Sheets", value=True, key="cartoon_sheets"
-                )
+                config["sheet_color"] = st.color_picker("β-Sheet", "#FFCC00", key="sheet_color")
+            with col3:
+                config["loop_color"] = st.color_picker("Coil/Loop", "#99AABB", key="loop_color")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            config["cartoon_transparency"] = st.slider(
+                "Transparency", 0.0, 1.0, 0.0, 0.1, key="cartoon_transparency"
+            )
+            config["cartoon_fancy_helices"] = st.checkbox(
+                "Fancy Helices", value=True, key="cartoon_fancy"
+            )
+
+        with col2:
+            config["cartoon_flat_sheets"] = st.checkbox(
+                "Flat Sheets", value=True, key="cartoon_sheets"
+            )
 
         return config
 
@@ -131,33 +130,88 @@ def render_protein_ligand_settings() -> dict[str, Any]:
             )
 
         if config["show_ligand"]:
-            with st.expander("Ligand Display", expanded=False):
+            col1, col2 = st.columns(2)
+            with col1:
+                config["ligand_style"] = st.selectbox(
+                    "Representation",
+                    ["sticks", "spheres", "lines", "ball_and_stick"],
+                    key="ligand_style",
+                )
+            with col2:
+                config["ligand_transparency"] = st.slider(
+                    "Transparency", 0.0, 1.0, 0.0, 0.05, key="ligand_transparency"
+                )
+
+            col1, col2 = st.columns(2)
+            with col1:
+                config["ligand_color"] = st.selectbox(
+                    "Coloring", ["element", "single", "chain"], key="ligand_color"
+                )
+            with col2:
+                config["stick_radius"] = st.slider(
+                    "Stick Radius", 0.1, 1.0, 0.25, 0.05, key="ligand_stick_radius"
+                )
+
+            if config["ligand_color"] == "single":
+                config["ligand_single_color"] = st.color_picker(
+                    "Ligand Color", "#FF6B6B", key="ligand_single_color"
+                )
+
+            col1, col2 = st.columns(2)
+            with col1:
+                config["stick_quality"] = st.slider(
+                    "Stick Quality",
+                    8,
+                    128,
+                    64,
+                    8,
+                    key="ligand_stick_quality",
+                    help="Smoothness of stick representation",
+                )
+            with col2:
+                config["stick_ball_ratio"] = st.slider(
+                    "Ball Ratio",
+                    0.5,
+                    3.0,
+                    1.5,
+                    0.1,
+                    key="ligand_ball_ratio",
+                    help="Ratio of ball to stick (higher = bigger atoms)",
+                )
+
+            config["show_bindsites"] = st.checkbox(
+                "Show Binding Sites",
+                value=True,
+                key="protein_bindsites",
+                help="Highlight binding site residues near ligands",
+            )
+            if config["show_bindsites"]:
                 col1, col2 = st.columns(2)
                 with col1:
-                    config["ligand_style"] = st.selectbox(
-                        "Representation",
-                        ["sticks", "spheres", "lines", "ball_and_stick"],
-                        key="ligand_style",
+                    config["binding_site_radius"] = st.slider(
+                        "Site Radius",
+                        1.0,
+                        15.0,
+                        5.0,
+                        0.5,
+                        key="protein_bind_radius",
+                        help="Distance from ligand to show binding site",
                     )
                 with col2:
-                    config["ligand_transparency"] = st.slider(
-                        "Transparency", 0.0, 1.0, 0.0, 0.05, key="ligand_transparency"
+                    config["binding_site_color"] = st.color_picker(
+                        "Site Color", "yellow", key="protein_bind_color"
                     )
 
-                col1, col2 = st.columns(2)
-                with col1:
-                    config["ligand_color"] = st.selectbox(
-                        "Coloring", ["element", "single", "chain"], key="ligand_color"
-                    )
-                with col2:
-                    config["stick_radius"] = st.slider(
-                        "Stick Radius", 0.1, 1.0, 0.25, 0.05, key="ligand_stick_radius"
-                    )
-
-                if config["ligand_color"] == "single":
-                    config["ligand_single_color"] = st.color_picker(
-                        "Ligand Color", "#FF6B6B", key="ligand_single_color"
-                    )
+            config["show_residue_labels"] = st.checkbox(
+                "Show Labels",
+                value=False,
+                key="protein_res_labels",
+                help="Display residue numbers and names",
+            )
+            if config["show_residue_labels"]:
+                config["label_size"] = st.slider(
+                    "Label Size", 8, 30, 14, 1, key="protein_label_size"
+                )
 
         return config
 
@@ -167,7 +221,7 @@ def render_protein_canvas_settings() -> dict[str, Any]:
 
     config = {}
 
-    with st.expander("Rendering", expanded=False):
+    with st.expander("Canvas", expanded=False):
         col1, col2 = st.columns(2)
 
         with col1:
@@ -176,68 +230,62 @@ def render_protein_canvas_settings() -> dict[str, Any]:
         with col2:
             config["height"] = st.slider("Height (px)", 600, 2160, 1080, 100, key="protein_height")
 
-        with st.expander("Quality Settings", expanded=False):
-            col1, col2 = st.columns(2)
+        col1, col2 = st.columns(2)
 
-            with col1:
-                config["antialias"] = st.slider(
-                    "Antialiasing",
-                    0,
-                    4,
-                    2,
-                    key="protein_antialias",
-                    help="0=off, 1=2x, 2=3x, 3=4x, 4=8x",
-                )
-
-                config["specular"] = st.slider(
-                    "Specular",
-                    0,
-                    5,
-                    1,
-                    key="protein_specular",
-                    help="Specular reflection intensity",
-                )
-
-            with col2:
-                config["ambient"] = st.slider(
-                    "Ambient Light", 0.0, 1.0, 0.40, 0.05, key="protein_ambient"
-                )
-
-                config["bg_color"] = st.selectbox(
-                    "Background", ["black", "white", "gray"], key="protein_bg"
-                )
-
-                config["shininess"] = st.slider(
-                    "Shininess",
-                    0,
-                    100,
-                    10,
-                    key="protein_shininess",
-                    help="Surface shininess (higher = more glossy)",
-                )
-
-            config["ray_shadows"] = st.checkbox(
-                "Ray Shadows",
-                value=True,
-                key="protein_ray_shadows",
-                help="Cast shadows during ray tracing (slower but more depth)",
+        with col1:
+            config["antialias"] = st.slider(
+                "Antialiasing",
+                0,
+                4,
+                2,
+                key="protein_antialias",
+                help="0=off, 1=2x, 2=3x, 3=4x, 4=8x",
             )
 
-            config["ray_trace"] = st.checkbox(
-                "Ray Tracing",
-                value=True,
-                key="protein_ray_trace",
-                help="Ray-traced rendering (slower but higher quality)",
+            config["specular"] = st.slider(
+                "Specular",
+                0,
+                5,
+                1,
+                key="protein_specular",
+                help="Specular reflection intensity",
             )
+
+        with col2:
+            config["ambient"] = st.slider(
+                "Ambient Light", 0.0, 1.0, 0.40, 0.05, key="protein_ambient"
+            )
+
+            config["bg_color"] = st.selectbox(
+                "Background", ["black", "white", "gray"], key="protein_bg"
+            )
+
+            config["shininess"] = st.slider(
+                "Shininess",
+                0,
+                100,
+                10,
+                key="protein_shininess",
+                help="Surface shininess (higher = more glossy)",
+            )
+
+        config["ray_shadows"] = st.checkbox(
+            "Ray Shadows",
+            value=False,
+            key="protein_ray_shadows",
+            help="Cast shadows during ray tracing (slower but more depth)",
+        )
+
+        config["ray_trace"] = st.checkbox(
+            "Ray Tracing",
+            value=False,
+            key="protein_ray_trace",
+            help="Ray-traced rendering (slower but higher quality)",
+        )
 
         col1, col2 = st.columns(2)
 
         with col1:
-            config["auto_orient"] = st.checkbox(
-                "Auto-Orient Protein", value=True, key="protein_auto_orient"
-            )
-
-        with col2:
             config["autocrop"] = st.checkbox(
                 "Auto-Crop Image",
                 value=True,
@@ -251,6 +299,65 @@ def render_protein_canvas_settings() -> dict[str, Any]:
             )
 
         return config
+
+
+def render_protein_effects_settings() -> dict[str, Any]:
+    """Render effects controls for protein rendering."""
+
+    config = {}
+
+    with st.expander("Effects", expanded=False):
+        col1, col2 = st.columns(2)
+        with col1:
+            config["direct"] = st.slider(
+                "Direct Light",
+                0.0,
+                1.0,
+                0.45,
+                0.05,
+                key="protein_direct",
+                help="Direct lighting intensity",
+            )
+            config["reflect"] = st.slider(
+                "Reflection",
+                0.0,
+                1.0,
+                0.45,
+                0.05,
+                key="protein_reflect",
+                help="Reflection intensity",
+            )
+        with col2:
+            config["depth_cue"] = st.checkbox(
+                "Depth Cueing",
+                value=False,
+                key="protein_depth_cue",
+                help="Enable fog effect for depth perception",
+            )
+            config["orthoscopic"] = st.checkbox(
+                "Orthoscopic View",
+                value=False,
+                key="protein_orthoscopic",
+                help="Toggle orthographic projection (no perspective)",
+            )
+            config["ray_opaque_background"] = st.checkbox(
+                "Opaque Background",
+                value=True,
+                key="protein_ray_opaque",
+                help="Ensure background is opaque in ray-traced output",
+            )
+
+        config["zoom_buffer"] = st.slider(
+            "Zoom Buffer",
+            0.5,
+            5.0,
+            2.0,
+            0.1,
+            key="protein_zoom_buffer",
+            help="Camera zoom padding around the structure",
+        )
+
+    return config
 
 
 def render_protein_structure(
@@ -330,9 +437,18 @@ def render_protein_structure(
             antialias=canvas_config.get("antialias", 2),
             ray_trace_mode=1 if canvas_config.get("ray_trace", False) else 0,
             ray_shadows=1 if canvas_config.get("ray_shadows", True) else 0,
-            auto_orient=canvas_config.get("auto_orient", True),
+            auto_orient=st.session_state.get("protein_auto_rot", True),
             autocrop=canvas_config.get("autocrop", True),
             crop_margin=canvas_config.get("crop_margin", 10),
+            direct=canvas_config.get("direct", 0.45),
+            reflect=canvas_config.get("reflect", 0.45),
+            depth_cue=1 if canvas_config.get("depth_cue", False) else 0,
+            ray_opaque_background=1 if canvas_config.get("ray_opaque_background", True) else 0,
+            orthoscopic=1 if canvas_config.get("orthoscopic", False) else 0,
+            zoom_buffer=canvas_config.get("zoom_buffer", 2.0),
+            x_rotation=st.session_state.get("prot_x", 0.0),
+            y_rotation=st.session_state.get("prot_y", 0.0),
+            z_rotation=st.session_state.get("prot_z", 0.0),
         )
 
         gen.configure_ligand(
@@ -341,6 +457,13 @@ def render_protein_structure(
             ligand_color_scheme=ligand_config.get("ligand_color", "element"),
             ligand_single_color=ligand_config.get("ligand_single_color", "#FF6B6B"),
             stick_radius=ligand_config.get("stick_radius", 0.25),
+            stick_quality=ligand_config.get("stick_quality", 64),
+            stick_ball_ratio=ligand_config.get("stick_ball_ratio", 1.5),
+            show_bindsites=ligand_config.get("show_bindsites", True),
+            binding_site_radius=ligand_config.get("binding_site_radius", 5.0),
+            binding_site_color=ligand_config.get("binding_site_color", "yellow"),
+            show_residue_labels=ligand_config.get("show_residue_labels", False),
+            label_size=ligand_config.get("label_size", 14),
         )
 
         # Generate and save protein structure (same as 3D generator)

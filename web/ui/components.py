@@ -8,10 +8,67 @@ import logging
 from datetime import datetime
 
 import streamlit as st
-from template.utils import export_color_template, export_current_settings_as_template
+from rendering.atom_colors import apply_scheme_to_session, get_scheme_choices
+from template.utils import export_current_as_preset
 from ui.icons import header
 
 from wikimolgen.configs import ConfigLoader
+
+
+# ============================================================================
+# CALLBACKS (Rotation slider / number input sync)
+# ============================================================================
+def _sync_slider_to_config(key: str) -> None:
+    st.session_state[key] = st.session_state[f"{key}_slider"]
+
+
+def _sync_input_to_slider(key: str) -> None:
+    st.session_state[f"{key}_slider"] = st.session_state[key]
+
+
+def _sync_number_input(key: str) -> None:
+    """Sync number_input (key_input) to config key and slider."""
+    val = st.session_state[f"{key}_input"]
+    st.session_state[key] = val
+    st.session_state[f"{key}_slider"] = val
+    save_config_to_session("3d")
+
+
+# ============================================================================
+# WIDGET FACTORY (Auto-save wrapper helpers)
+# ============================================================================
+def _s(dim: str, *a, **kw):
+    v = st.slider(*a, **kw)
+    save_config_to_session(dim)
+    return v
+
+
+def _cb(dim: str, *a, **kw):
+    v = st.checkbox(*a, **kw)
+    save_config_to_session(dim)
+    return v
+
+
+def _ni(dim: str, *a, **kw):
+    v = st.number_input(*a, **kw)
+    save_config_to_session(dim)
+    return v
+
+
+def _sb(dim: str, *a, **kw):
+    v = st.selectbox(*a, **kw)
+    save_config_to_session(dim)
+    return v
+
+
+# Shorter aliases for common dimensions
+_s2 = lambda *a, **kw: _s("2d", *a, **kw)
+_s3 = lambda *a, **kw: _s("3d", *a, **kw)
+_cb2 = lambda *a, **kw: _cb("2d", *a, **kw)
+_cb3 = lambda *a, **kw: _cb("3d", *a, **kw)
+_ni3 = lambda *a, **kw: _ni("3d", *a, **kw)
+_sb3 = lambda *a, **kw: _sb("3d", *a, **kw)
+
 
 logger = logging.getLogger(__name__)
 
@@ -46,199 +103,88 @@ def save_config_to_session(dimension: str = "2d") -> None:
 
 def render_compound_input() -> str:
     """Render compound input field."""
-    return st.text_input("Name/CID/SMILES", "", help="").strip()
+    return st.text_input(
+        "Name/CID/SMILES",
+        "",
+        placeholder="e.g. aspirin, 2244, CC(=O)Oc1ccccc1C(=O)O",
+    ).strip()
 
 
-def render_template_manager() -> None:
-    """Render template management UI"""
-    st.markdown(header("folder", "Templates"), unsafe_allow_html=True)
-    with st.expander("Templates", expanded=False):
-        st.markdown("**Manage Templates:**")
+def render_preset_manager() -> None:
+    """Render preset management UI (full config snapshots per mode)."""
+    st.markdown(header("folder", "Presets"), unsafe_allow_html=True)
+    with st.expander("Presets", expanded=False):
         tab1, tab2, tab3 = st.tabs(["Predefined", "Upload", "Save"])
 
         with tab1:
             template_list = ConfigLoader.list_templates()
 
-            # Predefined + custom template combined
-            all_color_templates = (
-                ["None"]
-                + template_list["color_templates"]
-                + list(st.session_state.custom_color_templates.keys())
-            )
-
-            all_settings_templates = (
+            all_presets = (
                 ["None"]
                 + template_list["settings_templates"]
-                + list(st.session_state.custom_settings_templates.keys())
+                + list(st.session_state.get("custom_presets", {}).keys())
             )
 
-            st.markdown("**Color Templates**")
-            prev_color = st.session_state.get("_prev_color_sel", "None")
-            color_template_choice = st.selectbox(
-                "Select Color Template:",
-                all_color_templates,
-                key="tmpl_color_selector",
+            st.markdown("**Presets**")
+            prev_selection = st.session_state.get("_prev_preset_sel", "None")
+            preset_choice = st.selectbox(
+                "Select Preset:",
+                all_presets,
+                key="preset_selector",
                 label_visibility="collapsed",
             )
-            if color_template_choice != prev_color and color_template_choice != "None":
-                st.toast(f"Color template: {color_template_choice}", icon=":material/palette:")
-                st.session_state._prev_color_sel = color_template_choice
+            if preset_choice != prev_selection:
+                if preset_choice != "None":
+                    st.toast(f"Preset: {preset_choice}", icon=":material/tune:")
+                    _apply_preset_now(preset_choice)
+                st.session_state._prev_preset_sel = preset_choice
 
-            st.markdown("**Settings Templates**")
-            prev_settings = st.session_state.get("_prev_settings_sel", "None")
-            settings_template_choice = st.selectbox(
-                "Select Settings Template:",
-                all_settings_templates,
-                key="settings_template_selector",
-                label_visibility="collapsed",
-            )
-            if settings_template_choice != prev_settings and settings_template_choice != "None":
-                st.toast(f"Settings template: {settings_template_choice}", icon=":material/tune:")
-                st.session_state._prev_settings_sel = settings_template_choice
-
-            # Remove custom template buttons
-            if color_template_choice in st.session_state.custom_color_templates:
+            if preset_choice in st.session_state.get("custom_presets", {}):
                 if st.button(
-                    f"Remove '{color_template_choice}'",
-                    key="remove_color",
+                    f"Remove '{preset_choice}'",
+                    key="remove_preset",
                     icon=":material/delete:",
                 ):
-                    del st.session_state.custom_color_templates[color_template_choice]
-                    st.rerun()
-
-            if settings_template_choice in st.session_state.custom_settings_templates:
-                if st.button(
-                    f"Remove '{settings_template_choice}'",
-                    key="remove_settings",
-                    icon=":material/delete:",
-                ):
-                    del st.session_state.custom_settings_templates[settings_template_choice]
+                    del st.session_state.custom_presets[preset_choice]
                     st.rerun()
 
         with tab2:
-            st.markdown("**Upload Color Template (JSON)**")
-            uploaded_color = st.file_uploader(
-                "Upload Color Template",
+            st.markdown("**Upload Preset (JSON)**")
+            uploaded = st.file_uploader(
+                "Upload Preset",
                 type=["json"],
-                key="color_uploader",
+                key="preset_uploader",
                 label_visibility="collapsed",
             )
 
-            if uploaded_color:
+            if uploaded:
                 try:
-                    template_data = json.load(uploaded_color)
-                    template_name = template_data.get(
-                        "name", f"Custom_{datetime.now().strftime('%H%M%S')}"
-                    )
+                    data = json.load(uploaded)
+                    name = data.get("name", f"Custom_{datetime.now().strftime('%H%M%S')}")
 
-                    # Store in session
-                    st.session_state.custom_color_templates[template_name] = template_data
-                    st.session_state.uploaded_color_template = template_data
-                    save_config_to_session()  # Mark as changed
+                    if "custom_presets" not in st.session_state:
+                        st.session_state.custom_presets = {}
+                    st.session_state.custom_presets[name] = data
 
-                    st.success(
-                        f"Loaded & saved: {template_name}",
-                        icon=":material/check_circle:",
-                    )
-                    st.info(
-                        "Now available in 'Predefined' tab dropdown",
-                        icon=":material/lightbulb:",
-                    )
-                except Exception as e:
-                    st.error(f"Error: {e}")
-
-            st.markdown("**Upload Settings Template (JSON)**")
-            uploaded_settings = st.file_uploader(
-                "Upload Settings Template",
-                type=["json"],
-                key="settings_uploader",
-                label_visibility="collapsed",
-            )
-
-            if uploaded_settings:
-                try:
-                    template_data = json.load(uploaded_settings)
-                    template_name = template_data.get(
-                        "name", f"Custom_{datetime.now().strftime('%H%M%S')}"
-                    )
-
-                    # Store in session
-                    st.session_state.custom_settings_templates[template_name] = template_data
-                    st.session_state.uploaded_settings_template = template_data
-
-                    # Sync to sliders
-                    for key, value in template_data.get("settings", {}).items():
+                    for key, value in data.get("settings", {}).items():
                         if key in st.session_state:
                             st.session_state[key] = value
 
-                    st.session_state.template_applied_once = True
-                    save_config_to_session()  # Mark as changed
+                    save_config_to_session()
 
-                    st.success(
-                        f"Loaded & saved: {template_name}",
-                        icon=":material/check_circle:",
-                    )
+                    st.success(f"Loaded & saved: {name}", icon=":material/check_circle:")
                     st.info(
-                        "Now available in 'Predefined' tab dropdown",
-                        icon=":material/lightbulb:",
+                        "Now available in 'Predefined' tab dropdown", icon=":material/lightbulb:"
                     )
                 except Exception as e:
                     st.error(f"Error: {e}")
 
-            # Reset button
-            if (
-                st.session_state.get("uploaded_color_template") is not None
-                or st.session_state.get("uploaded_settings_template") is not None
-            ):
-                st.divider()
-                if st.button(
-                    "Reset Loaded Template",
-                    use_container_width=True,
-                    icon=":material/restart_alt:",
-                ):
-                    st.session_state.uploaded_color_template = None
-                    st.session_state.uploaded_settings_template = None
-                    st.session_state.template_applied_once = False
-
-                    # Reset to defaults
-                    defaults = {
-                        "auto_orient_2d": False,
-                        "scale": 30.0,
-                        "margin": 0.8,
-                        "bond_length": 50.0,
-                        "min_font_size": 32,
-                        "padding": 0.07,
-                        "use_bw_palette": True,
-                        "transparent_background": True,
-                        "auto_orient_3d": False,
-                        "stick_radius": 0.2,
-                        "sphere_scale": 0.3,
-                        "stick_ball_ratio": 1.8,
-                        "ambient": 0.25,
-                        "specular": 1.0,
-                        "direct": 0.45,
-                        "reflect": 0.45,
-                        "shininess": 30,
-                        "width": 1800,
-                        "height": 1600,
-                    }
-
-                    for key, value in defaults.items():
-                        st.session_state[key] = value
-
-                    save_config_to_session()
-                    st.success(
-                        "Reset to default style settings",
-                        icon=":material/check_circle:",
-                    )
-
         with tab3:
-            st.markdown("**Save Current Settings as Template**")
+            st.markdown("**Save Current Settings as Preset**")
             gen_type = st.session_state.get("structure_type", "3D")
 
-            # Custom filename input
             save_filename = st.text_input(
-                "Template Filename",
+                "Preset Filename",
                 value=st.session_state.get(
                     "save_filename", f"{gen_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                 ),
@@ -246,31 +192,33 @@ def render_template_manager() -> None:
                 key="save_filename",
             )
 
-            col1, col2 = st.columns(2)
-            template_dict = export_current_settings_as_template(gen_type)
-            template_json = json.dumps(template_dict, indent=2)
-            color_dict = export_color_template()
-            color_json = json.dumps(color_dict, indent=2)
+            preset_dict = export_current_as_preset(gen_type)
+            preset_json = json.dumps(preset_dict, indent=2)
 
-            with col1:
-                st.download_button(
-                    label="Download Settings Template",
-                    data=template_json,
-                    file_name=f"{save_filename}.json",
-                    mime="application/json",
-                    use_container_width=True,
-                    key="dl_settings",
-                )
+            st.download_button(
+                label="Download Preset",
+                data=preset_json,
+                file_name=f"{save_filename}.json",
+                mime="application/json",
+                use_container_width=True,
+                key="dl_preset",
+            )
 
-            with col2:
-                st.download_button(
-                    label="Download Color Template",
-                    data=color_json,
-                    file_name=f"{save_filename}.json",
-                    mime="application/json",
-                    use_container_width=True,
-                    key="dl_colors",
-                )
+
+def _apply_preset_now(choice: str) -> None:
+    """Apply a preset (built-in or custom) to session state immediately."""
+    if choice in st.session_state.get("custom_presets", {}):
+        data = st.session_state.custom_presets[choice]
+    else:
+        try:
+            config = ConfigLoader.load_template(choice)
+            data = config.to_dict() if hasattr(config, "to_dict") else {}
+            data = {"settings": data}
+        except Exception:
+            return
+    for key, value in data.get("settings", {}).items():
+        if key in st.session_state:
+            st.session_state[key] = value
 
 
 def _on_mode_change() -> None:
@@ -295,55 +243,89 @@ def _on_mode_change() -> None:
         st.session_state[k] = v
 
     st.session_state._last_active_mode = new_mode
+    st.query_params["mode"] = new_mode
 
 
 def render_mode_selector() -> str:
-    """Render 2D/3D mode selector as styled segments."""
-    structure_type = st.radio(
+    """Render 2D/3D/Protein mode selector as styled segmented control."""
+    st.markdown(header("atom", "Mode"), unsafe_allow_html=True)
+    structure_type = st.segmented_control(
         "Mode",
-        ["3D", "2D", "Protein"],
-        horizontal=True,
+        options=["3D", "2D", "Protein"],
+        default="3D",
         label_visibility="collapsed",
         key="mode_selector",
         on_change=_on_mode_change,
     )
-    # Ensure _last_active_mode is set on first render
     if "_last_active_mode" not in st.session_state:
         st.session_state._last_active_mode = structure_type
     st.session_state.structure_type = structure_type
     return structure_type
 
 
+def render_rotation_settings(dim: str) -> None:
+    """Render unified rotation section inside an auto-expanded expander."""
+    with st.expander("Rotation", expanded=True):
+        if dim == "2d":
+            st.checkbox("Auto orient", value=False, key="auto_orient_2d")
+            if not st.session_state.get("auto_orient_2d", False):
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.slider(
+                        "Rotation (°)",
+                        0.0,
+                        360.0,
+                        st.session_state.get("angle_degrees", 0.0),
+                        5.0,
+                        key="angle_degrees_slider",
+                        on_change=_sync_slider_to_config,
+                        args=("angle_degrees",),
+                    )
+                with col2:
+                    st.number_input(
+                        "Set",
+                        0.0,
+                        360.0,
+                        st.session_state.get("angle_degrees", 0.0),
+                        5.0,
+                        key="angle_degrees",
+                        on_change=_sync_input_to_slider,
+                        args=("angle_degrees",),
+                    )
+        else:
+            st.checkbox(
+                "Auto-Orient",
+                key="auto_orient_3d",
+                help="Automatically orient the molecule (disables manual rotation)",
+            )
+            if not st.session_state.get("auto_orient_3d", False):
+                for axis, key in [("X", "x_rotation"), ("Y", "y_rotation"), ("Z", "z_rotation")]:
+                    col1, col2 = st.columns([3, 1], gap="small")
+                    with col1:
+                        st.slider(
+                            f"{axis}",
+                            -180.0,
+                            180.0,
+                            st.session_state.get(key, 0.0),
+                            5.0,
+                            key=f"{key}_slider",
+                            on_change=_sync_slider_to_config,
+                            args=(key,),
+                        )
+                    with col2:
+                        st.number_input(
+                            "Set",
+                            -180.0,
+                            180.0,
+                            st.session_state.get(key, 0.0),
+                            5.0,
+                            key=f"{key}_input",
+                            on_change=lambda k=key: _sync_number_input(k),
+                        )
+
+
 def render_2d_settings() -> None:
     """Render 2D-specific settings controls."""
-    st.markdown("#### **2D Display**", unsafe_allow_html=True)
-
-    # Auto-orient checkbox
-    auto_orient_2d = st.checkbox(
-        "Auto orient",
-        value=False,
-        key="auto_orient_2d",
-    )
-
-    ACS_mode = st.checkbox(
-        "ACS Mode (overrides custom settings)",
-        value=True,
-        key="acs_mode",
-        help="Applies wikipedia compliant settings",
-    )
-
-    # Manual rotation (if not auto-orient)
-    if not auto_orient_2d:
-        angle_degrees = st.slider(
-            "Rotation (°)",
-            0,
-            360,
-            0,
-            5,
-            key="angle_degrees",
-        )
-    else:
-        angle_degrees = 180
 
     # Advanced 2D settings
     with st.expander("2D Settings", expanded=False):
@@ -351,16 +333,13 @@ def render_2d_settings() -> None:
         col1, col2 = st.columns(2)
 
         with col1:
-            scale = st.slider(
+            scale = _s2(
                 "Scale", 10.0, 40.0, 30.0, 1.0, key="scale", help="Pixels per coordinate unit"
             )
-            save_config_to_session("2d")
-
-            margin = st.slider("Margin", 0.0, 5.0, 0.8, 0.1, key="margin")
-            save_config_to_session("2d")
+            margin = _s2("Margin", 0.0, 5.0, 0.8, 0.1, key="margin")
 
         with col2:
-            bond_length = st.slider(
+            bond_length = _s2(
                 "Bond Length",
                 10.0,
                 70.0,
@@ -369,65 +348,37 @@ def render_2d_settings() -> None:
                 key="bond_length",
                 help="Fixed bond length in pixels",
             )
-            save_config_to_session("2d")
-
-            padding = st.slider(
+            padding = _s2(
                 "Padding", 0.00, 0.20, 0.07, 0.01, key="padding", help="Padding around drawing"
             )
-            save_config_to_session("2d")
 
         st.markdown("**Typography & Colors**")
         col1, col2 = st.columns(2)
 
         with col1:
-            min_font_size = st.slider(
-                "Font Size",
-                10,
-                60,
-                32,
-                2,
-                key="min_font_size",
+            min_font_size = _s2("Font Size", 10, 60, 32, 2, key="min_font_size")
+            additional_atom_label_padding = _s2(
+                "Label padding", 0.0, 1.0, 0.1, 0.1, key="additional_atom_label_padding"
             )
-            save_config_to_session("2d")
-
-            additional_atom_label_padding = st.slider(
-                "Label padding",
-                0.0,
-                1.0,
-                0.1,
-                0.1,
-                key="additional_atom_label_padding",
-            )
-            save_config_to_session("2d")
 
         with col2:
-            use_bw_palette = st.checkbox(
-                "B/W Palette",
-                value=True,
-                key="use_bw_palette",
+            use_bw_palette = _cb2("B/W Palette", value=True, key="use_bw_palette")
+            transparent_background = _cb2(
+                "Transparent Background", value=True, key="transparent_background"
             )
-            save_config_to_session("2d")
-
-            transparent_background = st.checkbox(
-                "Transparent Background",
-                value=True,
-                key="transparent_background",
-            )
-            save_config_to_session("2d")
 
         # Amine orientation settings
         with st.expander("Amine Orientation", expanded=False):
             st.markdown("**Automatic amine group rotation for Wikipedia-style drawings**")
-            auto_orient_amines = st.checkbox(
+            auto_orient_amines = _cb2(
                 "Auto-orient amines",
                 value=True,
                 key="auto_orient_amines",
                 help="Automatically rotate amine groups for Wikipedia-style 2D drawings",
             )
-            save_config_to_session("2d")
 
             if auto_orient_amines:
-                amine_target_angle = st.slider(
+                amine_target_angle = _s2(
                     "Amine target angle (°)",
                     0,
                     360,
@@ -436,9 +387,7 @@ def render_2d_settings() -> None:
                     key="amine_target_angle",
                     help="Target rotation angle for amine groups",
                 )
-                save_config_to_session("2d")
-
-                phenethylamine_target = st.slider(
+                phenethylamine_target = _s2(
                     "Phenethylamine angle (°)",
                     0,
                     360,
@@ -447,380 +396,212 @@ def render_2d_settings() -> None:
                     key="phenethylamine_target",
                     help="Target rotation angle for phenethylamine sidechains",
                 )
-                save_config_to_session("2d")
 
         # Advanced RDKit drawing options
         with st.expander("Advanced Drawing", expanded=False):
             st.markdown("**RDKit Drawing Options**")
             col1, col2 = st.columns(2)
             with col1:
-                bond_line_width = st.slider(
-                    "Bond Line Width",
-                    0.5,
-                    5.0,
-                    1.0,
-                    0.5,
-                    key="bond_line_width",
+                bond_line_width = _s2("Bond Line Width", 0.5, 5.0, 1.0, 0.5, key="bond_line_width")
+                scaling_factor = _s2("Font Scale", 0.5, 3.0, 1.0, 0.1, key="scaling_factor")
+                multiple_bond_offset = _s2(
+                    "Multi-bond offset", 0.0, 0.5, 0.15, 0.05, key="multiple_bond_offset"
                 )
-                save_config_to_session("2d")
-
-                scaling_factor = st.slider(
-                    "Font Scale",
-                    0.5,
-                    3.0,
-                    1.0,
-                    0.1,
-                    key="scaling_factor",
-                )
-                save_config_to_session("2d")
-
-                multiple_bond_offset = st.slider(
-                    "Multi-bond offset",
-                    0.0,
-                    0.5,
-                    0.15,
-                    0.05,
-                    key="multiple_bond_offset",
-                )
-                save_config_to_session("2d")
 
             with col2:
-                add_stereo_annotation = st.checkbox(
-                    "Stereo labels (R/S)",
-                    value=False,
-                    key="add_stereo_annotation",
+                add_stereo_annotation = _cb2(
+                    "Stereo labels (R/S)", value=False, key="add_stereo_annotation"
                 )
-                save_config_to_session("2d")
-
-                include_radicals = st.checkbox(
-                    "Show radicals",
-                    value=False,
-                    key="include_radicals",
-                )
-                save_config_to_session("2d")
-
-                include_chiral_flag = st.checkbox(
-                    "Chiral flag",
-                    value=False,
-                    key="include_chiral_flag",
-                )
-                save_config_to_session("2d")
+                include_radicals = _cb2("Show radicals", value=False, key="include_radicals")
+                include_chiral_flag = _cb2("Chiral flag", value=False, key="include_chiral_flag")
 
             st.markdown("**Atom Labels**")
             col1, col2 = st.columns(2)
             with col1:
-                no_atom_labels = st.checkbox(
-                    "Hide all atom labels",
-                    value=False,
-                    key="no_atom_labels",
-                )
-                save_config_to_session("2d")
-
-                explicit_methyl = st.checkbox(
-                    "Explicit methyl (CH3)",
-                    value=False,
-                    key="explicit_methyl",
-                )
-                save_config_to_session("2d")
+                no_atom_labels = _cb2("Hide all atom labels", value=False, key="no_atom_labels")
+                explicit_methyl = _cb2("Explicit methyl (CH3)", value=False, key="explicit_methyl")
 
             with col2:
-                include_atom_tags = st.checkbox(
-                    "Atom map numbers",
-                    value=False,
-                    key="include_atom_tags",
-                )
-                save_config_to_session("2d")
+                include_atom_tags = _cb2("Atom map numbers", value=False, key="include_atom_tags")
 
             st.markdown("**Style**")
             col1, col2 = st.columns(2)
             with col1:
-                comic_mode = st.checkbox(
-                    "Comic style",
-                    value=False,
-                    key="comic_mode",
-                )
-                save_config_to_session("2d")
+                comic_mode = _cb2("Comic style", value=False, key="comic_mode")
 
             with col2:
-                fixed_font_size = st.slider(
-                    "Fixed font size (-1 = auto)",
-                    -1,
-                    60,
-                    -1,
-                    1,
-                    key="fixed_font_size",
+                fixed_font_size = _s2(
+                    "Fixed font size (-1 = auto)", -1, 60, -1, 1, key="fixed_font_size"
                 )
-                save_config_to_session("2d")
-
-
-def render_3d_settings() -> None:
-    """Render 3D-specific settings controls."""
-    # Auto-orient checkbox
-    auto_orient_3d = st.checkbox(
-        "Auto-Orient",
-        value=True,
-        key="auto_orient_3d",
-    )
 
 
 def render_canvas_settings() -> None:
     """Render canvas/dimension settings."""
     with st.expander("Canvas", expanded=False):
-        st.markdown("**Image Dimensions**")
+        st.markdown(header("ruler", "Image Dimensions"), unsafe_allow_html=True)
         col1, col2 = st.columns(2)
 
         with col1:
-            width = st.number_input("Width (pixels)", 800, 4000, 1800, 100, key="width")
-            save_config_to_session("3d")
-
-            height = st.number_input("Height (pixels)", 600, 3000, 1600, 100, key="height")
-            save_config_to_session("3d")
+            width = _ni3("Width (pixels)", 800, 4000, 1800, 100, key="width")
+            height = _ni3("Height (pixels)", 600, 3000, 1600, 100, key="height")
 
         with col2:
-            crop_margin = st.slider("Crop Margin", 5, 50, 10, 5, key="crop_margin")
-            auto_crop = st.checkbox("Auto Crop", value=True, key="auto_crop")
-            save_config_to_session("3d")
+            crop_margin = _s3("Crop Margin", 5, 50, 10, 5, key="crop_margin")
+            auto_crop = _cb3("Auto Crop", value=True, key="auto_crop")
 
 
 def render_rendering_settings() -> None:
     """Render rendering quality settings."""
     with st.expander("Rendering", expanded=False):
-        st.markdown("**Molecular Representation**")
+        st.markdown(header("atom", "Molecular Representation"), unsafe_allow_html=True)
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            stick_radius = st.slider(
-                "Stick Radius",
-                0.1,
-                0.5,
-                0.2,
-                0.05,
-                key="stick_radius",
-            )
-            save_config_to_session("3d")
+            stick_radius = _s3("Stick Radius", 0.1, 0.5, 0.2, 0.05, key="stick_radius")
 
         with col2:
-            sphere_scale = st.slider(
-                "Atom Size",
-                0.15,
-                0.5,
-                0.3,
-                0.05,
-                key="sphere_scale",
-            )
-            save_config_to_session("3d")
+            sphere_scale = _s3("Atom Size", 0.15, 0.5, 0.3, 0.05, key="sphere_scale")
 
         with col3:
-            stick_ball_ratio = st.slider(
-                "Ball Ratio",
-                1.2,
-                3.0,
-                1.8,
-                0.1,
-                key="stick_ball_ratio",
-            )
-            save_config_to_session("3d")
+            stick_ball_ratio = _s3("Ball Ratio", 1.2, 3.0, 1.8, 0.1, key="stick_ball_ratio")
 
-        st.markdown("**Quality Settings**")
+        st.markdown(header("settings-2", "Quality Settings"), unsafe_allow_html=True)
         col1, col2 = st.columns(2)
 
         with col1:
-            ray_trace_mode = st.selectbox(
+            ray_trace_mode = _sb3(
                 "Ray Tracing",
                 [0, 1, 2, 3],
                 index=0,
                 key="ray_trace_mode",
                 help="0=Off, 1=Ray trace, 2=Realtime, 3=Realtime strip",
             )
-            save_config_to_session("3d")
-
-            ray_shadows = st.checkbox(
+            ray_shadows = _cb3(
                 "Shadows",
                 value=False,
                 key="ray_shadows",
                 help="Enable shadows (slower, requires ray tracing)",
             )
-            save_config_to_session("3d")
 
         with col2:
-            antialias = st.selectbox(
+            antialias = _sb3(
                 "Antialiasing",
                 [0, 1, 2, 3, 4],
                 4,
                 key="antialias",
                 help="0=Off, 1=On, 2-4=Multisample levels",
             )
-            save_config_to_session("3d")
 
         st.markdown("**Render Quality**")
         col1, col2 = st.columns(2)
         with col1:
-            stick_quality = st.slider(
-                "Stick Quality",
-                16,
-                128,
-                64,
-                8,
-                key="stick_quality",
-            )
-            save_config_to_session("3d")
+            stick_quality = _s3("Stick Quality", 16, 128, 64, 8, key="stick_quality")
         with col2:
-            sphere_quality = st.slider(
-                "Sphere Quality",
-                2,
-                12,
-                6,
-                1,
-                key="sphere_quality",
-            )
-            save_config_to_session("3d")
+            sphere_quality = _s3("Sphere Quality", 2, 12, 6, 1, key="sphere_quality")
 
         st.markdown("**Representation**")
-        representation = st.selectbox(
-            "Style",
-            ["sticks+spheres", "sticks", "spheres", "lines"],
-            key="representation",
+        representation = _sb3(
+            "Style", ["sticks+spheres", "sticks", "spheres", "lines"], key="representation"
         )
-        save_config_to_session("3d")
 
-        st.markdown("**Colors**")
-        col1, col2 = st.columns(2)
-        with col1:
-            bg_color = st.selectbox(
-                "Background",
-                ["white", "black", "gray", "transparent"],
-                key="bg_color",
+        st.markdown(header("palette", "Colors"), unsafe_allow_html=True)
+
+        bg_color = _sb3(
+            "Background",
+            ["white", "black", "gray", "transparent"],
+            key="bg_color",
+            help="Set the background color behind the molecule render",
+        )
+
+        atom_choices = get_scheme_choices()
+        current_atom = st.session_state.get("atom_color_choice", "None")
+        atom_idx = atom_choices.index(current_atom) if current_atom in atom_choices else 0
+        new_atom = st.selectbox(
+            "Atom Color Scheme",
+            atom_choices,
+            index=atom_idx,
+            key="atom_color_sel",
+        )
+        if new_atom != current_atom:
+            apply_scheme_to_session(new_atom)
+
+        with st.expander("Upload Custom Scheme", expanded=False):
+            uploaded = st.file_uploader(
+                "Atom Color Scheme JSON",
+                type=["json"],
+                key="atom_scheme_uploader",
+                label_visibility="collapsed",
             )
-            save_config_to_session("3d")
-        with col2:
-            stick_color = st.text_input(
-                "Stick Color",
-                value="gray50",
-                key="stick_color",
-            )
-            save_config_to_session("3d")
+            if uploaded:
+                try:
+                    data = json.load(uploaded)
+                    name = data.get("name", f"Custom_{datetime.now().strftime('%H%M%S')}")
+                    if "custom_atom_schemes" not in st.session_state:
+                        st.session_state.custom_atom_schemes = {}
+                    st.session_state.custom_atom_schemes[name] = data
+                    apply_scheme_to_session(name)
+                    st.success(f"Applied custom scheme: {name}", icon=":material/check_circle:")
+                except Exception as e:
+                    st.error(f"Error: {e}")
+
+        st.markdown("**Manual Overrides**")
+        stick_color = st.text_input("Stick Color", value="gray50", key="stick_color")
+        save_config_to_session("3d")
 
         st.markdown("**Lighting Mode**")
         col1, col2 = st.columns(2)
         with col1:
-            two_sided_lighting = st.checkbox(
-                "Two-sided lighting",
-                value=True,
-                key="two_sided_lighting",
-            )
-            save_config_to_session("3d")
+            two_sided_lighting = _cb3("Two-sided lighting", value=True, key="two_sided_lighting")
         with col2:
-            transparency_mode = st.selectbox(
+            transparency_mode = _sb3(
                 "Transparency Mode",
                 [0, 1, 2],
                 index=1,
                 key="transparency_mode",
                 help="0=Off, 1=Additive, 2=Weighted average",
             )
-            save_config_to_session("3d")
 
         st.markdown("**Miscellaneous**")
         col1, col2 = st.columns(2)
         with col1:
-            stick_ball = st.checkbox("Stick-ball style", value=True, key="stick_ball")
-            save_config_to_session("3d")
+            stick_ball = _cb3("Stick-ball style", value=True, key="stick_ball")
         with col2:
-            opaque_background = st.checkbox(
-                "Opaque background",
-                value=False,
-                key="opaque_background",
-            )
-            save_config_to_session("3d")
+            opaque_background = _cb3("Opaque background", value=False, key="opaque_background")
 
 
 def render_lighting_settings() -> None:
     """Render lighting control settings."""
     with st.expander("Lighting", expanded=False):
-        st.markdown("**Light Intensity & Quality**")
+        st.markdown(header("lightbulb", "Light Intensity & Quality"), unsafe_allow_html=True)
         col1, col2 = st.columns(2)
 
         with col1:
-            ambient = st.slider(
-                "Ambient",
-                0.0,
-                1.0,
-                0.25,
-                0.05,
-                key="ambient",
-            )
-            save_config_to_session("3d")
-
-            specular = st.slider(
-                "Specular",
-                0.0,
-                2.0,
-                1.0,
-                0.1,
-                key="specular",
-            )
-            save_config_to_session("3d")
+            ambient = _s3("Ambient", 0.0, 1.0, 0.25, 0.05, key="ambient")
+            specular = _s3("Specular", 0.0, 2.0, 1.0, 0.1, key="specular")
 
         with col2:
-            direct = st.slider(
-                "Direct Light",
-                0.0,
-                1.0,
-                0.45,
-                0.05,
-                key="direct",
-            )
-            save_config_to_session("3d")
+            direct = _s3("Direct Light", 0.0, 1.0, 0.45, 0.05, key="direct")
+            reflect = _s3("Reflection", 0.0, 1.0, 0.45, 0.05, key="reflect")
 
-            reflect = st.slider(
-                "Reflection",
-                0.0,
-                1.0,
-                0.45,
-                0.05,
-                key="reflect",
-            )
-            save_config_to_session("3d")
-
-        shininess = st.slider(
-            "Shininess",
-            10,
-            100,
-            30,
-            5,
-            key="shininess",
-        )
-        save_config_to_session("3d")
+        shininess = _s3("Shininess", 10, 100, 30, 5, key="shininess")
 
 
 def render_effects_settings() -> None:
     """Render special effects settings."""
     with st.expander("Effects", expanded=False):
-        st.markdown("**Transparency & Special Effects**")
+        st.markdown(header("cloud-fog", "Transparency & Special Effects"), unsafe_allow_html=True)
         col1, col2 = st.columns(2)
 
         with col1:
-            stick_transparency = st.slider(
-                "Stick Transparency",
-                0.0,
-                1.0,
-                0.0,
-                0.1,
-                key="stick_transparency",
+            stick_transparency = _s3(
+                "Stick Transparency", 0.0, 1.0, 0.0, 0.1, key="stick_transparency"
             )
-            save_config_to_session("3d")
-
-            sphere_transparency = st.slider(
-                "Sphere Transparency",
-                0.0,
-                1.0,
-                0.0,
-                0.1,
-                key="sphere_transparency",
+            sphere_transparency = _s3(
+                "Sphere Transparency", 0.0, 1.0, 0.0, 0.1, key="sphere_transparency"
             )
-            save_config_to_session("3d")
 
         with col2:
-            valence = st.slider(
+            valence = _s3(
                 "Valence Visibility",
                 0.0,
                 0.3,
@@ -829,18 +610,15 @@ def render_effects_settings() -> None:
                 key="valence",
                 help="Show valence bonds (0=off)",
             )
-            save_config_to_session("3d")
-
-            depth_cue = st.checkbox(
+            depth_cue = _cb3(
                 "Depth Cueing",
                 value=False,
                 key="depth_cue",
                 help="Enable fog effect for depth perception",
             )
-            save_config_to_session("3d")
 
         if st.session_state.get("depth_cue", False):
-            fog_start = st.slider(
+            fog_start = _s3(
                 "Fog Start",
                 0.0,
                 10.0,
@@ -849,21 +627,19 @@ def render_effects_settings() -> None:
                 key="fog_start",
                 help="Distance at which fog effect begins",
             )
-            save_config_to_session("3d")
 
         st.markdown("**Ambient Occlusion**")
         col1, col2 = st.columns(2)
         with col1:
-            ambient_occlusion = st.checkbox(
+            ambient_occlusion = _cb3(
                 "Ambient Occlusion",
                 value=False,
                 key="ambient_occlusion",
                 help="Enable ambient occlusion for depth shading",
             )
-            save_config_to_session("3d")
         with col2:
             if st.session_state.get("ambient_occlusion", False):
-                ambient_occlusion_scale = st.slider(
+                ambient_occlusion_scale = _s3(
                     "AO Scale",
                     5.0,
                     50.0,
@@ -872,10 +648,9 @@ def render_effects_settings() -> None:
                     key="ambient_occlusion_scale",
                     help="Ambient occlusion radius scale",
                 )
-                save_config_to_session("3d")
 
         st.markdown("**Ray Tracing Fog**")
-        ray_trace_fog = st.slider(
+        ray_trace_fog = _s3(
             "RT Fog",
             0.0,
             1.0,
@@ -884,28 +659,19 @@ def render_effects_settings() -> None:
             key="ray_trace_fog",
             help="Ray tracing fog density (0=off)",
         )
-        save_config_to_session("3d")
 
         st.markdown("**Zoom**")
-        zoom_buffer = st.slider(
-            "Zoom Buffer",
-            0.5,
-            5.0,
-            2.0,
-            0.1,
-            key="zoom_buffer",
-        )
-        save_config_to_session("3d")
+        zoom_buffer = _s3("Zoom Buffer", 0.5, 5.0, 2.0, 0.1, key="zoom_buffer")
 
 
 def render_conformer_settings() -> None:
     """Render conformer generation settings."""
     with st.expander("Conformer Generation", expanded=False):
-        st.markdown("**RDKit ETKDG Conformer Engine**")
+        st.markdown(header("settings-2", "RDKit ETKDG Conformer Engine"), unsafe_allow_html=True)
 
         col1, col2 = st.columns(2)
         with col1:
-            num_conformers = st.number_input(
+            num_conformers = _ni3(
                 "Conformers",
                 1,
                 200,
@@ -913,9 +679,7 @@ def render_conformer_settings() -> None:
                 key="num_conformers",
                 help="Number of 3D conformers to generate",
             )
-            save_config_to_session("3d")
-
-            max_iterations = st.slider(
+            max_iterations = _s3(
                 "Max Iterations",
                 100,
                 5000,
@@ -924,9 +688,7 @@ def render_conformer_settings() -> None:
                 key="max_iterations",
                 help="Force field optimization iterations",
             )
-            save_config_to_session("3d")
-
-            prune_rms_thresh = st.slider(
+            prune_rms_thresh = _s3(
                 "Prune RMSD",
                 0.05,
                 2.0,
@@ -935,64 +697,44 @@ def render_conformer_settings() -> None:
                 key="prune_rms_thresh",
                 help="RMSD threshold to prune similar conformers",
             )
-            save_config_to_session("3d")
 
         with col2:
-            use_random_coords = st.checkbox(
+            use_random_coords = _cb3(
                 "Random coords",
                 value=False,
                 key="use_random_coords",
                 help="Use random starting coordinates (instead of ETKDG)",
             )
-            save_config_to_session("3d")
-
-            use_basic_knowledge = st.checkbox(
+            use_basic_knowledge = _cb3(
                 "Basic knowledge",
                 value=True,
                 key="use_basic_knowledge",
                 help="Use ETKDG basic knowledge terms",
             )
-            save_config_to_session("3d")
-
-            enforce_chirality = st.checkbox(
+            enforce_chirality = _cb3(
                 "Chirality",
                 value=True,
                 key="enforce_chirality",
                 help="Enforce stereochemistry during embedding",
             )
-            save_config_to_session("3d")
-
-            use_small_ring_torsions = st.checkbox(
+            use_small_ring_torsions = _cb3(
                 "Small ring torsions",
                 value=True,
                 key="use_small_ring_torsions",
                 help="Use small ring torsion knowledge",
             )
-            save_config_to_session("3d")
-
-            use_macrocycle_torsions = st.checkbox(
+            use_macrocycle_torsions = _cb3(
                 "Macrocycle torsions",
                 value=False,
                 key="use_macrocycle_torsions",
                 help="Use macrocycle torsion knowledge (for large rings)",
             )
-            save_config_to_session("3d")
-
-            use_exp_torsion_prefs = st.checkbox(
+            use_exp_torsion_prefs = _cb3(
                 "Exp. torsion prefs",
                 value=True,
                 key="use_exp_torsion_prefs",
                 help="Use experimental torsion angle preferences",
             )
-            save_config_to_session("3d")
-
-
-def render_auto_generate_checkbox() -> bool:
-    """Render auto-generate checkbox."""
-    return st.checkbox(
-        "Auto-update",
-        value=True,
-    )
 
 
 def render_generate_button(auto_generate: bool) -> bool:

@@ -7,7 +7,6 @@ Extended element colors and RDKit configuration options.
 Uses split Config3D structure (render + conformer) from ConfigLoader.
 """
 
-import json
 from pathlib import Path
 from typing import Literal
 
@@ -21,12 +20,19 @@ from wikimolgen.rendering.optimization import (
     find_optimal_3d_orientation,
     optimize_zoom_buffer,
 )
+from wikimolgen.rendering.utils import load_color_config, resolve_settings_template
 
 ForceFieldType = Literal["MMFF94", "UFF"]
 
 
 def color_name_to_rgb(color_name: str) -> tuple:
-    """Convert color name to RGB tuple for PyMOL."""
+    """Convert color name or hex code to RGB tuple for PyMOL."""
+    if color_name.startswith("#"):
+        h = color_name.lstrip("#")
+        if len(h) == 3:
+            h = "".join(c * 2 for c in h)
+        r, g, b = (int(h[i : i + 2], 16) / 255.0 for i in (0, 2, 4))
+        return (r, g, b)
     color_map = {
         # Grays
         "gray10": (0.10, 0.10, 0.10),
@@ -508,34 +514,7 @@ class MoleculeGenerator3D:
                 )
 
     def load_color_template(self, template: str | Path | dict | ColorConfig) -> None:
-        if isinstance(template, str):
-            try:
-                color_cfg = ConfigLoader.load_color_template(template)
-                self.config.render.stick_color = color_cfg.stick_color
-                self.config.render.bg_color = color_cfg.bg_color
-                if color_cfg.element_colors:
-                    self.config.render.element_colors = dict(color_cfg.element_colors)
-            except ValueError:
-                p = Path(template)
-                if p.exists():
-                    with open(p) as f:
-                        data = json.load(f)
-                    color_cfg = ColorConfig(**data)
-                else:
-                    color_cfg = ColorConfig()
-                self.config.render.stick_color = color_cfg.stick_color
-                self.config.render.bg_color = color_cfg.bg_color
-                if color_cfg.element_colors:
-                    self.config.render.element_colors = dict(color_cfg.element_colors)
-        elif isinstance(template, Path):
-            with open(template) as f:
-                data = json.load(f)
-            color_cfg = ColorConfig(**data)
-            self.config.render.stick_color = color_cfg.stick_color
-            self.config.render.bg_color = color_cfg.bg_color
-            if color_cfg.element_colors:
-                self.config.render.element_colors = dict(color_cfg.element_colors)
-        elif isinstance(template, dict):
+        if isinstance(template, dict):
             self.config.render.stick_color = template.get(
                 "stick_color", self.config.render.stick_color
             )
@@ -543,40 +522,27 @@ class MoleculeGenerator3D:
             ec = template.get("element_colors")
             if ec:
                 self.config.render.element_colors = dict(ec)
-        else:
-            self.config.render.stick_color = template.stick_color
-            self.config.render.bg_color = template.bg_color
-            if template.element_colors:
-                self.config.render.element_colors = dict(template.element_colors)
+            return
+        color_cfg = load_color_config(template)
+        self.config.render.stick_color = color_cfg.stick_color
+        self.config.render.bg_color = color_cfg.bg_color
+        if color_cfg.element_colors:
+            self.config.render.element_colors = dict(color_cfg.element_colors)
 
     def load_settings_template(self, template: str | Path | Config3D | dict) -> None:
-        if isinstance(template, str):
-            try:
-                cfg = ConfigLoader.load_template(template)
-            except ValueError:
-                p = Path(template)
-                if p.exists():
-                    cfg = ConfigLoader.load_from_file(p)
-                else:
-                    cfg = ConfigLoader.get_3d_config()
-            if isinstance(cfg, Config3D):
-                self.config = cfg
-            return
-        elif isinstance(template, Path):
-            cfg = ConfigLoader.load_from_file(template)
-            if isinstance(cfg, Config3D):
-                self.config = cfg
-            return
-        elif isinstance(template, dict):
+        if isinstance(template, dict):
             for key, value in template.items():
                 if hasattr(self.config.render, key):
                     setattr(self.config.render, key, value)
                 elif hasattr(self.config.conformer, key):
                     setattr(self.config.conformer, key, value)
             return
-
         if isinstance(template, Config3D):
             self.config = template
+            return
+        cfg = resolve_settings_template(template)
+        if isinstance(cfg, Config3D):
+            self.config = cfg
 
     def get_config_dict(self) -> dict:
         """

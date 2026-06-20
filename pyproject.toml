@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "WikiMolGen"
-version = "0.1.0"
+version = "1.0.0"
 
 description = "Generate 2D/3D molecular structure visualizations from PubChem, SMILES, or compound names"
 readme = "README.md"

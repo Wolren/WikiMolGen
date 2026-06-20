@@ -105,6 +105,21 @@ a:hover { text-decoration: underline !important; }
     opacity: 0.35;
 }
 
+/* ── Full-width segmented control (mode selector) ────── */
+
+[data-testid="stSidebar"] [data-testid^="stSegmented"] {
+    width: 100% !important;
+}
+[data-testid="stSidebar"] [data-testid^="stSegmented"] button {
+    flex: 1 1 0px !important;
+}
+
+/* ── Auto toggle level with mode buttons ─────────────── */
+
+[data-testid="stSidebar"] .stToggle {
+    padding-top: 20px !important;
+}
+
 .sidebar-main-header {
     font-family: var(--heading-font) !important;
     font-size: 1.25rem !important;
@@ -118,21 +133,29 @@ a:hover { text-decoration: underline !important; }
 
 /* ── Toggle (Auto-update) ──────────────────────────────── */
 
-[data-testid="stToggle"] {
-    gap: 0.25rem !important;
+[data-testid="stSidebar"] [data-testid="stToggle"] {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    min-height: 30px !important;
     padding: 0 !important;
-    min-height: 0 !important;
-}
-
-[data-testid="stToggle"] label {
-    gap: 0.25rem !important;
-    font-size: 0.8rem !important;
-    padding: 0 !important;
-    min-height: 0 !important;
-}
-
-[data-testid="stToggle"] [role="switch"] {
     margin: 0 !important;
+    gap: 0.2rem !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stToggle"] label {
+    gap: 0.2rem !important;
+    font-size: 0.75rem !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    color: var(--text-secondary) !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stToggle"] [role="switch"] {
+    margin: 0 !important;
+    width: 28px !important;
+    height: 16px !important;
 }
 
 /* ── Input widgets ──────────────────────────────────────── */
@@ -233,15 +256,20 @@ a:hover { text-decoration: underline !important; }
 
 .compound-preview-container {
     padding: 12px;
-    background-color: var(--bg-primary);
+    background-color: #15181b;
     display: flex;
     align-items: center;
     justify-content: center;
     border: 1px solid var(--border-color);
     border-radius: 2px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
 }
 
 .compound-preview-container.white-bg {
+    background-color: #ffffff;
+}
+
+body.wiki-light .compound-preview-container {
     background-color: #ffffff;
 }
 
@@ -264,12 +292,11 @@ body:not(.wiki-light) .compound-preview-image-2d { filter: invert(1); }
     display: flex;
     align-items: center;
     justify-content: center;
-    max-width: 800px;
-    margin: 0 auto;
+    width: 100%;
 }
 
 .protein-preview-image {
-    max-width: 800px;
+    max-width: 100%;
     width: 100%;
     height: auto;
     display: block;
@@ -380,6 +407,53 @@ hr {
 [data-testid="stDataFrame"] {
     border: 1px solid var(--border-color);
     border-radius: 2px;
+}
+
+/* ── Commons Upload Button ─────────────────────────────── */
+
+a.commons-upload-btn {
+    display: inline-block;
+    margin-top: 0.5rem;
+    padding: 0.35rem 1rem;
+    background-color: var(--accent-blue);
+    color: #ffffff !important;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border-radius: 2px;
+    text-decoration: none !important;
+}
+a.commons-upload-btn:hover {
+    filter: brightness(1.1);
+}
+
+/* ── Mobile Responsiveness ──────────────────────────────── */
+
+@media (max-width: 768px) {
+    .main > .block-container {
+        max-width: 100%;
+        padding-left: 0.8rem !important;
+        padding-right: 0.8rem !important;
+    }
+
+    .compound-preview-image[data-type="3D"],
+    .protein-preview-image {
+        max-width: 100%;
+    }
+
+    .compound-preview-container {
+        padding: 6px;
+    }
+
+    .stCodeBlock code,
+    .stCodeBlock pre {
+        white-space: pre-wrap !important;
+        word-break: break-word !important;
+        font-size: 0.75rem;
+    }
+
+    [data-testid="column"] {
+        min-width: 100%;
+    }
 }
 
 

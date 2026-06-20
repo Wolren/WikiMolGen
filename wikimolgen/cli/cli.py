@@ -9,9 +9,13 @@ import argparse
 import sys
 
 from wikimolgen import __version__
-from wikimolgen.configs import ConfigLoader
+from wikimolgen.configs import Config2D, ConfigLoader, RenderConfig3D
 from wikimolgen.rendering.wikimol2d import MoleculeGenerator2D
 from wikimolgen.rendering.wikimol3d import MoleculeGenerator3D
+
+
+_2D_DEFAULTS = Config2D()
+_3D_RENDER_DEFAULTS = RenderConfig3D()
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -74,19 +78,22 @@ Examples:
         "--scale", type=float, default=30.0, help="Pixels per coordinate unit (default: 30.0)"
     )
     parser_2d.add_argument(
-        "--margin", type=float, default=0.2, help="Canvas margin in coordinate units (default: 0.2)"
+        "--margin",
+        type=float,
+        default=_2D_DEFAULTS.margin,
+        help=f"Canvas margin in coordinate units (default: {_2D_DEFAULTS.margin})",
     )
     parser_2d.add_argument(
         "--bond-length",
         type=float,
-        default=45.0,
-        help="Fixed bond length in pixels (default: 45.0)",
+        default=_2D_DEFAULTS.bond_length,
+        help=f"Fixed bond length in pixels (default: {_2D_DEFAULTS.bond_length})",
     )
     parser_2d.add_argument(
         "--min-font-size",
         type=int,
-        default=36,
-        help="Minimum font size for atom labels (default: 36)",
+        default=_2D_DEFAULTS.min_font_size,
+        help=f"Minimum font size for atom labels (default: {_2D_DEFAULTS.min_font_size})",
     )
     parser_2d.add_argument(
         "--padding", type=float, default=0.03, help="Padding around drawing (default: 0.03)"
@@ -227,7 +234,10 @@ Examples:
         "--width", type=int, default=1800, help="Render width in pixels (default: 1800)"
     )
     parser_3d.add_argument(
-        "--height", type=int, default=1400, help="Render height in pixels (default: 1400)"
+        "--height",
+        type=int,
+        default=_3D_RENDER_DEFAULTS.height,
+        help=f"Render height in pixels (default: {_3D_RENDER_DEFAULTS.height})",
     )
     parser_3d.add_argument(
         "--bg-color",
