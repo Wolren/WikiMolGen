@@ -93,15 +93,15 @@ class CartoonRenderConfig:
     loop_color: str = "#99AABB"
 
     ray_trace_mode: int = 1
-    antialias: int = 4
-    ambient: float = 0.40
-    specular: int = 1
+    antialias: int = 2
+    ambient: float = 0.30
+    specular: int = 0
     shininess: int = 10
-    ray_shadows: int = 1
+    ray_shadows: int = 0
 
     width: int = 1920
     height: int = 1080
-    bg_color: str = "black"
+    bg_color: str = "transparent"
 
     auto_orient: bool = True
     zoom_buffer: float = 2.0
@@ -116,12 +116,12 @@ class CartoonRenderConfig:
     crop_margin: int = 10
 
     # Additional lighting
-    direct: float = 0.45
-    reflect: float = 0.45
+    direct: float = 0.50
+    reflect: float = 0.20
 
     # Effects
     depth_cue: int = 0
-    ray_opaque_background: int = 1
+    ray_opaque_background: int = 0
     orthoscopic: int = 0
 
 
@@ -297,7 +297,7 @@ class ProteinGenerator:
             If provider not available or fetch fails
         """
         self.pdb_path, self.metadata = self.provider.fetch_structure(self.pdb_id)
-        print(f"✓ Fetched {self.pdb_id}")
+        print(f"[OK] Fetched {self.pdb_id}")
         print(f"  Chains: {', '.join(self.metadata.chains)}")
         print(f"  Atoms: {self.metadata.num_atoms} | Residues: {self.metadata.num_residues}")
         if self.metadata.has_ligand:
@@ -308,7 +308,7 @@ class ProteinGenerator:
     def generate(
         self,
         output: str,
-        color_scheme: ColorScheme = ColorScheme.SECONDARY_STRUCTURE,
+        color_scheme: ColorScheme = ColorScheme.RAINBOW,
         show_ligand: bool = True,
         show_water: bool = False,
     ) -> Path:
@@ -368,11 +368,46 @@ class ProteinGenerator:
                 elif color_scheme == ColorScheme.RAINBOW:
                     cmd.spectrum("count", "rainbow", selection="polymer.protein")
                 elif color_scheme == ColorScheme.CHAIN:
-                    cmd.util.cbc()
+                    chain_colors = [
+                        "red",
+                        "blue",
+                        "green",
+                        "yellow",
+                        "magenta",
+                        "cyan",
+                        "orange",
+                        "purple",
+                    ]
+                    chain_ids: list[str] = []
+                    cmd.iterate(
+                        "polymer.protein",
+                        "chain_ids.append(chain)",
+                        space={"chain_ids": chain_ids},
+                    )
+                    for i, cid in enumerate(sorted(set(chain_ids))):
+                        color = chain_colors[i % len(chain_colors)]
+                        try:
+                            cmd.color(color, f"(polymer.protein and chain {cid})", quiet=1)
+                        except Exception:
+                            pass
                 elif color_scheme == ColorScheme.HYDROPHOBICITY:
                     cmd.spectrum("count", "density", selection="polymer.protein")
                 elif color_scheme == ColorScheme.ELEMENT:
-                    cmd.util.cbaw("polymer.protein")
+                    for elem, color in (
+                        ("C", "gray"),
+                        ("N", "blue"),
+                        ("O", "red"),
+                        ("S", "yellow"),
+                        ("P", "orange"),
+                        ("F", "green"),
+                        ("Cl", "green"),
+                        ("Br", "firebrick"),
+                        ("I", "purple"),
+                    ):
+                        try:
+                            cmd.color(color, f"(polymer.protein and elem {elem})", quiet=1)
+                        except Exception:
+                            pass
                 elif color_scheme == ColorScheme.BFACTOR:
                     cmd.spectrum("b", "rainbow", selection="polymer.protein")
                 elif color_scheme == ColorScheme.OCCUPANCY:
@@ -401,19 +436,57 @@ class ProteinGenerator:
                 cmd.set("depth_cue", self.cartoon_config.depth_cue)
                 cmd.set("ray_opaque_background", self.cartoon_config.ray_opaque_background)
                 cmd.set("orthoscopic", self.cartoon_config.orthoscopic)
-                cmd.bg_color(self.cartoon_config.bg_color)
+                if self.cartoon_config.bg_color != "transparent":
+                    cmd.bg_color(self.cartoon_config.bg_color)
+                else:
+                    cmd.bg_color("white")
 
                 # Show ligand
                 if show_ligand and self.metadata.has_ligand:
                     cmd.show(self.ligand_config.ligand_style, "organic")
                     if self.ligand_config.ligand_color_scheme == "element":
-                        cmd.util.cbaw("organic")
+                        for elem, color in (
+                            ("C", "gray"),
+                            ("N", "blue"),
+                            ("O", "red"),
+                            ("S", "yellow"),
+                            ("P", "orange"),
+                            ("F", "green"),
+                            ("Cl", "green"),
+                            ("Br", "firebrick"),
+                            ("I", "purple"),
+                        ):
+                            try:
+                                cmd.color(color, f"(organic and elem {elem})", quiet=1)
+                            except Exception:
+                                pass
                     elif self.ligand_config.ligand_color_scheme == "single":
                         ligand_rgb = hex_to_rgb(self.ligand_config.ligand_single_color or "#FF6B6B")
                         cmd.set_color("custom_ligand", ligand_rgb)
                         cmd.color("custom_ligand", "organic")
                     elif self.ligand_config.ligand_color_scheme == "chain":
-                        cmd.util.cbc("organic")
+                        lig_chain_colors = [
+                            "red",
+                            "blue",
+                            "green",
+                            "yellow",
+                            "magenta",
+                            "cyan",
+                            "orange",
+                            "purple",
+                        ]
+                        lig_chain_ids: list[str] = []
+                        cmd.iterate(
+                            "organic",
+                            "lig_chain_ids.append(chain)",
+                            space={"lig_chain_ids": lig_chain_ids},
+                        )
+                        for i, cid in enumerate(sorted(set(lig_chain_ids))):
+                            c = lig_chain_colors[i % len(lig_chain_colors)]
+                            try:
+                                cmd.color(c, f"(organic and chain {cid})", quiet=1)
+                            except Exception:
+                                pass
                     cmd.set("stick_transparency", self.ligand_config.ligand_transparency, "organic")
                     cmd.set("stick_radius", self.ligand_config.stick_radius, "organic")
                     cmd.set("stick_quality", self.ligand_config.stick_quality)
@@ -453,11 +526,15 @@ class ProteinGenerator:
 
             # Autocrop after PyMOL context exits
             if self.cartoon_config.autocrop:
+                bg = self.cartoon_config.bg_color
                 autocrop_image(
-                    output_path, margin=self.cartoon_config.crop_margin, contrast_factor=1.15
+                    output_path,
+                    margin=self.cartoon_config.crop_margin,
+                    contrast_factor=1.15,
+                    make_transparent=(bg == "transparent"),
                 )
 
-            print(f"✓ Rendered: {output_path}")
+            print(f"[OK] Rendered: {output_path}")
             return output_path
 
         except Exception as e:
