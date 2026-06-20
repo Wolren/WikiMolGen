@@ -428,6 +428,8 @@ def render_protein_structure(
             helix_color=cartoon_config.get("helix_color", "#3399FF"),
             sheet_color=cartoon_config.get("sheet_color", "#FFCC00"),
             loop_color=cartoon_config.get("loop_color", "#99AABB"),
+            cartoon_fancy_helices=1 if cartoon_config.get("cartoon_fancy_helices", True) else 0,
+            cartoon_flat_sheets=cartoon_config.get("cartoon_flat_sheets", True),
             width=canvas_config["width"],
             height=canvas_config["height"],
             bg_color=canvas_config["bg_color"],

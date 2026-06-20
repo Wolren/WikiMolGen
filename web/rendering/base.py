@@ -44,6 +44,11 @@ def build_2d_config() -> dict[str, Any]:
     if auto_orient:
         config["angle_degrees"] = None
     config["auto_orient_2d"] = auto_orient
+
+    # White background preview → force black carbon for contrast
+    if st.session_state.get("preview_white_bg", False):
+        config["use_bw_palette"] = True
+
     return config
 
 

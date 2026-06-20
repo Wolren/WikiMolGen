@@ -55,6 +55,13 @@ def _on_auto_change():
     st.query_params["auto"] = str(st.session_state.auto_generate).lower()
 
 
+def _on_white_bg_change():
+    """Trigger re-render in 2D mode so structure turns black on white background."""
+    if st.session_state.get("structure_type", "3D") == "2D":
+        st.session_state.config_changed = True
+        st.session_state._last_render_ts = 0.0  # Bypass debounce
+
+
 def render_sidebar() -> tuple:
     """
     Render complete sidebar with layout and structure.
@@ -69,13 +76,27 @@ def render_sidebar() -> tuple:
         st.divider()
 
         # Mode selector + toggles on one line
-        col_mode, col_auto, col_white = st.columns([2, 1, 1], gap="small")
+        col_mode, col_auto, col_white = st.columns([3, 1, 1], gap="small")
         with col_mode:
             structure_type = render_mode_selector()
         with col_auto:
-            st.toggle("Auto Orient", value=True, key="auto_generate", on_change=_on_auto_change)
+            st.toggle(
+                " ",
+                value=True,
+                key="auto_generate",
+                on_change=_on_auto_change,
+                label_visibility="collapsed",
+            )
+            st.caption("Auto Update")
         with col_white:
-            st.toggle("White", value=False, key="preview_white_bg")
+            st.toggle(
+                " ",
+                value=False,
+                key="preview_white_bg",
+                label_visibility="collapsed",
+                on_change=_on_white_bg_change,
+            )
+            st.caption("White background")
         st.divider()
 
         # Compound/protein input based on mode
@@ -297,10 +318,7 @@ def render_main_content(
         """Return True if 500ms have elapsed since last auto-render."""
         now = time.time()
         last = st.session_state.get("_last_render_ts", 0.0)
-        if now - last >= 0.5:
-            st.session_state._last_render_ts = now
-            return True
-        return False
+        return now - last >= 0.5
 
     # Auto-update toggle and generate button (2D/3D only)
     if structure_type != "Protein":
@@ -308,7 +326,7 @@ def render_main_content(
             "Generate Now",
             type="primary",
             use_container_width=True,
-            disabled=not st.session_state.get("auto_generate", True),
+            disabled=st.session_state.get("auto_generate", True),
             key="generate_now_btn",
         ):
             st.session_state.manual_generate = True
@@ -320,14 +338,20 @@ def render_main_content(
         # Placeholder for the structure image in a fixed container
         preview_placeholder = st.empty()
 
-        # Check if image should be rendered at the moment
+        # Check if image should be rendered at the moment.
+        # Visual-only toggles (white-bg) never trigger auto-render because
+        # they don't set config_changed. Only actual config changes trigger.
+        has_pending_config = st.session_state.get("config_changed", False)
+        never_rendered = not st.session_state.get("rendered_structure", False)
         should_render = (
-            (auto_generate and _debounce_pass())
+            (auto_generate and _debounce_pass() and (has_pending_config or never_rendered))
             or st.session_state.get("manual_generate", False)
             or st.session_state.get("last_compound") != compound
         )
 
         if should_render and compound:
+            st.session_state._last_render_ts = time.time()
+            st.session_state.config_changed = False
             st.session_state.manual_generate = False
 
             with st.spinner("Generating structure..."):

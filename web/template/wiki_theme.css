@@ -281,6 +281,7 @@ body.wiki-light .compound-preview-container {
 
 .compound-preview-image[data-type="2D"] { filter: brightness(0.9); }
 body:not(.wiki-light) .compound-preview-image-2d { filter: invert(1); }
+.compound-preview-container.white-bg .compound-preview-image-2d { filter: none; }
 
 .compound-preview-image[data-type="3D"] {
     width: auto;
