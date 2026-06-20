@@ -48,8 +48,6 @@ def apply_scheme_to_session(choice: str) -> None:
         st.session_state["element_colors"] = dict(data["element_colors"])
     if data.get("stick_color"):
         st.session_state["stick_color"] = data["stick_color"]
-    if data.get("bg_color"):
-        st.session_state["bg_color"] = data["bg_color"]
     st.session_state["atom_color_choice"] = choice
 
 
