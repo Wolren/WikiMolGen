@@ -218,7 +218,8 @@ def render_preset_manager() -> None:
                 key="save_filename",
             )
 
-            preset_dict = export_current_as_preset(gen_type)
+            preset_name = st.session_state.get("save_filename", f"Custom_{gen_type}")
+            preset_dict = export_current_as_preset(gen_type, name=preset_name)
             preset_json = json.dumps(preset_dict, indent=2)
 
             st.download_button(
