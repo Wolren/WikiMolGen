@@ -5,7 +5,6 @@ Config-driven 2D molecular visualization with SVG export and auto-orientation.
 Uses ConfigLoader for centralized configuration management.
 """
 
-import json
 import re
 import dataclasses
 from pathlib import Path
@@ -25,6 +24,7 @@ from wikimolgen.rendering.optimization import (
     is_phenethylamine,
     orient_phenethylamine_sidechain,
 )
+from wikimolgen.rendering.utils import load_color_config, resolve_settings_template
 
 
 class MoleculeGenerator2D:
@@ -207,7 +207,13 @@ class MoleculeGenerator2D:
         if self.config.acs_mode:
             drawer = rdMolDraw2D.MolDraw2DSVG(-1, -1)
             opts = drawer.drawOptions()
-            rdMolDraw2D.SetACS1996Mode(opts, rdMolDraw2D.MeanBondLength(self.mol))
+            mean_bl = rdMolDraw2D.MeanBondLength(self.mol)
+            if mean_bl <= 0.0:
+                AllChem.Compute2DCoords(self.mol)
+                mean_bl = rdMolDraw2D.MeanBondLength(self.mol)
+            if mean_bl <= 0.0:
+                mean_bl = 1.0
+            rdMolDraw2D.SetACS1996Mode(opts, mean_bl)
             if self.config.transparent_background:
                 opts.setBackgroundColour((0, 0, 0, 0))
         else:
@@ -298,60 +304,24 @@ class MoleculeGenerator2D:
         return {f.name: getattr(self.config, f.name) for f in dataclasses.fields(Config2D)}
 
     def load_color_template(self, template: str | Path | ColorConfig | dict) -> None:
-        if isinstance(template, str):
-            try:
-                color_cfg = ConfigLoader.load_color_template(template)
-            except ValueError:
-                template_path = Path(template)
-                if template_path.exists():
-                    with open(template_path) as f:
-                        data = json.load(f)
-                    color_cfg = ColorConfig(
-                        **data.get("element_colors", {}),
-                        stick_color=data.get("stick_color"),
-                        bg_color=data.get("bg_color", "white"),
-                    )
-                else:
-                    color_cfg = ConfigLoader.load_color_template("cpk_standard")
-            self.config.use_bw_palette = False
-        elif isinstance(template, Path):
-            with open(template) as f:
-                data = json.load(f)
-            color_cfg = ColorConfig(**data)
-            self.config.use_bw_palette = False
-        elif isinstance(template, dict):
+        if isinstance(template, dict):
             self.config.use_bw_palette = template.get("use_bw_palette", False)
             self.config.transparent_background = template.get("transparent_background", False)
             return
-        else:
-            color_cfg = template
-
+        color_cfg = load_color_config(template)
+        self.config.use_bw_palette = False
         self.config.transparent_background = color_cfg.bg_color == "white"
 
     def load_settings_template(self, template: str | Path | Config2D | dict) -> None:
-        if isinstance(template, str):
-            try:
-                cfg = ConfigLoader.load_template(template)
-            except ValueError:
-                template_path = Path(template)
-                if template_path.exists():
-                    cfg = ConfigLoader.load_from_file(template_path)
-                else:
-                    cfg = ConfigLoader.get_2d_config()
-            if isinstance(cfg, Config2D):
-                self.config = cfg
-            return
-        elif isinstance(template, Path):
-            cfg = ConfigLoader.load_from_file(template)
-            if isinstance(cfg, Config2D):
-                self.config = cfg
-            return
-        elif isinstance(template, dict):
+        if isinstance(template, dict):
             self.config.update(**template)
             return
-
         if isinstance(template, Config2D):
             self.config = template
+            return
+        cfg = resolve_settings_template(template)
+        if isinstance(cfg, Config2D):
+            self.config = cfg
 
     def _apply_amine_orientation(self) -> dict:
         """

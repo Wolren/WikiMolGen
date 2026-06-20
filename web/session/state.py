@@ -1,10 +1,10 @@
 import logging
-from dataclasses import asdict
+from dataclasses import asdict, fields
 from typing import Any, Literal
 
 import streamlit as st
 
-from wikimolgen.configs import ConfigLoader
+from wikimolgen.configs import ConfigLoader, ConformerConfig, ProteinConfig
 
 logger = logging.getLogger(__name__)
 
@@ -14,18 +14,7 @@ def get_2d_defaults() -> dict[str, Any]:
     return cfg.to_dict()
 
 
-_WIDGET_MANAGED_KEYS = {
-    "num_conformers",
-    "max_iterations",
-    "prune_rms_thresh",
-    "use_random_coords",
-    "clear_confs",
-    "use_basic_knowledge",
-    "enforce_chirality",
-    "use_small_ring_torsions",
-    "use_macrocycle_torsions",
-    "use_exp_torsion_prefs",
-}
+_WIDGET_MANAGED_KEYS = {f.name for f in fields(ConformerConfig)}
 
 
 def get_3d_defaults() -> dict[str, Any]:
@@ -42,6 +31,10 @@ def get_3d_defaults() -> dict[str, Any]:
     return d
 
 
+def get_protein_defaults() -> dict[str, Any]:
+    return asdict(ProteinConfig())
+
+
 def get_session_defaults() -> dict[str, Any]:
     defaults = {
         "rendered_structure": False,
@@ -55,17 +48,13 @@ def get_session_defaults() -> dict[str, Any]:
         "last_file_mime": None,
         "download_filename_input": "molecule",
         "pubchem_data": None,
-        "uploaded_color_template": None,
-        "uploaded_settings_template": None,
-        "custom_color_templates": {},
-        "custom_settings_templates": {},
-        "template_applied_once": False,
+        "custom_atom_schemes": {},
+        "custom_presets": {},
+        "atom_color_choice": "None",
         "structure_type": "3D",
         "manual_generate": False,
         "save_filename": "",
-        "color_template_selector": "None",
-        "tmpl_color_selector": "None",
-        "settings_template_selector": "None",
+        "preset_selector": "None",
         "config_manager_2d": None,
         "config_manager_3d": None,
         "sdf_content": None,
@@ -73,6 +62,7 @@ def get_session_defaults() -> dict[str, Any]:
 
     defaults.update(get_2d_defaults())
     defaults.update(get_3d_defaults())
+    defaults.update(get_protein_defaults())
 
     return defaults
 
@@ -102,10 +92,14 @@ def reset_to_defaults(dimension: str = "all") -> None:
         for key in get_3d_defaults():
             st.session_state.pop(key, None)
 
+    if dimension == "Protein" or dimension == "all":
+        for key in get_protein_defaults():
+            st.session_state.pop(key, None)
+
     if dimension == "all":
-        st.session_state.pop("template_applied_once", None)
-        st.session_state.pop("uploaded_color_template", None)
-        st.session_state.pop("uploaded_settings_template", None)
+        st.session_state.pop("atom_color_choice", None)
+        st.session_state.pop("custom_atom_schemes", None)
+        st.session_state.pop("custom_presets", None)
         st.session_state.config_changed = True
 
     logger.info(f"Reset session state to defaults: {dimension}")
@@ -117,4 +111,6 @@ def get_mode_keys(mode: str) -> set[str]:
         return set(get_2d_defaults().keys())
     elif mode == "3D":
         return set(get_3d_defaults().keys())
+    elif mode == "Protein":
+        return set(get_protein_defaults().keys())
     return set()

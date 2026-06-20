@@ -8,7 +8,6 @@ Usage:
     streamlit run web/app.py
 """
 
-import base64
 import sys
 import tempfile
 import time
@@ -22,12 +21,10 @@ _PROJECT_ROOT = _THIS_DIR.parent
 for p in (_THIS_DIR, _PROJECT_ROOT):
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))
-from rendering.base import render_structure_dynamic
+from rendering.base import encode_image_to_base64, render_structure_dynamic
 from session.state import initialize_session_state
 from ui.components import (
     render_2d_settings,
-    render_3d_settings,
-    render_auto_generate_checkbox,
     render_canvas_settings,
     render_compound_input,
     render_conformer_settings,
@@ -35,8 +32,9 @@ from ui.components import (
     render_generate_button,
     render_lighting_settings,
     render_mode_selector,
+    render_preset_manager,
     render_rendering_settings,
-    render_template_manager,
+    render_rotation_settings,
 )
 from ui.protein_web_component import render_protein_structure
 from wikipedia.boxes import render_wikipedia_metadata_section
@@ -47,30 +45,14 @@ def configure_page() -> None:
     """Configure Streamlit page settings"""
     st.set_page_config(
         page_title="WikiMolGen",
-        page_icon="media/wikimolgen_logo.png",
+        page_icon="media/wikimolgen_logo.svg",
         layout="wide",
         initial_sidebar_state="expanded",
     )
 
 
-def encode_image_to_base64(image_path: Path) -> tuple:
-    """
-    Encode image file to base64 string (same as base_old.py).
-
-    Parameters
-    ----------
-    image_path : Path
-        Path to image file
-
-    Returns
-    -------
-    tuple
-        (base64_string, mime_type)
-    """
-    with open(image_path, "rb") as img_file:
-        img_base64 = base64.b64encode(img_file.read()).decode()
-        mime_type = "png"
-    return img_base64, mime_type
+def _on_auto_change():
+    st.query_params["auto"] = str(st.session_state.auto_generate).lower()
 
 
 def render_sidebar() -> tuple:
@@ -86,8 +68,14 @@ def render_sidebar() -> tuple:
         st.markdown("<div class='sidebar-main-header'>Configuration</div>", unsafe_allow_html=True)
         st.divider()
 
-        # Mode selector at the top
-        structure_type = render_mode_selector()
+        # Mode selector + toggles on one line
+        col_mode, col_auto, col_white = st.columns([2, 1, 1], gap="small")
+        with col_mode:
+            structure_type = render_mode_selector()
+        with col_auto:
+            st.toggle("Auto Orient", value=True, key="auto_generate", on_change=_on_auto_change)
+        with col_white:
+            st.toggle("White", value=False, key="preview_white_bg")
         st.divider()
 
         # Compound/protein input based on mode
@@ -101,8 +89,30 @@ def render_sidebar() -> tuple:
             compound = render_compound_input()
         st.divider()
 
-        # Template management
-        render_template_manager()
+        # Reset settings — below compound input, resets all
+        def _on_reset_all():
+            from session.state import reset_to_defaults
+
+            reset_to_defaults("2D")
+            reset_to_defaults("3D")
+            st.session_state.pop("last_compound_fetched", None)
+            st.session_state.pop("pubchem_data", None)
+            from ui.components import save_config_to_session
+
+            save_config_to_session()
+            st.toast("All settings reset to defaults", icon=":material/check_circle:")
+
+        st.button(
+            "Reset settings",
+            use_container_width=True,
+            key="reset_all_btn",
+            icon=":material/restart_alt:",
+            on_click=_on_reset_all,
+        )
+        st.divider()
+
+        # Preset management
+        render_preset_manager()
         st.divider()
 
         # auto_generate is now a toggle in main content; read from session state
@@ -111,32 +121,16 @@ def render_sidebar() -> tuple:
         # Mode-specific settings + reset button
         protein_inputs = None
         if structure_type == "2D":
+            st.checkbox(
+                "ACS Mode (overrides custom settings)",
+                value=True,
+                key="acs_mode",
+                help="Applies wikipedia compliant settings",
+            )
+            render_rotation_settings("2d")
             render_2d_settings()
-            if st.button(
-                "Reset 2D to defaults",
-                use_container_width=True,
-                key="reset_2d_btn",
-                icon=":material/restart_alt:",
-            ):
-                from session.state import reset_to_defaults
-
-                reset_to_defaults("2D")
-                st.toast("2D settings reset to defaults", icon=":material/check_circle:")
-                st.rerun()
         elif structure_type == "3D":
-            st.markdown("#### **3D Display**", unsafe_allow_html=True)
-            render_3d_settings()
-            if st.button(
-                "Reset 3D to defaults",
-                use_container_width=True,
-                key="reset_3d_btn",
-                icon=":material/restart_alt:",
-            ):
-                from session.state import reset_to_defaults
-
-                reset_to_defaults("3D")
-                st.toast("3D settings reset to defaults", icon=":material/check_circle:")
-                st.rerun()
+            render_rotation_settings("3d")
             with st.expander("3D Settings", expanded=False):
                 render_canvas_settings()
                 render_rendering_settings()
@@ -147,14 +141,57 @@ def render_sidebar() -> tuple:
             from ui.protein_web_component import (
                 render_protein_canvas_settings,
                 render_protein_cartoon_settings,
+                render_protein_effects_settings,
                 render_protein_ligand_settings,
             )
 
-            st.markdown("#### **Protein Display**", unsafe_allow_html=True)
+            with st.expander("Rotation", expanded=True):
+                auto_prot = st.checkbox("Auto-Orient", value=True, key="protein_auto_rot")
+                if not auto_prot:
+                    for axis, key in [("X", "prot_x"), ("Y", "prot_y"), ("Z", "prot_z")]:
+                        col1, col2 = st.columns([3, 1], gap="small")
+                        with col1:
+                            st.slider(
+                                f"{axis}",
+                                -180.0,
+                                180.0,
+                                0.0,
+                                5.0,
+                                key=f"{key}_slider",
+                                on_change=lambda k=key: (
+                                    st.session_state.update(
+                                        {
+                                            k: st.session_state[f"{k}_slider"],
+                                            f"{k}_input": st.session_state[f"{k}_slider"],
+                                        }
+                                    )
+                                    and None
+                                ),
+                            )
+                        with col2:
+                            st.number_input(
+                                "Set",
+                                -180.0,
+                                180.0,
+                                0.0,
+                                5.0,
+                                key=f"{key}_input",
+                                on_change=lambda k=key: (
+                                    st.session_state.update(
+                                        {
+                                            k: st.session_state[f"{k}_input"],
+                                            f"{k}_slider": st.session_state[f"{k}_input"],
+                                        }
+                                    )
+                                    and None
+                                ),
+                            )
             with st.expander("Protein Settings", expanded=False):
+                canvas_cfg = render_protein_canvas_settings()
                 cartoon_cfg = render_protein_cartoon_settings()
                 ligand_cfg = render_protein_ligand_settings()
-                canvas_cfg = render_protein_canvas_settings()
+                effects_cfg = render_protein_effects_settings()
+                canvas_cfg.update(effects_cfg)
             protein_inputs = (pdb_id, cartoon_cfg, ligand_cfg, canvas_cfg)
 
     return compound, structure_type, auto_generate, protein_inputs
@@ -267,11 +304,18 @@ def render_main_content(
 
     # Auto-update toggle and generate button (2D/3D only)
     if structure_type != "Protein":
-        col_btn, col_toggle = st.columns([4, 0.7])
-        with col_btn:
-            render_generate_button(auto_generate)
-        with col_toggle:
-            auto_generate = st.toggle("Auto-update", value=True, key="auto_generate")
+        if st.button(
+            "Generate Now",
+            type="primary",
+            use_container_width=True,
+            disabled=not st.session_state.get("auto_generate", True),
+            key="generate_now_btn",
+        ):
+            st.session_state.manual_generate = True
+
+        auto_generate = st.session_state.get("auto_generate", True)
+
+        wb = " white-bg" if st.session_state.get("preview_white_bg", False) else ""
 
         # Placeholder for the structure image in a fixed container
         preview_placeholder = st.empty()
@@ -295,7 +339,7 @@ def render_main_content(
 
                 with preview_placeholder.container():
                     st.markdown(
-                        f'<div class="compound-preview-container">{image_html}</div>',
+                        f'<div id="preview-wrap" class="compound-preview-container{wb}">{image_html}</div>',
                         unsafe_allow_html=True,
                     )
             elif st.session_state.get("last_image_html"):
@@ -304,13 +348,17 @@ def render_main_content(
                     cached_html = apply_2d_styling_to_image(cached_html)
                 with preview_placeholder.container():
                     st.markdown(
-                        f'<div class="compound-preview-container">{cached_html}</div>',
+                        f'<div id="preview-wrap" class="compound-preview-container{wb}">{cached_html}</div>',
                         unsafe_allow_html=True,
                     )
             else:
                 with preview_placeholder.container():
-                    st.info(
+                    st.markdown(
+                        f'<div id="preview-wrap" class="compound-preview-container{wb}" style="min-height:200px;">'
+                        '<span style="color:var(--text-secondary);font-size:0.9rem;">'
                         "Enter a compound and adjust settings, then click 'Generate Now' or enable auto-update."
+                        "</span></div>",
+                        unsafe_allow_html=True,
                     )
         elif st.session_state.get("last_image_html"):
             cached_html = st.session_state.last_image_html
@@ -319,13 +367,17 @@ def render_main_content(
 
             with preview_placeholder.container():
                 st.markdown(
-                    f'<div class="compound-preview-container">{cached_html}</div>',
+                    f'<div id="preview-wrap" class="compound-preview-container{wb}">{cached_html}</div>',
                     unsafe_allow_html=True,
                 )
         else:
             with preview_placeholder.container():
-                st.info(
+                st.markdown(
+                    f'<div id="preview-wrap" class="compound-preview-container{wb}" style="min-height:200px;">'
+                    '<span style="color:var(--text-secondary);font-size:0.9rem;">'
                     "Enter a compound and adjust settings, then click 'Generate Now' or enable auto-update."
+                    "</span></div>",
+                    unsafe_allow_html=True,
                 )
 
     else:  # structure_type == "Protein"
@@ -341,10 +393,8 @@ def render_main_content(
                     pdb_id, cartoon_cfg, ligand_cfg, canvas_cfg
                 )
 
-            # Show success message and metrics if rendered
+            # Show metrics if rendered
             if st.session_state.get("last_protein_image_html"):
-                st.success(f"Fetched {pdb_id}", icon=":material/check_circle:")
-
                 # Display metrics (data above image)
                 col1, col2, col3, col4 = st.columns(4)
                 if st.session_state.get("last_protein_metadata"):
@@ -405,25 +455,18 @@ def render_download_section() -> None:
             st.session_state.last_file_name = f"{original_base}{file_ext}"
             st.session_state.download_filename_input = original_base
 
-        # Create three columns: download button | filename input | reset button
-        col_download, col_rename, col_reset = st.columns([2, 1, 0.6], gap="small")
+        # Filename input above
+        custom_base_name = st.text_input(
+            "File name",
+            value=st.session_state.download_filename_input,
+            placeholder="Enter filename...",
+            key="download_filename_input",
+        )
+        clean_base = Path(custom_base_name).stem
+        st.session_state.last_file_name = f"{clean_base}{file_ext}"
 
-        with col_reset:
-            st.button(
-                "Reset", use_container_width=True, key="reset_filename_btn", on_click=on_reset
-            )
-
-        with col_rename:
-            custom_base_name = st.text_input(
-                "File name",
-                value=st.session_state.download_filename_input,
-                label_visibility="collapsed",
-                placeholder="Enter filename...",
-                key="download_filename_input",
-            )
-            clean_base = Path(custom_base_name).stem
-            st.session_state.last_file_name = f"{clean_base}{file_ext}"
-
+        # Download + Reset side by side
+        col_download, col_reset = st.columns([3, 1], gap="small")
         with col_download:
             st.download_button(
                 f"Download {file_ext.upper().replace('.', '')}",
@@ -431,6 +474,10 @@ def render_download_section() -> None:
                 file_name=st.session_state.last_file_name,
                 mime=mime_type,
                 use_container_width=True,
+            )
+        with col_reset:
+            st.button(
+                "Reset", use_container_width=True, key="reset_filename_btn", on_click=on_reset
             )
 
 
@@ -456,6 +503,18 @@ def main() -> None:
     """Main application entry point"""
     # Initialize session state
     initialize_session_state()
+
+    # Restore last-used mode from URL query params
+    mode_param = st.query_params.get("mode")
+    if mode_param in ("2D", "3D", "Protein"):
+        st.session_state.mode_selector = mode_param
+        st.session_state.structure_type = mode_param
+        st.session_state._last_active_mode = mode_param
+
+    # Restore auto-update from URL query params
+    auto_param = st.query_params.get("auto")
+    if auto_param is not None:
+        st.session_state.auto_generate = auto_param.lower() == "true"
 
     # Configure page
     configure_page()

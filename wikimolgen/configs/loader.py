@@ -143,6 +143,69 @@ class Config2D:
         self.__init__()
 
 
+# ── Protein Config (single source of truth for all protein keys) ──────────
+
+
+@dataclass
+class ProteinConfig:
+    """Single source of truth for all protein rendering settings."""
+
+    # Color scheme
+    protein_color_scheme: str = "Chain"
+    helix_color: str = "#3399FF"
+    sheet_color: str = "#FFCC00"
+    loop_color: str = "#99AABB"
+    # Cartoon
+    cartoon_transparency: float = 0.0
+    cartoon_fancy: bool = True
+    cartoon_sheets: bool = True
+    # Ligand
+    show_ligand: bool = False
+    show_water: bool = False
+    ligand_style: str = "sticks"
+    ligand_transparency: float = 0.0
+    ligand_color: str = "element"
+    ligand_single_color: str = "#FF6B6B"
+    ligand_stick_radius: float = 0.25
+    ligand_stick_quality: int = 10
+    ligand_ball_ratio: float = 1.5
+    protein_bindsites: bool = True
+    protein_bind_radius: float = 5.0
+    protein_bind_color: str = "yellow"
+    protein_res_labels: bool = False
+    protein_label_size: int = 14
+    # Canvas
+    protein_width: int = 1920
+    protein_height: int = 1080
+    protein_antialias: int = 2
+    protein_specular: int = 1
+    protein_ambient: float = 0.40
+    protein_bg: str = "black"
+    protein_shininess: int = 10
+    protein_ray_shadows: bool = False
+    protein_ray_trace: bool = False
+    protein_auto_rot: bool = True
+    protein_autocrop: bool = True
+    protein_crop_margin: int = 10
+    # Effects
+    protein_direct: float = 0.45
+    protein_reflect: float = 0.45
+    protein_depth_cue: bool = False
+    protein_orthoscopic: bool = False
+    protein_ray_opaque: bool = False
+    protein_zoom_buffer: float = 2.0
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    def update(self, **kwargs) -> None:
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+            else:
+                raise ValueError(f"Unknown protein config parameter: {key}")
+
+
 _BULITIN_TEMPLATES = {
     "publication_2d": {
         "type": "2d",
@@ -224,41 +287,133 @@ _BULITIN_TEMPLATES = {
 # Single source of truth for CPK-style element → color mappings.
 # Used by both 3D rendering and color template loading.
 DEFAULT_ELEMENT_COLORS: dict[str, str] = {
-    "C": "gray35",
+    # Period 1
     "H": "gray85",
+    "D": "#FFFFCC",
+    "T": "#FFFFCC",
+    "He": "cyan",
+    # Period 2
+    "Li": "violet",
+    "Be": "#228B22",
+    "B": "salmon",
+    "C": "gray35",
     "N": "blue",
     "O": "red",
-    "S": "yellow",
-    "P": "orange",
     "F": "palegreen",
-    "Cl": "green",
-    "Br": "firebrick",
-    "I": "purple",
-    "Li": "violet",
+    "Ne": "cyan",
+    # Period 3
     "Na": "slate",
-    "K": "violet",
     "Mg": "forest",
+    "Al": "#808080",
+    "Si": "goldenrod",
+    "P": "orange",
+    "S": "yellow",
+    "Cl": "green",
+    "Ar": "cyan",
+    # Period 4
+    "K": "violet",
     "Ca": "forest",
+    "Sc": "#E8C8A0",
+    "Ti": "gray",
+    "V": "#E8C8A0",
+    "Cr": "gray50",
+    "Mn": "violet",
     "Fe": "darkorange",
+    "Co": "salmon",
+    "Ni": "forest",
     "Cu": "chocolate",
     "Zn": "brown",
-    "Ni": "forest",
-    "Co": "salmon",
-    "Mn": "violet",
-    "Cr": "gray50",
+    "Ga": "#E8C8A0",
+    "Ge": "#E8C8A0",
+    "As": "violet",
+    "Se": "orange",
+    "Br": "firebrick",
+    "Kr": "cyan",
+    # Period 5
+    "Rb": "violet",
+    "Sr": "#228B22",
+    "Y": "#E8C8A0",
+    "Zr": "#E8C8A0",
+    "Nb": "#E8C8A0",
+    "Mo": "#E8C8A0",
+    "Tc": "#E8C8A0",
+    "Ru": "#E8C8A0",
+    "Rh": "#E8C8A0",
     "Pd": "forest",
+    "Ag": "gray70",
+    "Cd": "#E8C8A0",
+    "In": "#E8C8A0",
+    "Sn": "#E8C8A0",
+    "Sb": "#E8C8A0",
+    "Te": "#E8C8A0",
+    "I": "purple",
+    "Xe": "cyan",
+    # Period 6
+    "Cs": "violet",
+    "Ba": "#228B22",
+    "La": "#E8C8A0",
+    "Ce": "#E8C8A0",
+    "Pr": "#E8C8A0",
+    "Nd": "#E8C8A0",
+    "Pm": "#E8C8A0",
+    "Sm": "#E8C8A0",
+    "Eu": "#E8C8A0",
+    "Gd": "#E8C8A0",
+    "Tb": "#E8C8A0",
+    "Dy": "#E8C8A0",
+    "Ho": "#E8C8A0",
+    "Er": "#E8C8A0",
+    "Tm": "#E8C8A0",
+    "Yb": "#E8C8A0",
+    "Lu": "#E8C8A0",
+    "Hf": "#E8C8A0",
+    "Ta": "#E8C8A0",
+    "W": "#E8C8A0",
+    "Re": "#E8C8A0",
+    "Os": "#E8C8A0",
+    "Ir": "#E8C8A0",
     "Pt": "gray50",
     "Au": "gold",
-    "Ag": "gray70",
-    "B": "salmon",
-    "Si": "goldenrod",
-    "Se": "orange",
-    "As": "violet",
-    "He": "cyan",
-    "Ne": "cyan",
-    "Ar": "cyan",
-    "Kr": "cyan",
-    "Xe": "cyan",
+    "Hg": "#E8C8A0",
+    "Tl": "#E8C8A0",
+    "Pb": "#E8C8A0",
+    "Bi": "#E8C8A0",
+    "Po": "#E8C8A0",
+    "At": "#E8C8A0",
+    "Rn": "cyan",
+    # Period 7
+    "Fr": "violet",
+    "Ra": "#228B22",
+    "Ac": "#E8C8A0",
+    "Th": "#E8C8A0",
+    "Pa": "#E8C8A0",
+    "U": "#E8C8A0",
+    "Np": "#E8C8A0",
+    "Pu": "#E8C8A0",
+    "Am": "#E8C8A0",
+    "Cm": "#E8C8A0",
+    "Bk": "#E8C8A0",
+    "Cf": "#E8C8A0",
+    "Es": "#E8C8A0",
+    "Fm": "#E8C8A0",
+    "Md": "#E8C8A0",
+    "No": "#E8C8A0",
+    "Lr": "#E8C8A0",
+    "Rf": "#E8C8A0",
+    "Db": "#E8C8A0",
+    "Sg": "#E8C8A0",
+    "Bh": "#E8C8A0",
+    "Hs": "#E8C8A0",
+    "Mt": "#E8C8A0",
+    "Ds": "#E8C8A0",
+    "Rg": "#E8C8A0",
+    "Cn": "#E8C8A0",
+    "Nh": "#E8C8A0",
+    "Fl": "#E8C8A0",
+    "Mc": "#E8C8A0",
+    "Lv": "#E8C8A0",
+    "Ts": "#E8C8A0",
+    "Og": "cyan",
 }
 
 BULITIN_COLOR_TEMPLATES: dict[str, dict[str, Any]] = {
@@ -436,21 +591,27 @@ COLOR_TEMPLATE_META: dict[str, dict[str, str]] = {
 
 class _TemplateSerializer:
     @staticmethod
-    def template_to_dict(config: Config2D | Config3D, name: str = "custom") -> dict[str, Any]:
+    def template_to_dict(
+        config: Config2D | Config3D | ProteinConfig, name: str = "custom"
+    ) -> dict[str, Any]:
         if isinstance(config, Config2D):
             return {"type": "2d", "name": name, "settings": config.to_dict()}
         elif isinstance(config, Config3D):
             return {"type": "3d", "name": name, "settings": config.to_dict()}
+        elif isinstance(config, ProteinConfig):
+            return {"type": "protein", "name": name, "settings": config.to_dict()}
         raise TypeError(f"Unknown config type: {type(config)}")
 
     @staticmethod
-    def dict_to_config(data: dict[str, Any]) -> Config2D | Config3D:
+    def dict_to_config(data: dict[str, Any]) -> Config2D | Config3D | ProteinConfig:
         config_type = data.get("type", "").lower()
         overrides = data.get("settings", {})
         if config_type == "2d":
             return ConfigLoader.get_2d_config(overrides=overrides)
         elif config_type == "3d":
             return ConfigLoader.get_3d_config(overrides=overrides)
+        elif config_type == "protein":
+            return ConfigLoader.get_protein_config(overrides=overrides)
         raise ValueError(f"Unknown config type: {config_type}")
 
 
@@ -472,7 +633,12 @@ class ConfigLoader:
                 if key.startswith("render_"):
                     render_overrides[key[7:]] = value
                 elif key.startswith("conformer_"):
-                    conformer_overrides[key[10:]] = value
+                    conf_key = key[10:] if key.startswith("conformer_") else key
+                    conformer_overrides[conf_key] = value
+                elif hasattr(cfg.render, key):
+                    render_overrides[key] = value
+                elif hasattr(cfg.conformer, key):
+                    conformer_overrides[key] = value
             if render_overrides:
                 for k, v in render_overrides.items():
                     if hasattr(cfg.render, k):
@@ -481,6 +647,13 @@ class ConfigLoader:
                 for k, v in conformer_overrides.items():
                     if hasattr(cfg.conformer, k):
                         setattr(cfg.conformer, k, v)
+        return cfg
+
+    @staticmethod
+    def get_protein_config(overrides: dict[str, Any] | None = None) -> ProteinConfig:
+        cfg = ProteinConfig()
+        if overrides:
+            cfg.update(**overrides)
         return cfg
 
     @staticmethod

@@ -7,26 +7,14 @@ from pathlib import Path
 from typing import Any
 
 import streamlit as st
-from template.utils import apply_templates_to_generator
 
-from wikimolgen.configs import Config2D, Config3D, RenderConfig3D
+from wikimolgen.configs import Config2D, Config3D, ConformerConfig, RenderConfig3D
 from wikimolgen.rendering.wikimol2d import MoleculeGenerator2D
 from wikimolgen.rendering.wikimol3d import MoleculeGenerator3D
 
 logger = logging.getLogger(__name__)
 
-_CONFORMER_SESSION_KEYS = [
-    "num_conformers",
-    "use_random_coords",
-    "clear_confs",
-    "use_basic_knowledge",
-    "enforce_chirality",
-    "use_small_ring_torsions",
-    "use_macrocycle_torsions",
-    "use_exp_torsion_prefs",
-    "max_iterations",
-    "prune_rms_thresh",
-]
+_CONFORMER_SESSION_KEYS = [f.name for f in dataclasses.fields(ConformerConfig)]
 
 
 def _build_from_dataclass(dc: type, session_prefix: str = "") -> dict[str, Any]:
@@ -77,8 +65,6 @@ def build_3d_config() -> dict[str, Any]:
 def generate_dynamic_filename(
     compound: str, structure_type: str, file_extension: str = None
 ) -> str:
-    compound.replace("@", "at").replace("/", "sl").replace("\\", "bs").replace("#", "hash")
-
     safe_compound = "".join(c for c in compound if c.isalnum() or c in ("-", "_", " ")).strip()
 
     if len(safe_compound) > 30:
@@ -126,8 +112,6 @@ def render_structure_2d(compound: str, structure_type: str) -> str | None:
             output_base = Path(tmpdir) / generate_dynamic_filename(compound, "2D")
             config = build_2d_config()
             gen = MoleculeGenerator2D(compound, **config)
-
-            apply_templates_to_generator(gen, "2D")
             output_path = gen.draw(str(output_base.with_suffix(".svg")))
 
             if output_path and Path(output_path).exists():
@@ -169,8 +153,6 @@ def render_structure_3d(compound: str, structure_type: str) -> str | None:
 
             gen = MoleculeGenerator3D(compound)
             render_config = build_3d_config()
-
-            apply_templates_to_generator(gen, "3D")
 
             gen.configure_rendering(**render_config)
 

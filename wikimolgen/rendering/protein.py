@@ -41,11 +41,6 @@ def hex_to_rgb(hex_color: str) -> tuple[float, float, float]:
 from wikimolgen.rendering.utils import autocrop_image
 
 
-def initialize_pymol():
-    """No-op: PyMOL is now initialized per-call via pymol2.PyMOL() context manager."""
-    pass
-
-
 class ProteinVisualizationError(Exception):
     """Raised when protein visualization fails."""
 
@@ -111,9 +106,23 @@ class CartoonRenderConfig:
     auto_orient: bool = True
     zoom_buffer: float = 2.0
 
+    # Manual rotation (applied after auto_orient if auto_orient is False)
+    x_rotation: float = 0.0
+    y_rotation: float = 0.0
+    z_rotation: float = 0.0
+
     # Autocrop settings
     autocrop: bool = True
     crop_margin: int = 10
+
+    # Additional lighting
+    direct: float = 0.45
+    reflect: float = 0.45
+
+    # Effects
+    depth_cue: int = 0
+    ray_opaque_background: int = 1
+    orthoscopic: int = 0
 
 
 @dataclass
@@ -387,6 +396,11 @@ class ProteinGenerator:
                 cmd.set("specular", self.cartoon_config.specular)
                 cmd.set("shininess", self.cartoon_config.shininess)
                 cmd.set("ray_shadows", self.cartoon_config.ray_shadows)
+                cmd.set("direct", self.cartoon_config.direct)
+                cmd.set("reflect", self.cartoon_config.reflect)
+                cmd.set("depth_cue", self.cartoon_config.depth_cue)
+                cmd.set("ray_opaque_background", self.cartoon_config.ray_opaque_background)
+                cmd.set("orthoscopic", self.cartoon_config.orthoscopic)
                 cmd.bg_color(self.cartoon_config.bg_color)
 
                 # Show ligand
@@ -402,6 +416,8 @@ class ProteinGenerator:
                         cmd.util.cbc("organic")
                     cmd.set("stick_transparency", self.ligand_config.ligand_transparency, "organic")
                     cmd.set("stick_radius", self.ligand_config.stick_radius, "organic")
+                    cmd.set("stick_quality", self.ligand_config.stick_quality)
+                    cmd.set("stick_ball_ratio", self.ligand_config.stick_ball_ratio)
 
                 # Show water
                 if show_water and self.metadata.has_water:
@@ -413,6 +429,17 @@ class ProteinGenerator:
                 if self.cartoon_config.auto_orient:
                     cmd.orient("all")
                     cmd.zoom("all", buffer=self.cartoon_config.zoom_buffer)
+                else:
+                    # Manual rotation
+                    rx = self.cartoon_config.x_rotation
+                    ry = self.cartoon_config.y_rotation
+                    rz = self.cartoon_config.z_rotation
+                    if rx:
+                        cmd.rotate("x", rx, "all")
+                    if ry:
+                        cmd.rotate("y", ry, "all")
+                    if rz:
+                        cmd.rotate("z", rz, "all")
 
                 # Ray trace and render
                 if self.cartoon_config.ray_trace_mode > 0:

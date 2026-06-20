@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 SPARQL_ENDPOINT = "https://query.wikidata.org/sparql"
 
 _WIKIDATA_QUERY = """\
-SELECT ?compound ?qid ?wikipedia ?chembl_id ?chebi_id ?drugbank_id ?kegg_id ?cas_number WHERE {{
+SELECT ?compound ?qid ?wikipedia ?chembl_id ?chebi_id ?drugbank_id ?kegg_id ?cas_number ?chemspider_id ?unii ?medlineplus ?iuphar_ligand ?pdb_ligand ?niaid_chemdb ?mesh_id ?inn WHERE {{
   ?compound wdt:P662 "{cid}" .
   BIND(STRAFTER(STR(?compound), "http://www.wikidata.org/entity/") AS ?qid)
   OPTIONAL {{
@@ -33,6 +33,14 @@ SELECT ?compound ?qid ?wikipedia ?chembl_id ?chebi_id ?drugbank_id ?kegg_id ?cas
   OPTIONAL {{ ?compound wdt:P715 ?drugbank_id . }}
   OPTIONAL {{ ?compound wdt:P685 ?kegg_id . }}
   OPTIONAL {{ ?compound wdt:P231 ?cas_number . }}
+  OPTIONAL {{ ?compound wdt:P661 ?chemspider_id . }}
+  OPTIONAL {{ ?compound wdt:P652 ?unii . }}
+  OPTIONAL {{ ?compound wdt:P604 ?medlineplus . }}
+  OPTIONAL {{ ?compound wdt:P595 ?iuphar_ligand . }}
+  OPTIONAL {{ ?compound wdt:P638 ?pdb_ligand . }}
+  OPTIONAL {{ ?compound wdt:P2036 ?niaid_chemdb . }}
+  OPTIONAL {{ ?compound wdt:P486 ?mesh_id . }}
+  OPTIONAL {{ ?compound wdt:P2768 ?inn . }}
 }}
 LIMIT 1
 """
@@ -52,7 +60,10 @@ def query_wikidata(pubchem_cid: int | str, timeout: float = 30) -> dict[str, Any
     -------
     dict
         Keys: ``qid``, ``wikipedia_title``, ``chembl_id``,
-        ``chebi_id``, ``drugbank_id``, ``kegg_id``, ``cas_number``.
+        ``chebi_id``, ``drugbank_id``, ``kegg_id``, ``cas_number``,
+        ``chemspider_id``, ``unii``, ``medlineplus``,
+        ``iuphar_ligand``, ``pdb_ligand``, ``niaid_chemdb``,
+        ``mesh_id``, ``inn``.
         Each value is a string or ``None``.
 
     Raises
@@ -96,6 +107,14 @@ def query_wikidata(pubchem_cid: int | str, timeout: float = 30) -> dict[str, Any
         "drugbank_id": "drugbank_id",
         "kegg_id": "kegg_id",
         "cas_number": "cas_number",
+        "chemspider_id": "chemspider_id",
+        "unii": "unii",
+        "medlineplus": "medlineplus",
+        "iuphar_ligand": "iuphar_ligand",
+        "pdb_ligand": "pdb_ligand",
+        "niaid_chemdb": "niaid_chemdb",
+        "mesh_id": "mesh_id",
+        "inn": "inn",
     }
     for sparq_key, dict_key in field_map.items():
         val = row.get(sparq_key, {}).get("value")
