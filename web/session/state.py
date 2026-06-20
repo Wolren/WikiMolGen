@@ -1,10 +1,10 @@
 import logging
-from dataclasses import asdict, fields
-from typing import Any, Literal
+from dataclasses import asdict
+from typing import Any
 
 import streamlit as st
 
-from wikimolgen.configs import ConfigLoader, ConformerConfig, ProteinConfig
+from wikimolgen.configs import ConfigLoader, ProteinConfig
 
 logger = logging.getLogger(__name__)
 
@@ -14,17 +14,11 @@ def get_2d_defaults() -> dict[str, Any]:
     return cfg.to_dict()
 
 
-_WIDGET_MANAGED_KEYS = {f.name for f in fields(ConformerConfig)}
-
-
 def get_3d_defaults() -> dict[str, Any]:
     cfg = ConfigLoader.get_3d_config()
     d = asdict(cfg.render) if hasattr(cfg, "render") else {}
     conf = asdict(cfg.conformer) if hasattr(cfg, "conformer") else {}
-    # Override render defaults with conformer defaults for widget-managed keys
-    for k in _WIDGET_MANAGED_KEYS:
-        if k in conf:
-            d[k] = conf[k]
+    d.update(conf)
     d["ray_shadows"] = bool(getattr(cfg.render, "ray_shadows", 0))
     d["depth_cue"] = bool(getattr(cfg.render, "depth_cue", 0))
     d["ambient_occlusion"] = bool(getattr(cfg.render, "ambient_occlusion", False))

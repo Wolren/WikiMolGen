@@ -12,7 +12,28 @@ from rendering.atom_colors import apply_scheme_to_session, get_scheme_choices
 from template.utils import export_current_as_preset
 from ui.icons import header
 
-from wikimolgen.configs import ConfigLoader
+from wikimolgen.configs import Config3D, ConfigLoader
+
+
+def _apply_settings_to_session(settings: dict) -> None:
+    """Apply a settings dict to session state, handling prefixes and type conversions.
+
+    Strips ``render_`` / ``conformer_`` prefixes and converts int→bool
+    when the session stores a bool.
+    """
+    for key, value in settings.items():
+        clean_key = key
+        if clean_key.startswith("render_"):
+            clean_key = clean_key[7:]
+        elif clean_key.startswith("conformer_"):
+            clean_key = clean_key[10:]
+
+        if clean_key not in st.session_state:
+            continue
+        current = st.session_state[clean_key]
+        if isinstance(current, bool) and isinstance(value, int):
+            value = bool(value)
+        st.session_state[clean_key] = value
 
 
 # ============================================================================
@@ -150,10 +171,11 @@ def render_preset_manager() -> None:
 
         with tab2:
             st.markdown("**Upload Preset (JSON)**")
+            upload_key = f"preset_uploader_{st.session_state.get('_upload_counter', 0)}"
             uploaded = st.file_uploader(
                 "Upload Preset",
                 type=["json"],
-                key="preset_uploader",
+                key=upload_key,
                 label_visibility="collapsed",
             )
 
@@ -166,16 +188,15 @@ def render_preset_manager() -> None:
                         st.session_state.custom_presets = {}
                     st.session_state.custom_presets[name] = data
 
-                    for key, value in data.get("settings", {}).items():
-                        if key in st.session_state:
-                            st.session_state[key] = value
+                    _apply_settings_to_session(data.get("settings", data))
 
-                    save_config_to_session()
-
-                    st.success(f"Loaded & saved: {name}", icon=":material/check_circle:")
-                    st.info(
-                        "Now available in 'Predefined' tab dropdown", icon=":material/lightbulb:"
+                    st.session_state.preset_selector = name
+                    st.session_state._upload_counter = (
+                        st.session_state.get("_upload_counter", 0) + 1
                     )
+                    save_config_to_session()
+                    st.toast(f"Loaded: {name}", icon=":material/tune:")
+                    st.rerun()
                 except Exception as e:
                     st.error(f"Error: {e}")
 
@@ -209,16 +230,19 @@ def _apply_preset_now(choice: str) -> None:
     """Apply a preset (built-in or custom) to session state immediately."""
     if choice in st.session_state.get("custom_presets", {}):
         data = st.session_state.custom_presets[choice]
+        settings = data.get("settings", data)
     else:
         try:
             config = ConfigLoader.load_template(choice)
-            data = config.to_dict() if hasattr(config, "to_dict") else {}
-            data = {"settings": data}
+            if isinstance(config, Config3D):
+                settings = {}
+                settings.update(config.render.__dict__)
+                settings.update(config.conformer.__dict__)
+            else:
+                settings = config.to_dict() if hasattr(config, "to_dict") else {}
         except Exception:
             return
-    for key, value in data.get("settings", {}).items():
-        if key in st.session_state:
-            st.session_state[key] = value
+    _apply_settings_to_session(settings)
 
 
 def _on_mode_change() -> None:
@@ -433,6 +457,51 @@ def render_2d_settings() -> None:
                 fixed_font_size = _s2(
                     "Fixed font size (-1 = auto)", -1, 60, -1, 1, key="fixed_font_size"
                 )
+
+        with st.expander("Legend & Highlights", expanded=False):
+            st.markdown("**Compound Legend**")
+            legend_text = st.text_input(
+                "Legend text (shown below structure)",
+                value=st.session_state.get("legend", ""),
+                key="legend_input",
+                placeholder="e.g. Compound name",
+            )
+            if legend_text != st.session_state.get("legend", ""):
+                st.session_state.legend = legend_text
+                save_config_to_session("2d")
+
+            st.markdown("**Atom / Bond Highlighting**")
+            col1, col2 = st.columns(2)
+            with col1:
+                highlight_atoms = st.text_input(
+                    "Highlight atoms (comma-separated indices)",
+                    value=st.session_state.get("highlight_atoms", ""),
+                    key="highlight_atoms_input",
+                    placeholder="e.g. 0,3,5,7",
+                )
+                if highlight_atoms != st.session_state.get("highlight_atoms", ""):
+                    st.session_state.highlight_atoms = highlight_atoms
+                    save_config_to_session("2d")
+
+            with col2:
+                highlight_bonds = st.text_input(
+                    "Highlight bonds (comma-separated indices)",
+                    value=st.session_state.get("highlight_bonds", ""),
+                    key="highlight_bonds_input",
+                    placeholder="e.g. 1,2",
+                )
+                if highlight_bonds != st.session_state.get("highlight_bonds", ""):
+                    st.session_state.highlight_bonds = highlight_bonds
+                    save_config_to_session("2d")
+
+            highlight_color = st.color_picker(
+                "Highlight color",
+                value=st.session_state.get("highlight_color", "#FF8888"),
+                key="highlight_color_picker",
+            )
+            if highlight_color != st.session_state.get("highlight_color", ""):
+                st.session_state.highlight_color = highlight_color
+                save_config_to_session("2d")
 
 
 def render_canvas_settings() -> None:
@@ -751,7 +820,7 @@ def render_generate_button(auto_generate: bool) -> bool:
 
 
 def render_3d_preview(compound: str = "") -> None:
-    """Interactive 3Dmol.js preview in sidebar — drag to rotate, click Apply to send to render."""
+    """Interactive 3Dmol.js preview — drag to orbit, scroll to zoom."""
     sdf_content = st.session_state.get("sdf_content")
     if not sdf_content:
         if not compound:
@@ -802,13 +871,6 @@ def render_3d_preview(compound: str = "") -> None:
   * {{ margin:0; padding:0; box-sizing:border-box; }}
   body, #mol-container {{ background:transparent !important; }}
   #mol-container {{ width:100%; height:340px; }}
-  #toolbar {{ text-align:center; padding:4px; }}
-  #toolbar button {{
-    background:#4a5568; color:#fff; border:none; padding:6px 12px;
-    border-radius:4px; cursor:pointer; font-size:12px;
-  }}
-  #toolbar button:hover {{ background:#2d3748; }}
-  #copy-status {{ font-size:11px; margin-left:6px; color:#48bb78; }}
 </style></head><body>
 <div id="mol-container"></div>
 
@@ -833,8 +895,6 @@ viewer.render();
 </script></body></html>"""
 
     st.components.v1.html(html, height=400)
-
-    st.caption("Drag to orbit, scroll to zoom.")
 
 
 def _cache_3d_preview_sdf(compound: str) -> None:

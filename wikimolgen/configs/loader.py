@@ -128,6 +128,10 @@ class Config2D:
     dots_per_angstrom: int = 100
     font_size_scale: float = 1.0
     svg_min_display_size: int = 600
+    legend: str = ""
+    highlight_atoms: str = ""
+    highlight_bonds: str = ""
+    highlight_color: str = "#FF8888"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

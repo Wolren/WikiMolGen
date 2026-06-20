@@ -27,6 +27,31 @@ from wikimolgen.rendering.optimization import (
 from wikimolgen.rendering.utils import load_color_config, resolve_settings_template
 
 
+def _parse_indices(raw: str) -> list[int] | None:
+    """Parse comma-separated indices string into int list."""
+    if not raw or not raw.strip():
+        return None
+    try:
+        return [int(x.strip()) for x in raw.split(",") if x.strip()]
+    except ValueError:
+        return None
+
+
+def _make_highlight_colors(config: Config2D) -> dict[int, tuple[float, float, float]] | None:
+    """Build highlightAtomColors dict from config."""
+    atoms = _parse_indices(config.highlight_atoms)
+    if not atoms or not config.highlight_color:
+        return None
+    raw = config.highlight_color.lstrip("#")
+    if len(raw) != 6:
+        return None
+    try:
+        rgb = tuple(int(raw[i : i + 2], 16) / 255.0 for i in (0, 2, 4))
+    except ValueError:
+        return None
+    return {a: rgb for a in atoms}
+
+
 class MoleculeGenerator2D:
     """
     Generate 2D molecular structure diagrams with config-driven rendering.
@@ -248,7 +273,14 @@ class MoleculeGenerator2D:
             if self.config.fixed_font_size > 0:
                 opts.fixedFontSize = self.config.fixed_font_size
 
-        rdMolDraw2D.PrepareAndDrawMolecule(drawer, self.mol)
+        rdMolDraw2D.PrepareAndDrawMolecule(
+            drawer,
+            self.mol,
+            legend=self.config.legend if self.config.legend else "",
+            highlightAtoms=_parse_indices(self.config.highlight_atoms) or None,
+            highlightBonds=_parse_indices(self.config.highlight_bonds) or None,
+            highlightAtomColors=_make_highlight_colors(self.config),
+        )
         drawer.FinishDrawing()
 
         svg = drawer.GetDrawingText()
