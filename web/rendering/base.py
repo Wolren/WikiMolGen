@@ -153,6 +153,41 @@ def render_structure_2d(compound: str, structure_type: str) -> str | None:
 
 def render_structure_3d(compound: str, structure_type: str) -> str | None:
     try:
+        render_config = build_3d_config()
+        sdf_content = st.session_state.get("sdf_content")
+        same_compound = st.session_state.get("last_compound") == compound
+
+        # Only use fast path when conformer settings are at their default values.
+        # If the user changed any conformer setting, we must regenerate.
+        proto = ConformerConfig()
+        conformer_changed = any(
+            st.session_state.get(f.name, getattr(proto, f.name)) != getattr(proto, f.name)
+            for f in dataclasses.fields(ConformerConfig)
+        )
+
+        if same_compound and sdf_content and not conformer_changed:
+            gen = MoleculeGenerator3D(compound)
+            gen.configure_rendering(**render_config)
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                output_base = Path(tmpdir) / generate_dynamic_filename(compound, "3D")
+                png_path = gen.render_only(sdf_content, str(output_base.with_suffix(".png")))
+
+                if png_path and Path(png_path).exists():
+                    img_base64, mime_type = encode_image_to_base64(Path(png_path))
+                    image_html = (
+                        f'<img src="data:image/{mime_type};base64,{img_base64}" '
+                        f'data-type="{structure_type}" class="compound-preview-image" />'
+                    )
+                    with open(png_path, "rb") as f:
+                        file_data = f.read()
+                    filename = generate_dynamic_filename(compound, "3D")
+                    _store_result_in_session(
+                        image_html, compound, file_data, filename, f"image/{mime_type}"
+                    )
+                    return image_html
+            return None
+
         with tempfile.TemporaryDirectory() as tmpdir:
             output_base = Path(tmpdir) / generate_dynamic_filename(compound, "3D")
 

@@ -113,6 +113,9 @@ class MoleculeGenerator3D:
         """
         Initialize 3D molecule generator with config-driven setup.
 
+        PubChem fetch is deferred until ``generate()`` is called, so
+        ``render_only()`` (which parses SDF directly) never hits the network.
+
         Parameters
         ----------
         identifier : str
@@ -125,9 +128,10 @@ class MoleculeGenerator3D:
             Additional configuration parameters
         """
         self.identifier = identifier
-        self.smiles, self.compound_name = fetch_compound(identifier)
-        self.mol = validate_smiles(self.smiles)
-        self.mol = Chem.AddHs(self.mol)
+        self.smiles = ""
+        self.compound_name = ""
+        self.mol: Chem.Mol | None = None
+        self._fetched = False
 
         self.random_seed = random_seed
         self.energy: float | None = None
@@ -140,6 +144,15 @@ class MoleculeGenerator3D:
                 self.config = ConfigLoader.get_3d_config()
         else:
             self.config = config
+
+    def _ensure_fetched(self) -> None:
+        """Lazily fetch compound data from PubChem on first use."""
+        if self._fetched:
+            return
+        self.smiles, self.compound_name = fetch_compound(self.identifier)
+        self.mol = validate_smiles(self.smiles)
+        self.mol = Chem.AddHs(self.mol)
+        self._fetched = True
 
     def _embed_conformer(self) -> None:
         """Generate 3D conformer using ETKDG with configurable parameters."""
@@ -422,6 +435,8 @@ class MoleculeGenerator3D:
                 else "molecule_3d"
             )
 
+        self._ensure_fetched()
+
         # Generate conformer
         self._embed_conformer()
 
@@ -452,6 +467,35 @@ class MoleculeGenerator3D:
                 print(f" Dimensions: {self.config.render.width}×{self.config.render.height} px")
 
         return sdf_path, png_path
+
+    def render_only(self, sdf_content: str, output: str) -> Path:
+        """Render molecule from cached SDF, skipping conformer generation.
+
+        Parses the SDF content into an RDKit Mol (fast) and runs the full
+        PyMOL rendering pipeline with the current config.  Useful when only
+        view parameters (rotation, zoom, etc.) changed.
+
+        Parameters
+        ----------
+        sdf_content : str
+            Cached SDF block from a previous ``generate()`` call
+        output : str
+            Output PNG filename
+
+        Returns
+        -------
+        Path
+            Path to the rendered PNG file
+        """
+        import tempfile
+
+        self.mol = Chem.MolFromMolBlock(sdf_content, removeHs=False)
+        if self.mol is None:
+            raise ValueError("Failed to parse cached SDF")
+
+        sdf_path = Path(tempfile.mktemp(suffix=".sdf"))
+        sdf_path.write_text(sdf_content)
+        return self._render_pymol(sdf_path, output)
 
     def configure_rendering(self, **kwargs) -> None:
         """
