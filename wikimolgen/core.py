@@ -75,10 +75,12 @@ def fetch_compound(identifier: str) -> tuple[str, str]:
             compound = compounds[0]
             smiles = getattr(compound, "smiles", None) or compound.canonical_smiles
             return smiles, compound.iupac_name or identifier
-    except Exception:
-        pass  # Not a valid compound name, continue to SMILES check
+    except Exception as e:
+        logger.debug("Compound name lookup failed for '%s': %s", identifier, e)
 
     # Strategy 3: Try as direct SMILES string
+    if len(identifier) > 5000:
+        raise CompoundFetchError("SMILES string exceeds maximum length (5000 chars)")
     mol = Chem.MolFromSmiles(identifier)
     if mol is not None:
         return identifier, "custom_smiles"

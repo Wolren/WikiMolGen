@@ -6,34 +6,32 @@ web/ui/components.py
 import json
 import logging
 from datetime import datetime
+from typing import Any
 
 import streamlit as st
 from rendering.atom_colors import apply_scheme_to_session, get_scheme_choices
-from template.utils import export_current_as_preset
+from template.utils import MAX_UPLOAD_SIZE, apply_preset_to_session, export_current_as_preset
+
 from ui.icons import header
 
 from wikimolgen.configs import Config3D, ConfigLoader
 
 
-def _apply_settings_to_session(settings: dict) -> None:
-    """Apply a settings dict to session state, handling prefixes and type conversions.
-
-    Strips ``render_`` / ``conformer_`` prefixes and converts int→bool
-    when the session stores a bool.
-    """
-    for key, value in settings.items():
-        clean_key = key
-        if clean_key.startswith("render_"):
-            clean_key = clean_key[7:]
-        elif clean_key.startswith("conformer_"):
-            clean_key = clean_key[10:]
-
-        if clean_key not in st.session_state:
-            continue
-        current = st.session_state[clean_key]
-        if isinstance(current, bool) and isinstance(value, int):
-            value = bool(value)
-        st.session_state[clean_key] = value
+def _validate_atom_scheme(data: dict) -> str | None:
+    """Validate uploaded scheme data, return error message or ``None`` on success."""
+    ec = data.get("element_colors")
+    if ec is not None:
+        if not isinstance(ec, dict):
+            return "element_colors must be an object (dict)"
+        for k, v in ec.items():
+            if not isinstance(k, str) or not k.isascii() or len(k) > 2:
+                return f"Invalid element symbol: {k!r}"
+            if not isinstance(v, str):
+                return f"Color for element {k!r} must be a string"
+    name = data.get("name")
+    if name is not None and (not isinstance(name, str) or len(name) > 100):
+        return "Scheme name must be a string under 100 characters"
+    return None
 
 
 # ============================================================================
@@ -59,25 +57,25 @@ def _sync_number_input(key: str) -> None:
 # ============================================================================
 # WIDGET FACTORY (Auto-save wrapper helpers)
 # ============================================================================
-def _s(dim: str, *a, **kw):
+def _s(dim: str, *a: Any, **kw: Any) -> Any:
     v = st.slider(*a, **kw)
     save_config_to_session(dim)
     return v
 
 
-def _cb(dim: str, *a, **kw):
+def _cb(dim: str, *a: Any, **kw: Any) -> Any:
     v = st.checkbox(*a, **kw)
     save_config_to_session(dim)
     return v
 
 
-def _ni(dim: str, *a, **kw):
+def _ni(dim: str, *a: Any, **kw: Any) -> Any:
     v = st.number_input(*a, **kw)
     save_config_to_session(dim)
     return v
 
 
-def _sb(dim: str, *a, **kw):
+def _sb(dim: str, *a: Any, **kw: Any) -> Any:
     v = st.selectbox(*a, **kw)
     save_config_to_session(dim)
     return v
@@ -125,11 +123,13 @@ def save_config_to_session(dimension: str = "2d") -> None:
 
 def render_compound_input() -> str:
     """Render compound input field."""
-    return st.text_input(
+    raw = st.text_input(
         "Name/CID/SMILES",
         "",
+        max_chars=1000,
         placeholder="e.g. aspirin, 2244, CC(=O)Oc1ccccc1C(=O)O",
-    ).strip()
+    )
+    return "".join(c for c in raw if c.isprintable()).strip()
 
 
 def render_preset_manager() -> None:
@@ -186,14 +186,18 @@ def render_preset_manager() -> None:
 
             if uploaded:
                 try:
-                    data = json.load(uploaded)
+                    raw = uploaded.read()
+                    if len(raw) > MAX_UPLOAD_SIZE:
+                        st.error(f"File too large ({len(raw) / 1024:.0f} KB). Maximum: 1 MB.")
+                        st.stop()
+                    data = json.loads(raw)
                     name = data.get("name", f"Custom_{datetime.now().strftime('%H%M%S')}")
 
                     if "custom_presets" not in st.session_state:
                         st.session_state.custom_presets = {}
                     st.session_state.custom_presets[name] = data
 
-                    _apply_settings_to_session(data.get("settings", data))
+                    apply_preset_to_session(data.get("settings", data))
 
                     st.session_state._pending_preset_name = name
                     st.session_state._upload_counter = (
@@ -215,6 +219,7 @@ def render_preset_manager() -> None:
                     "save_filename", f"{gen_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
                 ),
                 help="Enter desired filename (without .json extension)",
+                max_chars=200,
                 key="save_filename",
             )
 
@@ -248,7 +253,7 @@ def _apply_preset_now(choice: str) -> None:
                 settings = config.to_dict() if hasattr(config, "to_dict") else {}
         except Exception:
             return
-    _apply_settings_to_session(settings)
+    apply_preset_to_session(settings)
 
 
 def _on_mode_change() -> None:
@@ -469,6 +474,7 @@ def render_2d_settings() -> None:
             legend_text = st.text_input(
                 "Legend text (shown below structure)",
                 value=st.session_state.get("legend", ""),
+                max_chars=200,
                 key="legend_input",
                 placeholder="e.g. Compound name",
             )
@@ -482,6 +488,7 @@ def render_2d_settings() -> None:
                 highlight_atoms = st.text_input(
                     "Highlight atoms (comma-separated indices)",
                     value=st.session_state.get("highlight_atoms", ""),
+                    max_chars=200,
                     key="highlight_atoms_input",
                     placeholder="e.g. 0,3,5,7",
                 )
@@ -493,6 +500,7 @@ def render_2d_settings() -> None:
                 highlight_bonds = st.text_input(
                     "Highlight bonds (comma-separated indices)",
                     value=st.session_state.get("highlight_bonds", ""),
+                    max_chars=200,
                     key="highlight_bonds_input",
                     placeholder="e.g. 1,2",
                 )
@@ -609,18 +617,28 @@ def render_rendering_settings() -> None:
             )
             if uploaded:
                 try:
-                    data = json.load(uploaded)
-                    name = data.get("name", f"Custom_{datetime.now().strftime('%H%M%S')}")
-                    if "custom_atom_schemes" not in st.session_state:
-                        st.session_state.custom_atom_schemes = {}
-                    st.session_state.custom_atom_schemes[name] = data
-                    apply_scheme_to_session(name)
-                    st.success(f"Applied custom scheme: {name}", icon=":material/check_circle:")
+                    raw = uploaded.read()
+                    if len(raw) > MAX_UPLOAD_SIZE:
+                        st.error(f"File too large ({len(raw) / 1024:.0f} KB). Maximum: 1 MB.")
+                    else:
+                        data = json.loads(raw)
+                        err = _validate_atom_scheme(data)
+                        if err:
+                            st.error(f"Invalid scheme: {err}")
+                        else:
+                            name = data.get("name", f"Custom_{datetime.now().strftime('%H%M%S')}")
+                            if "custom_atom_schemes" not in st.session_state:
+                                st.session_state.custom_atom_schemes = {}
+                            st.session_state.custom_atom_schemes[name] = data
+                            apply_scheme_to_session(name)
+                            st.success(
+                                f"Applied custom scheme: {name}", icon=":material/check_circle:"
+                            )
                 except Exception as e:
-                    st.error(f"Error: {e}")
+                    st.error(f"Invalid JSON: {e}")
 
         st.markdown("**Manual Overrides**")
-        stick_color = st.text_input("Stick Color", value="gray50", key="stick_color")
+        stick_color = st.text_input("Stick Color", value="gray50", max_chars=20, key="stick_color")
         save_config_to_session("3d")
 
         st.markdown("**Lighting Mode**")
@@ -868,7 +886,7 @@ def render_3d_preview(compound: str = "") -> None:
                 spec["color"] = c
 
     style_json = json.dumps(style)
-    sdf_escaped = sdf_content.replace("\\", "\\\\").replace("`", "\\`").replace("${", "\\${")
+    sdf_json = json.dumps(sdf_content)
 
     transparent_bg = bg_color == "transparent"
 
@@ -880,11 +898,11 @@ def render_3d_preview(compound: str = "") -> None:
 </style></head><body>
 <div id="mol-container"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/3dmol@2.5.5/build/3Dmol-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/3dmol@2.5.5/build/3Dmol-min.js" integrity="sha384-OsczYbldvrHgslr9fFp/i4GiLSeuw9l+QIlv99ITw8soOwXcoGeflFMLg+CU/X1d" crossorigin="anonymous"></script>
 <script>
 var viewer=$3Dmol.createViewer(document.getElementById("mol-container"),{{backgroundColor:"white"}});
 {"viewer.setBackgroundColor(0xffffff,0);" if transparent_bg else ""}
-viewer.addModel(`{sdf_escaped}`,"sdf");
+viewer.addModel({sdf_json},"sdf");
 viewer.setStyle({style_json});
 viewer.zoomTo();
 viewer.render();

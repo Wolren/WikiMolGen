@@ -28,11 +28,9 @@ ForceFieldType = Literal["MMFF94", "UFF"]
 def color_name_to_rgb(color_name: str) -> tuple:
     """Convert color name or hex code to RGB tuple for PyMOL."""
     if color_name.startswith("#"):
-        h = color_name.lstrip("#")
-        if len(h) == 3:
-            h = "".join(c * 2 for c in h)
-        r, g, b = (int(h[i : i + 2], 16) / 255.0 for i in (0, 2, 4))
-        return (r, g, b)
+        from wikimolgen.rendering.utils import hex_to_rgb
+
+        return hex_to_rgb(color_name)
     color_map = {
         # Grays
         "gray10": (0.10, 0.10, 0.10),
@@ -488,14 +486,16 @@ class MoleculeGenerator3D:
             Path to the rendered PNG file
         """
         import tempfile
+        from pathlib import Path
 
         self.mol = Chem.MolFromMolBlock(sdf_content, removeHs=False)
         if self.mol is None:
             raise ValueError("Failed to parse cached SDF")
 
-        sdf_path = Path(tempfile.mktemp(suffix=".sdf"))
-        sdf_path.write_text(sdf_content)
-        return self._render_pymol(sdf_path, output)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            sdf_path = Path(tmpdir) / "cached.sdf"
+            sdf_path.write_text(sdf_content)
+            return self._render_pymol(sdf_path, output)
 
     def configure_rendering(self, **kwargs) -> None:
         """

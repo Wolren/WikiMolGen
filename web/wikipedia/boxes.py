@@ -120,6 +120,7 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
             st.text_input(
                 "Author",
                 placeholder="Your username",
+                max_chars=100,
                 key="commons_author",
             )
         with col2:
@@ -140,6 +141,7 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
                 st.text_input(
                     "Custom license template",
                     value="{{Self|cc-by-sa-4.0}}",
+                    max_chars=200,
                     key="commons_custom_license",
                 )
 
@@ -151,11 +153,7 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
         if license_wp:
             upload_url += f"&wpLicense={quote(license_wp)}"
 
-        st.markdown(
-            f'<a href="{upload_url}" target="_blank" class="commons-upload-btn">'
-            f"Upload to Wikimedia Commons</a>",
-            unsafe_allow_html=True,
-        )
+        st.link_button("Upload to Wikimedia Commons", upload_url, type="secondary")
 
     with tab2:
         cid = str(cid_raw)

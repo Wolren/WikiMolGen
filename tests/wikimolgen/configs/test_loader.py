@@ -10,6 +10,7 @@ from wikimolgen.configs.loader import (
     Config3D,
     ConformerConfig,
     ConfigLoader,
+    ProteinConfig,
     RenderConfig3D,
 )
 
@@ -267,6 +268,32 @@ class TestConfigLoaderGet3D:
         assert cfg.render.stick_radius == 0.1
         assert cfg.render.sphere_scale == 0.3
 
+    def test_nested_render_dict(self):
+        cfg = ConfigLoader.get_3d_config(
+            overrides={"render": {"stick_radius": 0.5, "antialias": 8}}
+        )
+        assert cfg.render.stick_radius == 0.5
+        assert cfg.render.antialias == 8
+        assert cfg.conformer.max_iterations == 500
+
+    def test_nested_conformer_dict(self):
+        cfg = ConfigLoader.get_3d_config(
+            overrides={"conformer": {"max_iterations": 100, "num_conformers": 10}}
+        )
+        assert cfg.conformer.max_iterations == 100
+        assert cfg.conformer.num_conformers == 10
+        assert cfg.render.stick_radius == 0.2
+
+    def test_nested_mixed_dicts(self):
+        cfg = ConfigLoader.get_3d_config(
+            overrides={
+                "render": {"stick_radius": 0.99},
+                "conformer": {"num_conformers": 5},
+            }
+        )
+        assert cfg.render.stick_radius == 0.99
+        assert cfg.conformer.num_conformers == 5
+
 
 class TestConfigLoaderListTemplates:
     def test_returns_dict_with_expected_keys(self):
@@ -498,3 +525,129 @@ class TestConfigLoaderSaveConfig:
             assert nested.exists()
             reloaded = ConfigLoader.load_from_file(nested)
             assert isinstance(reloaded, Config2D)
+
+
+class TestProteinConfig:
+    def test_default_values(self):
+        cfg = ProteinConfig()
+        assert cfg.protein_color_scheme == "Chain"
+        assert cfg.helix_color == "#3399FF"
+        assert cfg.sheet_color == "#FFCC00"
+        assert cfg.loop_color == "#99AABB"
+        assert cfg.cartoon_transparency == 0.0
+        assert cfg.cartoon_fancy is True
+        assert cfg.cartoon_sheets is True
+        assert cfg.show_ligand is False
+        assert cfg.show_water is False
+        assert cfg.ligand_style == "sticks"
+        assert cfg.ligand_transparency == 0.0
+        assert cfg.ligand_color == "element"
+        assert cfg.ligand_single_color == "#FF6B6B"
+        assert cfg.ligand_stick_radius == 0.25
+        assert cfg.ligand_stick_quality == 10
+        assert cfg.ligand_ball_ratio == 1.5
+        assert cfg.protein_bindsites is True
+        assert cfg.protein_bind_radius == 5.0
+        assert cfg.protein_bind_color == "yellow"
+        assert cfg.protein_res_labels is False
+        assert cfg.protein_label_size == 14
+        assert cfg.protein_width == 1920
+        assert cfg.protein_height == 1080
+        assert cfg.protein_antialias == 2
+        assert cfg.protein_specular == 1
+        assert cfg.protein_ambient == 0.40
+        assert cfg.protein_bg == "black"
+        assert cfg.protein_shininess == 10
+        assert cfg.protein_ray_shadows is False
+        assert cfg.protein_ray_trace is False
+        assert cfg.protein_auto_rot is True
+        assert cfg.protein_autocrop is True
+        assert cfg.protein_crop_margin == 10
+        assert cfg.protein_direct == 0.45
+        assert cfg.protein_reflect == 0.45
+        assert cfg.protein_depth_cue is False
+        assert cfg.protein_orthoscopic is False
+        assert cfg.protein_ray_opaque is False
+        assert cfg.protein_zoom_buffer == 2.0
+
+    def test_update_method(self):
+        cfg = ProteinConfig()
+        cfg.update(protein_width=800, protein_height=600)
+        assert cfg.protein_width == 800
+        assert cfg.protein_height == 600
+        assert cfg.protein_ray_trace is False
+
+    def test_update_unknown_field(self):
+        cfg = ProteinConfig()
+        with pytest.raises(ValueError, match="Unknown protein config parameter"):
+            cfg.update(nonexistent_field=42)
+
+    def test_to_dict(self):
+        cfg = ProteinConfig()
+        d = cfg.to_dict()
+        assert isinstance(d, dict)
+        assert d["protein_width"] == 1920
+        assert d["protein_height"] == 1080
+        assert d["show_ligand"] is False
+
+
+class TestConfigLoaderGetProtein:
+    def test_returns_protein_config(self):
+        cfg = ConfigLoader.get_protein_config()
+        assert isinstance(cfg, ProteinConfig)
+
+    def test_no_overrides_uses_defaults(self):
+        cfg = ConfigLoader.get_protein_config()
+        assert cfg.protein_width == 1920
+        assert cfg.protein_color_scheme == "Chain"
+
+    def test_empty_overrides(self):
+        cfg = ConfigLoader.get_protein_config(overrides={})
+        assert cfg.protein_width == 1920
+
+    def test_partial_overrides(self):
+        cfg = ConfigLoader.get_protein_config(overrides={"protein_width": 800})
+        assert cfg.protein_width == 800
+        assert cfg.protein_height == 1080
+
+    def test_full_overrides(self):
+        cfg = ConfigLoader.get_protein_config(
+            overrides={
+                "protein_width": 800,
+                "protein_height": 600,
+                "show_ligand": True,
+                "protein_ray_trace": True,
+            }
+        )
+        assert cfg.protein_width == 800
+        assert cfg.protein_height == 600
+        assert cfg.show_ligand is True
+        assert cfg.protein_ray_trace is True
+
+
+class TestConfigLoaderExportDefaultTemplate:
+    def test_export_and_reload_2d(self):
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
+            path = f.name
+        try:
+            ConfigLoader.export_default_template("publication_2d", path)
+            reloaded = ConfigLoader.load_from_file(path)
+            assert isinstance(reloaded, Config2D)
+            assert reloaded.scale == 40.0
+        finally:
+            Path(path).unlink(missing_ok=True)
+
+    def test_export_and_reload_3d(self):
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
+            path = f.name
+        try:
+            ConfigLoader.export_default_template("high_quality_3d", path)
+            reloaded = ConfigLoader.load_from_file(path)
+            assert isinstance(reloaded, Config3D)
+            assert reloaded.render.stick_radius == 0.18
+        finally:
+            Path(path).unlink(missing_ok=True)
+
+    def test_invalid_template_raises_error(self):
+        with pytest.raises(ValueError, match="Unknown template"):
+            ConfigLoader.export_default_template("nonexistent", "dummy.json")

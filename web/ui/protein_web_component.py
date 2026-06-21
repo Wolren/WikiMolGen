@@ -5,6 +5,7 @@ wikimolgen.web.protein_components - Streamlit Components for Protein Visualizati
 Reusable Streamlit UI components for protein structure rendering.
 """
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -29,8 +30,11 @@ except Exception as _protein_import_error:  # pragma: no cover - import-time gua
     _PROTEIN_IMPORT_ERROR: Exception = _protein_import_error
 
 
+_PDB_RE = re.compile(r"^[0-9][A-Za-z0-9]{3}$")
+
+
 def render_protein_selector() -> str:
-    """Render protein PDB ID selector."""
+    """Render protein PDB ID selector with format validation."""
     pdb_id = (
         st.text_input(
             "PDB ID",
@@ -42,6 +46,9 @@ def render_protein_selector() -> str:
         .upper()
         .strip()
     )
+    if pdb_id and not _PDB_RE.match(pdb_id):
+        st.warning("Invalid PDB ID: must start with a digit followed by 3 alphanumeric characters.")
+        return ""
     return pdb_id
 
 

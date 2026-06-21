@@ -22,7 +22,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-PUG_BASE = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound"
+from wikimolgen.sources._client import PUG_BASE
 
 # Properties we request from PubChem PUG REST
 # Only computed/predicted properties are available here.
@@ -80,13 +80,7 @@ def fetch_properties(pubchem_cid: int | str, timeout: float = 10) -> dict[str, A
     requests.RequestException
         On network or API errors.
     """
-    try:
-        import requests
-    except ImportError:
-        raise ImportError(
-            "The 'requests' library is required for external source lookups. "
-            "Install with: pip install requests"
-        )
+    from wikimolgen.sources._client import make_headers, requests
 
     cid = str(int(pubchem_cid))
     prop_list = ",".join(_PROPERTY_NAMES)
@@ -94,7 +88,7 @@ def fetch_properties(pubchem_cid: int | str, timeout: float = 10) -> dict[str, A
 
     resp = requests.get(
         url,
-        headers={"User-Agent": "WikiMolGen/0.1 (chemical property fetcher)"},
+        headers=make_headers(description="chemical property fetcher"),
         timeout=timeout,
     )
     resp.raise_for_status()

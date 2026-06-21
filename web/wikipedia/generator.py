@@ -16,8 +16,41 @@ try:
     from wikimolgen.core import enrich_compound_data
 except ImportError:
 
-    def enrich_compound_data(data):
+    def enrich_compound_data(data: dict) -> dict:
         return data
+
+
+_WIKI_UNSAFE_RE = re.compile(r"[|{}\[\]\n\r]")
+
+
+def _sanitize_wiki(text: str) -> str:
+    """Escape characters with special meaning in MediaWiki template values."""
+
+    def _replace(m: re.Match) -> str:
+        ch = m.group(0)
+        if ch == "|":
+            return "{{!}}"
+        if ch == "{":
+            return "&#123;"
+        if ch == "}":
+            return "&#125;"
+        if ch == "[":
+            return "&#91;"
+        if ch == "]":
+            return "&#93;"
+        return " "  # newlines
+
+    return _WIKI_UNSAFE_RE.sub(_replace, str(text))
+
+
+def _pop_fields(dt: dict[str, Any], fields: list[tuple[str, str]]) -> str:
+    """Build template lines from *fields* where values exist in *dt*."""
+    lines = ""
+    for key, tmpl in fields:
+        val = dt.get(key)
+        if val:
+            lines += f"| {tmpl} = {_sanitize_wiki(val)}\n"
+    return lines
 
 
 def _format_h_statements(raw: str | None) -> str | None:
@@ -143,15 +176,8 @@ def generate_drugbox_code(compound_data: dict[str, Any], image_filename: str = "
         if k.endswith("_count") and v:
             element_lines += f"| {k[:-6].capitalize()} = {v}\n"
 
-    def _pop(fields):
-        lines = ""
-        for key, tmpl in fields:
-            val = dt.get(key)
-            if val:
-                lines += f"| {tmpl} = {val}\n"
-        return lines
-
-    clin = _pop(
+    clin = _pop_fields(
+        dt,
         [
             ("pronounce", "pronounce"),
             ("tradename", "tradename"),
@@ -166,9 +192,10 @@ def generate_drugbox_code(compound_data: dict[str, Any], image_filename: str = "
             ("atc_prefix", "ATC_prefix"),
             ("atc_suffix", "ATC_suffix"),
             ("atc_supplemental", "ATC_supplemental"),
-        ]
+        ],
     )
-    legal = _pop(
+    legal = _pop_fields(
+        dt,
         [
             ("legal_au", "legal_AU"),
             ("legal_au_comment", "legal_AU_comment"),
@@ -192,9 +219,10 @@ def generate_drugbox_code(compound_data: dict[str, Any], image_filename: str = "
             ("legal_status", "legal_status"),
             ("dependency_liability", "dependency_liability"),
             ("addiction_liability", "addiction_liability"),
-        ]
+        ],
     )
-    pk = _pop(
+    pk = _pop_fields(
+        dt,
         [
             ("bioavailability", "bioavailability"),
             ("protein_bound", "protein_bound"),
@@ -204,9 +232,10 @@ def generate_drugbox_code(compound_data: dict[str, Any], image_filename: str = "
             ("elimination_half_life", "elimination_half-life"),
             ("duration_of_action", "duration_of_action"),
             ("excretion", "excretion"),
-        ]
+        ],
     )
-    ids = _pop(
+    ids = _pop_fields(
+        dt,
         [
             ("cas_number", "CAS_number"),
             ("cas_supplemental", "CAS_supplemental"),
@@ -222,32 +251,34 @@ def generate_drugbox_code(compound_data: dict[str, Any], image_filename: str = "
             ("iuphar_ligand", "IUPHAR_ligand"),
             ("pdb_ligand", "PDB_ligand"),
             ("niaid_chemdb", "NIAID_ChemDB"),
-        ]
+        ],
     )
-    chem = _pop(
+    chem = _pop_fields(
+        dt,
         [
             ("iupac_name", "IUPAC_name"),
             ("molecular_formula", "chemical_formula"),
-        ]
+        ],
     )
-    phys = _pop(
+    phys = _pop_fields(
+        dt,
         [
             ("density", "density"),
             ("melting_point", "melting_point"),
             ("boiling_point", "boiling_point"),
             ("solubility", "solubility"),
-        ]
+        ],
     )
-    syns = "; ".join(dt.get("synonyms", [])[:3])
+    syns = "; ".join(_sanitize_wiki(s) for s in dt.get("synonyms", [])[:3])
     syn_line = f"| synonyms = {syns}\n" if syns else ""
 
-    mw_val = dt.get("molecular_weight")
+    mw_val = _sanitize_wiki(dt.get("molecular_weight", "") or "")
     mw_line = f"| molecular_weight = {mw_val} g/mol\n" if mw_val else ""
-    smi_val = dt.get("smiles")
+    smi_val = _sanitize_wiki(dt.get("smiles", "") or "")
     smi_line = f"| SMILES = {smi_val}\n" if smi_val else ""
-    inchi_val = dt.get("inchi")
+    inchi_val = _sanitize_wiki(dt.get("inchi", "") or "")
     inchi_line = f"| StdInChI = {inchi_val}\n" if inchi_val else ""
-    inkey_val = dt.get("inchikey")
+    inkey_val = _sanitize_wiki(dt.get("inchikey", "") or "")
     inkey_line = f"| StdInChIKey = {inkey_val}\n" if inkey_val else ""
 
     lines = []
@@ -256,7 +287,7 @@ def generate_drugbox_code(compound_data: dict[str, Any], image_filename: str = "
     lines.append("| image_class = skin-invert-image")
     lines.append("| width = 200px")
 
-    def _add_section(lines_list, comment, content):
+    def _add_section(lines_list: list, comment: str, content: str) -> None:
         stripped = content.strip()
         if stripped:
             lines_list.append("")
@@ -307,16 +338,9 @@ def generate_chembox_code(compound_data: dict[str, Any], image_filename: str = "
 
     dt = compound_data
 
-    def _pop(fields):
-        lines = ""
-        for key, tmpl in fields:
-            val = dt.get(key)
-            if val:
-                lines += f"| {tmpl} = {val}\n"
-        return lines
-
     # Section 1 — Identifiers
-    ids = _pop(
+    ids = _pop_fields(
+        dt,
         [
             ("cas_number", "CASNo"),
             ("cas_supplemental", "CASNo_comment"),
@@ -337,21 +361,22 @@ def generate_chembox_code(compound_data: dict[str, Any], image_filename: str = "
             ("rtecs", "RTECS"),
             ("unii", "UNII"),
             ("un_number", "UNNumber"),
-        ]
+        ],
     )
-    smi_val = dt.get("smiles")
+    smi_val = _sanitize_wiki(dt.get("smiles", "") or "")
     smi_line = f"| SMILES = {smi_val}\n" if smi_val else ""
-    inchi_val = dt.get("inchi")
+    inchi_val = _sanitize_wiki(dt.get("inchi", "") or "")
     inchi_line = f"| StdInChI = {inchi_val}\n" if inchi_val else ""
-    inkey_val = dt.get("inchikey")
+    inkey_val = _sanitize_wiki(dt.get("inchikey", "") or "")
     inkey_line = f"| StdInChIKey = {inkey_val}\n" if inkey_val else ""
 
     # Section 2 — Properties
     elem_lines = ""
     for k, v in sorted(dt.items()):
         if k.endswith("_count") and v:
-            elem_lines += f"| {k[:-6].capitalize()} = {v}\n"
-    props = _pop(
+            elem_lines += f"| {k[:-6].capitalize()} = {_sanitize_wiki(str(v))}\n"
+    props = _pop_fields(
+        dt,
         [
             ("molecular_formula", "Formula"),
             ("appearance", "Appearance"),
@@ -370,19 +395,20 @@ def generate_chembox_code(compound_data: dict[str, Any], image_filename: str = "
             ("henry_constant", "HenryConstant"),
             ("logp_experimental", "LogP"),
             ("xlogp", "LogP"),
-        ]
+        ],
     )
-    mw_val = dt.get("molecular_weight")
+    mw_val = _sanitize_wiki(dt.get("molecular_weight", "") or "")
     mw_line = f"| MolarMass = {mw_val} g/mol\n" if mw_val else ""
 
     # Section 3 — Structure (only when data available)
-    struct = _pop([])
+    struct = _pop_fields(dt, [])
 
     # Section 4 — Thermochemistry (only when data available)
-    thermo = _pop([])
+    thermo = _pop_fields(dt, [])
 
     # Section 5 — Pharmacology
-    pharm = _pop(
+    pharm = _pop_fields(
+        dt,
         [
             ("inn", "INN"),
             ("atc_prefix", "ATCCodePrefix"),
@@ -424,31 +450,32 @@ def generate_chembox_code(compound_data: dict[str, Any], image_filename: str = "
             ("pregnancy_au", "Pregnancy_AU"),
             ("pregnancy_au_comment", "Pregnancy_AU_comment"),
             ("pregnancy_category", "Pregnancy_category"),
-        ]
+        ],
     )
 
     # Section 6 — Hazards
     ghs = _ghs_line(dt)
-    hazard = _pop(
+    hazard = _pop_fields(
+        dt,
         [
             ("flash_point", "FlashPt"),
             ("explosive_limits", "ExploLimits"),
             ("ld50", "LD50"),
             ("toxicity_data", "Toxicity"),
             ("autoignition_point", "AutoignitionPt"),
-        ]
+        ],
     )
 
     # Section 7 — Related compounds (only when data available)
-    related = _pop([])
+    related = _pop_fields(dt, [])
 
     # Build template — only include sections that have content
     chembox_template = f"""{{{{Chembox
 | ImageFile = {image_filename if image_filename else "Example.png"}
 | ImageSize = 225px
 | ImageClass = skin-invert-image
-| IUPACName = {dt.get("iupac_name", "")}"""
-    other = "; ".join(dt.get("synonyms", [])[:3])
+| IUPACName = {_sanitize_wiki(dt.get("iupac_name", "") or "")}"""
+    other = "; ".join(_sanitize_wiki(s) for s in dt.get("synonyms", [])[:3])
     if other:
         chembox_template += f"\n| OtherNames = {other}"
 

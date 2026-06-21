@@ -29,7 +29,6 @@ from ui.components import (
     render_compound_input,
     render_conformer_settings,
     render_effects_settings,
-    render_generate_button,
     render_lighting_settings,
     render_mode_selector,
     render_preset_manager,
@@ -51,11 +50,11 @@ def configure_page() -> None:
     )
 
 
-def _on_auto_change():
+def _on_auto_change() -> None:
     st.query_params["auto"] = str(st.session_state.auto_generate).lower()
 
 
-def _on_white_bg_change():
+def _on_white_bg_change() -> None:
     """Trigger re-render in 2D mode so structure turns black on white background."""
     if st.session_state.get("structure_type", "3D") == "2D":
         st.session_state.config_changed = True
@@ -111,7 +110,7 @@ def render_sidebar() -> tuple:
         st.divider()
 
         # Reset settings — below compound input, resets all
-        def _on_reset_all():
+        def _on_reset_all() -> None:
             from session.state import reset_to_defaults
 
             reset_to_defaults("2D")
@@ -296,99 +295,58 @@ def render_protein_structure_dynamic(
             return None
 
 
-def render_main_content(
-    compound: str, structure_type: str, auto_generate: bool, protein_inputs: tuple = None
-) -> None:
-    """
-    Render main content area.
+def _debounce_pass() -> bool:
+    """Return True if 500ms have elapsed since last auto-render."""
+    now = time.time()
+    last = st.session_state.get("_last_render_ts", 0.0)
+    return now - last >= 0.5
 
-    Parameters
-    ----------
-    compound : str
-        Compound identifier
-    structure_type : str
-        "2D", "3D", or "Protein"
-    auto_generate : bool
-        Whether auto-generate is enabled
-    protein_inputs : tuple or None
-        Protein configuration (pdb_id, cartoon_cfg, ligand_cfg, canvas_cfg)
-    """
 
-    def _debounce_pass() -> bool:
-        """Return True if 500ms have elapsed since last auto-render."""
-        now = time.time()
-        last = st.session_state.get("_last_render_ts", 0.0)
-        return now - last >= 0.5
+def _render_small_molecule_content(compound: str, structure_type: str) -> None:
+    """Render the 2D/3D structure preview with auto-update and caching."""
+    if st.button(
+        "Generate Now",
+        type="primary",
+        use_container_width=True,
+        disabled=st.session_state.get("auto_generate", True),
+        key="generate_now_btn",
+    ):
+        st.session_state.manual_generate = True
 
-    # Auto-update toggle and generate button (2D/3D only)
-    if structure_type != "Protein":
-        if st.button(
-            "Generate Now",
-            type="primary",
-            use_container_width=True,
-            disabled=st.session_state.get("auto_generate", True),
-            key="generate_now_btn",
-        ):
-            st.session_state.manual_generate = True
+    auto_generate = st.session_state.get("auto_generate", True)
+    wb = " white-bg" if st.session_state.get("preview_white_bg", False) else ""
 
-        auto_generate = st.session_state.get("auto_generate", True)
+    preview_placeholder = st.empty()
 
-        wb = " white-bg" if st.session_state.get("preview_white_bg", False) else ""
+    has_pending_config = st.session_state.get("config_changed", False)
+    never_rendered = not st.session_state.get("rendered_structure", False)
+    should_render = (
+        (auto_generate and _debounce_pass() and (has_pending_config or never_rendered))
+        or st.session_state.get("manual_generate", False)
+        or st.session_state.get("last_compound") != compound
+    )
 
-        # Placeholder for the structure image in a fixed container
-        preview_placeholder = st.empty()
+    if should_render and compound:
+        st.session_state._last_render_ts = time.time()
+        st.session_state.config_changed = False
+        st.session_state.manual_generate = False
 
-        # Check if image should be rendered at the moment.
-        # Visual-only toggles (white-bg) never trigger auto-render because
-        # they don't set config_changed. Only actual config changes trigger.
-        has_pending_config = st.session_state.get("config_changed", False)
-        never_rendered = not st.session_state.get("rendered_structure", False)
-        should_render = (
-            (auto_generate and _debounce_pass() and (has_pending_config or never_rendered))
-            or st.session_state.get("manual_generate", False)
-            or st.session_state.get("last_compound") != compound
-        )
+        with st.spinner("Generating structure..."):
+            image_html = render_structure_dynamic(compound, structure_type)
 
-        if should_render and compound:
-            st.session_state._last_render_ts = time.time()
-            st.session_state.config_changed = False
-            st.session_state.manual_generate = False
+        if image_html:
+            if structure_type == "2D":
+                image_html = apply_2d_styling_to_image(image_html)
 
-            with st.spinner("Generating structure..."):
-                image_html = render_structure_dynamic(compound, structure_type)
-
-            if image_html:
-                if structure_type == "2D":
-                    image_html = apply_2d_styling_to_image(image_html)
-
-                with preview_placeholder.container():
-                    st.markdown(
-                        f'<div id="preview-wrap" class="compound-preview-container{wb}">{image_html}</div>',
-                        unsafe_allow_html=True,
-                    )
-            elif st.session_state.get("last_image_html"):
-                cached_html = st.session_state.last_image_html
-                if st.session_state.get("structure_type") == "2D":
-                    cached_html = apply_2d_styling_to_image(cached_html)
-                with preview_placeholder.container():
-                    st.markdown(
-                        f'<div id="preview-wrap" class="compound-preview-container{wb}">{cached_html}</div>',
-                        unsafe_allow_html=True,
-                    )
-            else:
-                with preview_placeholder.container():
-                    st.markdown(
-                        f'<div id="preview-wrap" class="compound-preview-container{wb}" style="min-height:200px;">'
-                        '<span style="color:var(--text-secondary);font-size:0.9rem;">'
-                        "Enter a compound and adjust settings, then click 'Generate Now' or enable auto-update."
-                        "</span></div>",
-                        unsafe_allow_html=True,
-                    )
+            with preview_placeholder.container():
+                st.markdown(
+                    f'<div id="preview-wrap" class="compound-preview-container{wb}">{image_html}</div>',
+                    unsafe_allow_html=True,
+                )
         elif st.session_state.get("last_image_html"):
             cached_html = st.session_state.last_image_html
             if st.session_state.get("structure_type") == "2D":
                 cached_html = apply_2d_styling_to_image(cached_html)
-
             with preview_placeholder.container():
                 st.markdown(
                     f'<div id="preview-wrap" class="compound-preview-container{wb}">{cached_html}</div>',
@@ -403,44 +361,62 @@ def render_main_content(
                     "</span></div>",
                     unsafe_allow_html=True,
                 )
+    elif st.session_state.get("last_image_html"):
+        cached_html = st.session_state.last_image_html
+        if st.session_state.get("structure_type") == "2D":
+            cached_html = apply_2d_styling_to_image(cached_html)
 
-    else:  # structure_type == "Protein"
-        # Protein rendering section
-        if protein_inputs:
-            pdb_id, cartoon_cfg, ligand_cfg, canvas_cfg = protein_inputs
+        with preview_placeholder.container():
+            st.markdown(
+                f'<div id="preview-wrap" class="compound-preview-container{wb}">{cached_html}</div>',
+                unsafe_allow_html=True,
+            )
+    else:
+        with preview_placeholder.container():
+            st.markdown(
+                f'<div id="preview-wrap" class="compound-preview-container{wb}" style="min-height:200px;">'
+                '<span style="color:var(--text-secondary);font-size:0.9rem;">'
+                "Enter a compound and adjust settings, then click 'Generate Now' or enable auto-update."
+                "</span></div>",
+                unsafe_allow_html=True,
+            )
 
-            # Generate button always visible at top
-            if st.button(
-                "Generate Protein Structure", use_container_width=True, key="protein_gen_btn"
-            ):
-                image_html = render_protein_structure_dynamic(
-                    pdb_id, cartoon_cfg, ligand_cfg, canvas_cfg
-                )
 
-            # Show metrics if rendered
-            if st.session_state.get("last_protein_image_html"):
-                # Display metrics (data above image)
-                col1, col2, col3, col4 = st.columns(4)
-                if st.session_state.get("last_protein_metadata"):
-                    metadata = st.session_state.last_protein_metadata
-                    with col1:
-                        st.metric("Chains", len(metadata.get("chains", [])))
-                    with col2:
-                        st.metric("Atoms", metadata.get("num_atoms", 0))
-                    with col3:
-                        st.metric("Residues", metadata.get("num_residues", 0))
-                    with col4:
-                        st.metric(
-                            "Has Ligand", "âœ“" if metadata.get("has_ligand", False) else "âœ—"
-                        )
+def _render_protein_content(protein_inputs: tuple | None) -> None:
+    """Render the Protein structure preview."""
+    if protein_inputs:
+        pdb_id, cartoon_cfg, ligand_cfg, canvas_cfg = protein_inputs
 
-                # Display protein image
-                st.markdown(
-                    f'<div class="protein-preview-container">{st.session_state.last_protein_image_html}</div>',
-                    unsafe_allow_html=True,
-                )
-        else:
-            st.info("Configure protein settings in the sidebar to render a structure.")
+        if st.button("Generate Protein Structure", use_container_width=True, key="protein_gen_btn"):
+            render_protein_structure_dynamic(pdb_id, cartoon_cfg, ligand_cfg, canvas_cfg)
+
+        if st.session_state.get("last_protein_image_html"):
+            col1, col2, col3, col4 = st.columns(4)
+            if st.session_state.get("last_protein_metadata"):
+                metadata = st.session_state.last_protein_metadata
+                with col1:
+                    st.metric("Chains", len(metadata.get("chains", [])))
+                with col2:
+                    st.metric("Atoms", metadata.get("num_atoms", 0))
+                with col3:
+                    st.metric("Residues", metadata.get("num_residues", 0))
+                with col4:
+                    st.metric("Has Ligand", "✓" if metadata.get("has_ligand", False) else "✗")
+
+            st.markdown(
+                f'<div class="protein-preview-container">{st.session_state.last_protein_image_html}</div>',
+                unsafe_allow_html=True,
+            )
+    else:
+        st.info("Configure protein settings in the sidebar to render a structure.")
+
+
+def render_main_content(compound: str, structure_type: str, protein_inputs: tuple = None) -> None:
+    """Render main content area."""
+    if structure_type != "Protein":
+        _render_small_molecule_content(compound, structure_type)
+    else:
+        _render_protein_content(protein_inputs)
 
     st.divider()
     if structure_type != "Protein":
@@ -471,7 +447,7 @@ def render_download_section() -> None:
         if "download_filename_input" not in st.session_state:
             st.session_state.download_filename_input = base_name
 
-        def on_reset():
+        def on_reset() -> None:
             """Reset to original compound-based filename with structure type"""
             compound = st.session_state.get("last_compound", "structure")
             structure_type = st.session_state.get("structure_type", "2D")
@@ -484,6 +460,7 @@ def render_download_section() -> None:
             "File name",
             value=st.session_state.download_filename_input,
             placeholder="Enter filename...",
+            max_chars=200,
             key="download_filename_input",
         )
         clean_base = Path(custom_base_name).stem
@@ -550,7 +527,7 @@ def main() -> None:
     compound, structure_type, auto_generate, protein_inputs = render_sidebar()
 
     # Render main content
-    render_main_content(compound, structure_type, auto_generate, protein_inputs)
+    render_main_content(compound, structure_type, protein_inputs)
 
     # Wikipedia boxes section (only for 2D/3D, not for Protein)
     if compound and structure_type != "Protein":
