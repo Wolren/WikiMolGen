@@ -49,6 +49,7 @@ def apply_scheme_to_session(choice: str) -> None:
     if choice == _NO_SCHEME:
         st.session_state["element_colors"] = {}
         st.session_state.pop("atom_color_choice", None)
+        st.session_state.config_changed = True
         return
 
     data = _resolve_scheme_data(choice)
@@ -60,6 +61,7 @@ def apply_scheme_to_session(choice: str) -> None:
     if data.get("stick_color"):
         st.session_state["stick_color"] = data["stick_color"]
     st.session_state["atom_color_choice"] = choice
+    st.session_state.config_changed = True
 
 
 def export_scheme_from_session() -> dict[str, Any]:
@@ -67,8 +69,9 @@ def export_scheme_from_session() -> dict[str, Any]:
     choice = st.session_state.get("atom_color_choice", _NO_SCHEME)
     if choice != _NO_SCHEME and choice in st.session_state.get("custom_atom_schemes", {}):
         return dict(st.session_state.custom_atom_schemes[choice])
+    ec = st.session_state.get("element_colors") or {}
     return {
-        "element_colors": dict(st.session_state.get("element_colors", {})),
+        "element_colors": dict(ec),
         "stick_color": st.session_state.get("stick_color"),
         "bg_color": st.session_state.get("bg_color", "white"),
     }
