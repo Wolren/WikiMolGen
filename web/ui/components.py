@@ -9,7 +9,11 @@ from datetime import datetime
 from typing import Any
 
 import streamlit as st
-from rendering.atom_colors import apply_scheme_to_session, get_scheme_choices
+from rendering.atom_colors import (
+    apply_scheme_to_session,
+    export_scheme_from_session,
+    get_scheme_choices,
+)
 from template.utils import MAX_UPLOAD_SIZE, apply_preset_to_session, export_current_as_preset
 
 from ui.icons import header
@@ -44,6 +48,7 @@ def _sync_slider_to_config(key: str) -> None:
 
 def _sync_input_to_slider(key: str) -> None:
     st.session_state[f"{key}_slider"] = st.session_state[key]
+    st.session_state.config_changed = True
 
 
 def _sync_number_input(key: str) -> None:
@@ -58,27 +63,19 @@ def _sync_number_input(key: str) -> None:
 # WIDGET FACTORY (Auto-save wrapper helpers)
 # ============================================================================
 def _s(dim: str, *a: Any, **kw: Any) -> Any:
-    v = st.slider(*a, **kw)
-    save_config_to_session(dim)
-    return v
+    return st.slider(*a, on_change=lambda: save_config_to_session(dim), **kw)
 
 
 def _cb(dim: str, *a: Any, **kw: Any) -> Any:
-    v = st.checkbox(*a, **kw)
-    save_config_to_session(dim)
-    return v
+    return st.checkbox(*a, on_change=lambda: save_config_to_session(dim), **kw)
 
 
 def _ni(dim: str, *a: Any, **kw: Any) -> Any:
-    v = st.number_input(*a, **kw)
-    save_config_to_session(dim)
-    return v
+    return st.number_input(*a, on_change=lambda: save_config_to_session(dim), **kw)
 
 
 def _sb(dim: str, *a: Any, **kw: Any) -> Any:
-    v = st.selectbox(*a, **kw)
-    save_config_to_session(dim)
-    return v
+    return st.selectbox(*a, on_change=lambda: save_config_to_session(dim), **kw)
 
 
 # Shorter aliases for common dimensions
@@ -253,6 +250,7 @@ def _apply_preset_now(choice: str) -> None:
         except Exception:
             return
     apply_preset_to_session(settings)
+    save_config_to_session()
 
 
 def _on_mode_change() -> None:
@@ -278,6 +276,7 @@ def _on_mode_change() -> None:
 
     st.session_state._last_active_mode = new_mode
     st.query_params["mode"] = new_mode
+    st.session_state.config_changed = True
 
 
 def render_mode_selector() -> str:
@@ -586,59 +585,7 @@ def render_rendering_settings() -> None:
             "Style", ["sticks+spheres", "sticks", "spheres", "lines"], key="representation"
         )
 
-        st.markdown(header("palette", "Colors"), unsafe_allow_html=True)
-
-        bg_color = _sb3(
-            "Background",
-            ["white", "black", "gray", "transparent"],
-            key="bg_color",
-            help="Set the background color behind the molecule render",
-        )
-
-        atom_choices = get_scheme_choices()
-        current_atom = st.session_state.get("atom_color_choice", "None")
-        atom_idx = atom_choices.index(current_atom) if current_atom in atom_choices else 0
-        new_atom = st.selectbox(
-            "Atom Color Scheme",
-            atom_choices,
-            index=atom_idx,
-            key="atom_color_sel",
-        )
-        if new_atom != current_atom:
-            apply_scheme_to_session(new_atom)
-
-        with st.expander("Upload Custom Scheme", expanded=False):
-            uploaded = st.file_uploader(
-                "Atom Color Scheme JSON",
-                type=["json"],
-                key="atom_scheme_uploader",
-                label_visibility="collapsed",
-            )
-            if uploaded:
-                try:
-                    raw = uploaded.read()
-                    if len(raw) > MAX_UPLOAD_SIZE:
-                        st.error(f"File too large ({len(raw) / 1024:.0f} KB). Maximum: 1 MB.")
-                    else:
-                        data = json.loads(raw)
-                        err = _validate_atom_scheme(data)
-                        if err:
-                            st.error(f"Invalid scheme: {err}")
-                        else:
-                            name = data.get("name", f"Custom_{datetime.now().strftime('%H%M%S')}")
-                            if "custom_atom_schemes" not in st.session_state:
-                                st.session_state.custom_atom_schemes = {}
-                            st.session_state.custom_atom_schemes[name] = data
-                            apply_scheme_to_session(name)
-                            st.success(
-                                f"Applied custom scheme: {name}", icon=":material/check_circle:"
-                            )
-                except Exception as e:
-                    st.error(f"Invalid JSON: {e}")
-
-        st.markdown("**Manual Overrides**")
-        stick_color = st.text_input("Stick Color", value="gray50", max_chars=20, key="stick_color")
-        save_config_to_session("3d")
+        render_color_palette()
 
         st.markdown("**Lighting Mode**")
         col1, col2 = st.columns(2)
@@ -659,6 +606,107 @@ def render_rendering_settings() -> None:
             stick_ball = _cb3("Stick-ball style", value=True, key="stick_ball")
         with col2:
             opaque_background = _cb3("Opaque background", value=False, key="opaque_background")
+
+
+def render_color_palette() -> None:
+    """Render color palette with Predefined/Upload/Save tabs (like presets)."""
+    st.markdown(header("palette", "Colors"), unsafe_allow_html=True)
+
+    bg_color = _sb3(
+        "Background",
+        ["white", "black", "gray", "transparent"],
+        key="bg_color",
+        help="Set the background color behind the molecule render",
+    )
+
+    tab1, tab2, tab3 = st.tabs(["Predefined", "Upload", "Save"])
+
+    with tab1:
+        atom_choices = get_scheme_choices()
+        current_atom = st.session_state.get("atom_color_choice", "None")
+        atom_idx = atom_choices.index(current_atom) if current_atom in atom_choices else 0
+        new_atom = st.selectbox(
+            "Atom Color Scheme",
+            atom_choices,
+            index=atom_idx,
+            key="atom_color_sel",
+        )
+        if new_atom != current_atom:
+            apply_scheme_to_session(new_atom)
+
+        current_choice = st.session_state.get("atom_color_choice", "None")
+        if current_choice in st.session_state.get("custom_atom_schemes", {}):
+            if st.button(
+                f"Remove '{current_choice}'",
+                key="remove_atom_scheme",
+                icon=":material/delete:",
+            ):
+                del st.session_state.custom_atom_schemes[current_choice]
+                st.rerun()
+
+        st.markdown("**Manual Overrides**")
+        st.text_input(
+            "Stick Color",
+            value="gray50",
+            max_chars=20,
+            key="stick_color",
+            on_change=lambda: save_config_to_session("3d"),
+        )
+
+    with tab2:
+        st.markdown("**Upload Atom Color Scheme (JSON)**")
+        upload_key = (
+            f"atom_scheme_uploader_{st.session_state.get('_atom_scheme_upload_counter', 0)}"
+        )
+        uploaded = st.file_uploader(
+            "Upload Scheme",
+            type=["json"],
+            key=upload_key,
+            label_visibility="collapsed",
+        )
+        if uploaded:
+            try:
+                raw = uploaded.read()
+                if len(raw) > MAX_UPLOAD_SIZE:
+                    st.error(f"File too large ({len(raw) / 1024:.0f} KB). Maximum: 1 MB.")
+                else:
+                    data = json.loads(raw)
+                    err = _validate_atom_scheme(data)
+                    if err:
+                        st.error(f"Invalid scheme: {err}")
+                    else:
+                        name = data.get("name", f"Custom_{datetime.now().strftime('%H%M%S')}")
+                        if "custom_atom_schemes" not in st.session_state:
+                            st.session_state.custom_atom_schemes = {}
+                        st.session_state.custom_atom_schemes[name] = data
+                        apply_scheme_to_session(name)
+                        st.session_state._atom_scheme_upload_counter = (
+                            st.session_state.get("_atom_scheme_upload_counter", 0) + 1
+                        )
+                        st.success(f"Applied: {name}", icon=":material/check_circle:")
+            except Exception as e:
+                st.error(f"Invalid JSON: {e}")
+
+    with tab3:
+        st.markdown("**Save Current Colors as Scheme**")
+        scheme_name = st.text_input(
+            "Scheme Name",
+            value=f"Scheme_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+            max_chars=100,
+            key="save_scheme_name",
+        )
+        scheme_dict = export_scheme_from_session()
+        scheme_dict["name"] = scheme_name
+        scheme_json = json.dumps(scheme_dict, indent=2)
+
+        st.download_button(
+            label="Download Scheme",
+            data=scheme_json,
+            file_name=f"{scheme_name}.json",
+            mime="application/json",
+            use_container_width=True,
+            key="dl_scheme",
+        )
 
 
 def render_lighting_settings() -> None:
