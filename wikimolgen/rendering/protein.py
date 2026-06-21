@@ -14,28 +14,23 @@ from pathlib import Path
 import biotite.database.rcsb as rcsb
 import biotite.structure.io.pdb as pdb
 import nglview as nv
-from PIL import Image
 
 
-def hex_to_rgb(hex_color: str) -> tuple[float, float, float]:
-    """Convert hex color to normalized RGB tuple for PyMOL.
+# Element-color mapping shared across rendering paths
+_ELEMENT_COLORS: tuple[tuple[str, str], ...] = (
+    ("C", "gray"),
+    ("N", "blue"),
+    ("O", "red"),
+    ("S", "yellow"),
+    ("P", "orange"),
+    ("F", "green"),
+    ("Cl", "green"),
+    ("Br", "firebrick"),
+    ("I", "purple"),
+)
 
-    Parameters
-    ----------
-    hex_color : str
-        Hex color code (e.g., "#FF6B6B" or "FF6B6B")
 
-    Returns
-    -------
-    Tuple[float, float, float]
-        RGB values normalized to 0.0-1.0
-    """
-    hex_color = hex_color.lstrip("#")
-    try:
-        return tuple(int(hex_color[i : i + 2], 16) / 255.0 for i in (0, 2, 4))
-    except (ValueError, IndexError):
-        # Fallback to white if parsing fails
-        return (1.0, 1.0, 1.0)
+from wikimolgen.rendering.utils import hex_to_rgb
 
 
 from wikimolgen.rendering.utils import autocrop_image
@@ -270,11 +265,6 @@ class ProteinGenerator:
             Structure data provider (default: BiotiteStructureProvider)
         random_seed : int
             Random seed for reproducibility
-
-        Raises
-        ------
-        ProteinFetchError
-            If structure cannot be fetched
         """
         self.pdb_id = pdb_id.upper()
         self.provider = provider or BiotiteStructureProvider()
@@ -282,21 +272,17 @@ class ProteinGenerator:
 
         self.pdb_path: Path | None = None
         self.metadata: ProteinStructureMetadata | None = None
+        self._fetched = False
 
         self.cartoon_config = CartoonRenderConfig()
         self.ligand_config = LigandRenderConfig()
 
-        self._fetch_structure()
-
-    def _fetch_structure(self) -> None:
-        """Fetch protein structure from provider.
-
-        Raises
-        ------
-        ProteinFetchError
-            If provider not available or fetch fails
-        """
+    def _ensure_fetched(self) -> None:
+        """Lazily fetch protein structure on first use."""
+        if self._fetched:
+            return
         self.pdb_path, self.metadata = self.provider.fetch_structure(self.pdb_id)
+        self._fetched = True
         print(f"[OK] Fetched {self.pdb_id}")
         print(f"  Chains: {', '.join(self.metadata.chains)}")
         print(f"  Atoms: {self.metadata.num_atoms} | Residues: {self.metadata.num_residues}")
@@ -344,6 +330,7 @@ class ProteinGenerator:
             )
 
         output_path = Path(output)
+        self._ensure_fetched()
 
         try:
             with pymol2.PyMOL() as pymol:
@@ -393,17 +380,7 @@ class ProteinGenerator:
                 elif color_scheme == ColorScheme.HYDROPHOBICITY:
                     cmd.spectrum("count", "density", selection="polymer.protein")
                 elif color_scheme == ColorScheme.ELEMENT:
-                    for elem, color in (
-                        ("C", "gray"),
-                        ("N", "blue"),
-                        ("O", "red"),
-                        ("S", "yellow"),
-                        ("P", "orange"),
-                        ("F", "green"),
-                        ("Cl", "green"),
-                        ("Br", "firebrick"),
-                        ("I", "purple"),
-                    ):
+                    for elem, color in _ELEMENT_COLORS:
                         try:
                             cmd.color(color, f"(polymer.protein and elem {elem})", quiet=1)
                         except Exception:
@@ -445,17 +422,7 @@ class ProteinGenerator:
                 if show_ligand and self.metadata.has_ligand:
                     cmd.show(self.ligand_config.ligand_style, "organic")
                     if self.ligand_config.ligand_color_scheme == "element":
-                        for elem, color in (
-                            ("C", "gray"),
-                            ("N", "blue"),
-                            ("O", "red"),
-                            ("S", "yellow"),
-                            ("P", "orange"),
-                            ("F", "green"),
-                            ("Cl", "green"),
-                            ("Br", "firebrick"),
-                            ("I", "purple"),
-                        ):
+                        for elem, color in _ELEMENT_COLORS:
                             try:
                                 cmd.color(color, f"(organic and elem {elem})", quiet=1)
                             except Exception:

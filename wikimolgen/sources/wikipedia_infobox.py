@@ -84,13 +84,7 @@ _DRUGINFOX_FIELDS: dict[str, str] = {
 
 def _fetch_wikitext(page_title: str, timeout: float = 10) -> str | None:
     """Fetch raw wikitext of a Wikipedia page via the MediaWiki API."""
-    try:
-        import requests
-    except ImportError:
-        raise ImportError(
-            "The 'requests' library is required for external source lookups. "
-            "Install with: pip install requests"
-        )
+    from wikimolgen.sources._client import make_headers, requests
 
     params = {
         "action": "parse",
@@ -101,7 +95,7 @@ def _fetch_wikitext(page_title: str, timeout: float = 10) -> str | None:
     resp = requests.get(
         API_ENDPOINT,
         params=params,
-        headers={"User-Agent": "WikiMolGen/0.1 (infobox parser)"},
+        headers=make_headers(description="infobox parser"),
         timeout=timeout,
     )
     resp.raise_for_status()

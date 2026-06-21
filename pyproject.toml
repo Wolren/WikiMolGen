@@ -61,6 +61,7 @@ dependencies = [
     "requests>=2.32.0",
     "streamlit>=1.50.0",
     "charset_normalizer>=3.4.0",
+    "certifi>=2024.0.0",
 ]
 
 [project.optional-dependencies]
@@ -106,4 +107,11 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-select = ["E", "F", "W", "I", "N", "UP"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "C4", "ARG", "RUF100", "T20"]
+ignore = ["B904", "SIM105", "SIM108", "SIM114", "SIM115", "SIM117"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/*.py" = ["ARG001", "T20", "F841"]

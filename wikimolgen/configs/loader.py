@@ -1,5 +1,5 @@
 import json
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 from typing import Any
 
@@ -94,6 +94,10 @@ class Config3D:
         self.conformer = ConformerConfig()
 
 
+_RENDER_FIELDS = {f.name for f in fields(RenderConfig3D)}
+_CONFORMER_FIELDS = {f.name for f in fields(ConformerConfig)}
+
+
 @dataclass
 class Config2D:
     auto_orient_2d: bool = False
@@ -137,14 +141,16 @@ class Config2D:
         return asdict(self)
 
     def update(self, **kwargs) -> None:
+        valid = {f.name for f in fields(self)}
         for key, value in kwargs.items():
-            if hasattr(self, key):
+            if key in valid:
                 setattr(self, key, value)
             else:
                 raise ValueError(f"Unknown config parameter: {key}")
 
     def reset_to_defaults(self) -> None:
-        self.__init__()
+        for key, value in asdict(type(self)()).items():
+            setattr(self, key, value)
 
 
 # ── Protein Config (single source of truth for all protein keys) ──────────
@@ -203,14 +209,19 @@ class ProteinConfig:
         return asdict(self)
 
     def update(self, **kwargs) -> None:
+        valid = {f.name for f in fields(self)}
         for key, value in kwargs.items():
-            if hasattr(self, key):
+            if key in valid:
                 setattr(self, key, value)
             else:
                 raise ValueError(f"Unknown protein config parameter: {key}")
 
+    def reset_to_defaults(self) -> None:
+        for key, value in asdict(type(self)()).items():
+            setattr(self, key, value)
 
-_BULITIN_TEMPLATES = {
+
+_BUILTIN_TEMPLATES = {
     "publication_2d": {
         "type": "2d",
         "settings": {
@@ -420,7 +431,7 @@ DEFAULT_ELEMENT_COLORS: dict[str, str] = {
     "Og": "cyan",
 }
 
-BULITIN_COLOR_TEMPLATES: dict[str, dict[str, Any]] = {
+BUILTIN_COLOR_TEMPLATES: dict[str, dict[str, Any]] = {
     "cpk_standard": {
         "element_colors": dict(DEFAULT_ELEMENT_COLORS),
         "stick_color": "gray50",
@@ -634,23 +645,24 @@ class ConfigLoader:
             render_overrides = {}
             conformer_overrides = {}
             for key, value in overrides.items():
-                if key.startswith("render_"):
+                if key == "render" and isinstance(value, dict):
+                    render_overrides.update(value)
+                elif key == "conformer" and isinstance(value, dict):
+                    conformer_overrides.update(value)
+                elif key.startswith("render_"):
                     render_overrides[key[7:]] = value
                 elif key.startswith("conformer_"):
-                    conf_key = key[10:] if key.startswith("conformer_") else key
-                    conformer_overrides[conf_key] = value
-                elif hasattr(cfg.render, key):
+                    conformer_overrides[key[10:]] = value
+                elif key in _RENDER_FIELDS:
                     render_overrides[key] = value
-                elif hasattr(cfg.conformer, key):
+                elif key in _CONFORMER_FIELDS:
                     conformer_overrides[key] = value
             if render_overrides:
                 for k, v in render_overrides.items():
-                    if hasattr(cfg.render, k):
-                        setattr(cfg.render, k, v)
+                    setattr(cfg.render, k, v)
             if conformer_overrides:
                 for k, v in conformer_overrides.items():
-                    if hasattr(cfg.conformer, k):
-                        setattr(cfg.conformer, k, v)
+                    setattr(cfg.conformer, k, v)
         return cfg
 
     @staticmethod
@@ -662,35 +674,35 @@ class ConfigLoader:
 
     @staticmethod
     def load_template(template_name: str) -> Config2D | Config3D:
-        if template_name in _BULITIN_TEMPLATES:
+        if template_name in _BUILTIN_TEMPLATES:
             return _load_builtin_template(template_name)
         raise ValueError(
-            f"Unknown template: {template_name}. Available: {list(_BULITIN_TEMPLATES.keys())}"
+            f"Unknown template: {template_name}. Available: {list(_BUILTIN_TEMPLATES.keys())}"
         )
 
     @staticmethod
     def load_color_template(template_name: str) -> ColorConfig:
-        if template_name in BULITIN_COLOR_TEMPLATES:
-            data = BULITIN_COLOR_TEMPLATES[template_name]
+        if template_name in BUILTIN_COLOR_TEMPLATES:
+            data = BUILTIN_COLOR_TEMPLATES[template_name]
             return ColorConfig(**data)
         raise ValueError(
             f"Unknown color template: {template_name}. "
-            f"Available: {list(BULITIN_COLOR_TEMPLATES.keys())}"
+            f"Available: {list(BUILTIN_COLOR_TEMPLATES.keys())}"
         )
 
     @staticmethod
     def list_templates() -> dict[str, Any]:
         return {
-            "settings_templates": list(_BULITIN_TEMPLATES.keys()),
-            "color_templates": list(BULITIN_COLOR_TEMPLATES.keys()),
+            "settings_templates": list(_BUILTIN_TEMPLATES.keys()),
+            "color_templates": list(BUILTIN_COLOR_TEMPLATES.keys()),
         }
 
     @staticmethod
-    def load_from_file(filepath: str | Path) -> Config2D | Config3D:
+    def load_from_file(filepath: str | Path) -> Config2D | Config3D | ProteinConfig:
         filepath = Path(filepath)
         if not filepath.exists():
             raise FileNotFoundError(f"Config file not found: {filepath}")
-        with open(filepath) as f:
+        with open(filepath, encoding="utf-8") as f:
             data = json.load(f)
         return _TemplateSerializer.dict_to_config(data)
 
@@ -702,7 +714,7 @@ class ConfigLoader:
         filepath = Path(filepath)
         filepath.parent.mkdir(parents=True, exist_ok=True)
         data = _TemplateSerializer.template_to_dict(config)
-        with open(filepath, "w") as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
     @staticmethod
@@ -715,9 +727,9 @@ class ConfigLoader:
 
 
 def _load_builtin_template(name: str) -> Config2D | Config3D:
-    if name not in _BULITIN_TEMPLATES:
+    if name not in _BUILTIN_TEMPLATES:
         raise KeyError(f"No builtin template: {name}")
-    template = _BULITIN_TEMPLATES[name]
+    template = _BUILTIN_TEMPLATES[name]
     config_type = template["type"]
     if config_type == "2d":
         return ConfigLoader.get_2d_config(overrides=template.get("settings", {}))

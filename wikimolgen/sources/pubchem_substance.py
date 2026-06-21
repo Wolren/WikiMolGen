@@ -17,7 +17,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-PUG_BASE = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound"
+from wikimolgen.sources._client import PUG_BASE
 
 
 def fetch_substances(
@@ -47,20 +47,14 @@ def fetch_substances(
     requests.RequestException
         On network or API errors.
     """
-    try:
-        import requests
-    except ImportError:
-        raise ImportError(
-            "The 'requests' library is required for external source lookups. "
-            "Install with: pip install requests"
-        )
+    from wikimolgen.sources._client import make_headers, requests
 
     cid = str(int(pubchem_cid))
     url = f"{PUG_BASE}/cid/{cid}/sids/JSON"
 
     resp = requests.get(
         url,
-        headers={"User-Agent": "WikiMolGen/0.1 (substance fetcher)"},
+        headers=make_headers(description="substance fetcher"),
         timeout=timeout,
     )
     resp.raise_for_status()

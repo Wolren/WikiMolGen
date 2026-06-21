@@ -7,7 +7,7 @@ This package provides a modular Streamlit-based web interface
 for generating molecular structures.
 """
 
-__version__ = "1.0.0"
+from wikimolgen import __version__  # noqa: F401
 
 __all__ = [
     "rendering",

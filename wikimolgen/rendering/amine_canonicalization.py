@@ -21,6 +21,7 @@ from rdkit import Chem
 
 class AmineType(Enum):
     """Classification of amine functional groups."""
+
     PRIMARY = "NH2"  # -NH2
     SECONDARY = "NHR"  # -NHR
     TERTIARY = "NR3"  # -NR3
@@ -31,6 +32,7 @@ class AmineType(Enum):
 
 class AmineOrientation(Enum):
     """Standard orientations for amine display."""
+
     UP = 90.0  # Amine points upward
     DOWN = 270.0  # Amine points downward
     LEFT = 180.0  # Amine points left
@@ -78,10 +80,7 @@ def detect_amine_groups(mol: Chem.Mol) -> list[tuple[int, AmineType]]:
             continue
 
         # Count non-hydrogen neighbors
-        carbon_neighbors = [
-            nbr for nbr in atom.GetNeighbors()
-            if nbr.GetAtomicNum() == 6
-        ]
+        carbon_neighbors = [nbr for nbr in atom.GetNeighbors() if nbr.GetAtomicNum() == 6]
 
         degree = len(carbon_neighbors)
 
@@ -118,20 +117,16 @@ def _is_amide(nitrogen_atom: Chem.Atom) -> bool:
             for carbon_neighbor in neighbor.GetNeighbors():
                 if carbon_neighbor.GetAtomicNum() == 8:  # Oxygen
                     # FIX: Use mol.GetBondBetweenAtoms(), not neighbor.GetBondBetweenAtoms()
-                    bond = mol.GetBondBetweenAtoms(
-                        neighbor.GetIdx(),
-                        carbon_neighbor.GetIdx()
-                    )
+                    bond = mol.GetBondBetweenAtoms(neighbor.GetIdx(), carbon_neighbor.GetIdx())
 
                     if bond and bond.GetBondType() == Chem.BondType.DOUBLE:
                         return True
 
+    return False
+
 
 def orient_amine_group(
-        mol: Chem.Mol,
-        amine_n_idx: int,
-        target_angle_deg: float = 90.0,
-        conf_id: int = 0
+    mol: Chem.Mol, amine_n_idx: int, target_angle_deg: float = 90.0, conf_id: int = 0
 ) -> bool:
     """
     Rotate molecule so amine group points in target direction.
@@ -327,9 +322,7 @@ class AmineCanonicalizer:
         self.amines = detect_amine_groups(mol)
 
     def auto_orient_amines(
-            self,
-            phenethylamine_target: float = 90.0,
-            general_target: float = 90.0
+        self, phenethylamine_target: float = 90.0, general_target: float = 90.0
     ) -> dict[int, bool]:
         """
         Automatically orient all amine groups.
@@ -353,17 +346,9 @@ class AmineCanonicalizer:
 
         for n_idx, amine_type in self.amines:
             if n_idx == pea_n_idx:
-                success = orient_amine_group(
-                    self.mol, n_idx,
-                    phenethylamine_target,
-                    self.conf_id
-                )
+                success = orient_amine_group(self.mol, n_idx, phenethylamine_target, self.conf_id)
             else:
-                success = orient_amine_group(
-                    self.mol, n_idx,
-                    general_target,
-                    self.conf_id
-                )
+                success = orient_amine_group(self.mol, n_idx, general_target, self.conf_id)
             results[n_idx] = success
 
         return results
@@ -379,12 +364,14 @@ class AmineCanonicalizer:
         """
         info = []
         for n_idx, amine_type in self.amines:
-            info.append({
-                'atom_index': n_idx,
-                'type': amine_type,
-                'display_name': get_amine_display_name(amine_type),
-                'is_phenethylamine': n_idx == find_phenethylamine_amine_index(self.mol)
-            })
+            info.append(
+                {
+                    "atom_index": n_idx,
+                    "type": amine_type,
+                    "display_name": get_amine_display_name(amine_type),
+                    "is_phenethylamine": n_idx == find_phenethylamine_amine_index(self.mol),
+                }
+            )
         return info
 
     def has_amines(self) -> bool:
@@ -397,6 +384,7 @@ class AmineCanonicalizer:
 
 
 # Convenience functions for common use cases
+
 
 def orient_all_amines(mol: Chem.Mol, target_angle: float = 90.0) -> int:
     """
@@ -416,8 +404,7 @@ def orient_all_amines(mol: Chem.Mol, target_angle: float = 90.0) -> int:
     """
     canonicalizer = AmineCanonicalizer(mol)
     results = canonicalizer.auto_orient_amines(
-        phenethylamine_target=target_angle,
-        general_target=target_angle
+        phenethylamine_target=target_angle, general_target=target_angle
     )
     return sum(1 for success in results.values() if success)
 

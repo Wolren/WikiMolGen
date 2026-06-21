@@ -253,20 +253,14 @@ def fetch_experimental_data(
     requests.RequestException
         On network or API errors.
     """
-    try:
-        import requests
-    except ImportError:
-        raise ImportError(
-            "The 'requests' library is required for external source lookups. "
-            "Install with: pip install requests"
-        )
+    from wikimolgen.sources._client import make_headers, requests
 
     cid = str(int(pubchem_cid))
     url = f"{PUGVIEW_BASE}/{cid}/JSON"
 
     resp = requests.get(
         url,
-        headers={"User-Agent": "WikiMolGen/0.1 (experimental data fetcher)"},
+        headers=make_headers(description="experimental data fetcher"),
         timeout=timeout,
     )
     resp.raise_for_status()
@@ -282,13 +276,7 @@ def fetch_experimental_data(
     for (section_heading, heading), key in _PROP_MAP.items():
         val = _extract_value(sections, section_heading, heading)
         if val:
-            # Special handling: dissociation constants → pka key
-            if heading == "Dissociation Constants":
-                result["pka"] = val
-            elif heading == "LogP":
-                result["logp_experimental"] = val
-            else:
-                result[key] = val
+            result[key] = val
 
     # Phase 2: GHS Classification data
     result.update(_extract_ghs_data(sections))

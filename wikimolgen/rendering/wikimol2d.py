@@ -140,9 +140,11 @@ class MoleculeGenerator2D:
         center = coords.mean(axis=0)
         centered = coords - center
 
-        angle_rad = np.radians(self.config.angle_degrees)
         if self.config.auto_orient_2d:
-            angle_rad = find_optimal_2d_rotation(self.mol)
+            self._rotation_angle = find_optimal_2d_rotation(self.mol)
+        else:
+            self._rotation_angle = self.config.angle_degrees
+        angle_rad = np.radians(self._rotation_angle)
 
         # Build rotation matrix
         rotation_matrix = np.array(
@@ -213,7 +215,7 @@ class MoleculeGenerator2D:
                 for i in range(self.mol.GetNumAtoms())
             ]
         )
-        # Rotate coordinates
+        # Rotate coordinates (stores angle in self._rotation_angle)
         rotated = self._rotate_coords(coords)
 
         # Compute canvas size
@@ -406,11 +408,10 @@ class MoleculeGenerator2D:
         print(f"  Dimensions: {width}x{height} px")
         print(f"  Atoms: {self.mol.GetNumAtoms()}, Bonds: {self.mol.GetNumBonds()}")
 
+        angle_deg = getattr(self, "_rotation_angle", self.config.angle_degrees)
         if self.config.auto_orient_2d:
-            angle_deg = find_optimal_2d_rotation(self.mol)
             print(f"  Auto-oriented: {angle_deg:.1f}°")
         else:
-            angle_deg = self.config.angle_degrees
             print(f"  Rotation: {angle_deg:.1f}°")
 
         if amine_orientation:

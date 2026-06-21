@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from PIL import Image, ImageEnhance
+from PIL import Image, ImageEnhance, ImageMath
 
 from wikimolgen.configs import ColorConfig, Config2D, Config3D, ConfigLoader
 
@@ -47,8 +47,6 @@ def autocrop_image(
     r, g, b, a = img.split()
 
     if make_transparent:
-        from PIL import ImageMath
-
         thr = 240
         mask = ImageMath.eval(
             f"((r > {thr}) & (g > {thr}) & (b > {thr})) * 255",
@@ -134,4 +132,19 @@ def resolve_settings_template(template: str | Path) -> Config2D | Config3D | Non
     return None
 
 
-__all__ = ["autocrop_image", "load_color_config", "resolve_settings_template"]
+def hex_to_rgb(hex_color: str) -> tuple[float, float, float]:
+    """Convert a hex color string to a normalized ``(R, G, B)`` tuple.
+
+    Accepts ``"#RGB"``, ``"#RRGGBB"``, ``"RGB"``, or ``"RRGGBB"``.
+    Values are normalized to the 0.0–1.0 range. Returns white on parse failure.
+    """
+    h = hex_color.lstrip("#")
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    try:
+        return tuple(int(h[i : i + 2], 16) / 255.0 for i in (0, 2, 4))
+    except (ValueError, IndexError):
+        return (1.0, 1.0, 1.0)
+
+
+__all__ = ["autocrop_image", "hex_to_rgb", "load_color_config", "resolve_settings_template"]
