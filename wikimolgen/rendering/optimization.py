@@ -18,7 +18,7 @@ import numpy as np
 from rdkit import Chem
 from rdkit.Chem import rdDepictor
 
-PHENETHYL_PATTERN = Chem.MolFromSmarts("c1ccccc1-CCN")
+PHENETHYL_PATTERN = Chem.MolFromSmarts("[a]CC[NH2,NH]")
 
 
 def is_phenethylamine(mol: Chem.Mol) -> bool:
@@ -191,6 +191,64 @@ def orient_phenethylamine_sidechain(
         conf.SetAtomPosition(i, (x_new + center_x, y_new + center_y, 0.0))
 
     return True
+
+
+def _separate_heavy_substituents(mol: Chem.Mol, conf_id: int = 0) -> bool:
+    """
+    After phenethylamine sidechain orientation, flip the sidechain to the
+    opposite side of the ring if any heavy substituent (atomic num > 16)
+    is on the same side — matching Wikipedia convention.
+
+    Uses point reflection of the sidechain atoms across the ring attachment
+    point, which preserves bond lengths and angles.
+
+    Returns
+    -------
+    bool
+        True if sidechain was flipped
+    """
+    if mol.GetNumConformers() == 0:
+        return False
+
+    match = mol.GetSubstructMatch(PHENETHYL_PATTERN)
+    if len(match) < 4:
+        return False
+
+    conf = mol.GetConformer(conf_id)
+
+    attach_idx = match[0]
+    sidechain_atoms = match[1:]
+    attach_pos = conf.GetAtomPosition(attach_idx)
+
+    ring_atoms = {a.GetIdx() for a in mol.GetAtoms() if a.GetIsAromatic()}
+
+    n_pos = conf.GetAtomPosition(sidechain_atoms[-1])
+    sidechain_side = n_pos.x - attach_pos.x
+
+    heavy_substituents = []
+    for idx in ring_atoms:
+        atom = mol.GetAtomWithIdx(idx)
+        for nbr in atom.GetNeighbors():
+            ni = nbr.GetIdx()
+            if ni not in ring_atoms and ni not in sidechain_atoms:
+                if nbr.GetAtomicNum() > 16:
+                    heavy_substituents.append(ni)
+
+    if not heavy_substituents:
+        return False
+
+    for h_idx in heavy_substituents:
+        h_pos = conf.GetAtomPosition(h_idx)
+        h_side = h_pos.x - attach_pos.x
+        if (sidechain_side > 0 and h_side > 0) or (sidechain_side < 0 and h_side < 0):
+            for idx in sidechain_atoms:
+                p = conf.GetAtomPosition(idx)
+                new_x = 2 * attach_pos.x - p.x
+                new_y = 2 * attach_pos.y - p.y
+                conf.SetAtomPosition(idx, (new_x, new_y, 0.0))
+            return True
+
+    return False
 
 
 def calculate_principal_axes(mol: Chem.Mol, conf_id: int = 0) -> tuple[np.ndarray, np.ndarray]:

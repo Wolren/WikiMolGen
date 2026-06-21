@@ -420,6 +420,8 @@ def render_protein_structure(
         with st.spinner(f"Fetching PDB structure {pdb_id}..."):
             gen = ProteinGenerator(pdb_id)
 
+        gen._ensure_fetched()
+
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.metric("Chains", len(gen.metadata.chains))

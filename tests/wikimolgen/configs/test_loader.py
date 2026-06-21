@@ -53,22 +53,22 @@ class TestConfig2D:
         assert cfg.use_bw_palette is True
         assert cfg.transparent_background is True
         assert cfg.auto_orient_amines is True
-        assert cfg.amine_target_angle == 0.0
+        assert cfg.amine_target_angle == 90.0
         assert cfg.phenethylamine_target == 90.0
         assert cfg.additional_atom_label_padding == 0.1
         assert cfg.bond_line_width == 1.0
-        assert cfg.add_stereo_annotation is False
+        assert cfg.add_stereo_annotation is True
         assert cfg.include_radicals is False
         assert cfg.explicit_methyl is False
         assert cfg.scaling_factor == 1.0
         assert cfg.no_atom_labels is False
         assert cfg.multiple_bond_offset == 0.15
         assert cfg.include_atom_tags is False
-        assert cfg.include_chiral_flag is False
+        assert cfg.include_chiral_flag is True
         assert cfg.comic_mode is False
         assert cfg.fixed_font_size == -1
         assert cfg.strip_annotation_markers is True
-        assert cfg.use_coord_gen is False
+        assert cfg.use_coord_gen is True
         assert cfg.legend_font_size == 12
         assert cfg.max_font_size == 40
         assert cfg.dots_per_angstrom == 100
@@ -314,19 +314,19 @@ class TestConfigLoaderListTemplates:
 
     def test_known_templates_present(self):
         result = ConfigLoader.list_templates()
-        assert "publication_2d" in result["settings_templates"]
+        assert "wikipedia_2d" in result["settings_templates"]
         assert "high_quality_3d" in result["settings_templates"]
         assert "cpk_standard" in result["color_templates"]
         assert "minimal_bw" in result["color_templates"]
 
 
 class TestConfigLoaderLoadTemplate:
-    def test_publication_2d_returns_config2d(self):
-        cfg = ConfigLoader.load_template("publication_2d")
+    def test_wikipedia_2d_returns_config2d(self):
+        cfg = ConfigLoader.load_template("wikipedia_2d")
         assert isinstance(cfg, Config2D)
 
-    def test_publication_2d_overrides(self):
-        cfg = ConfigLoader.load_template("publication_2d")
+    def test_wikipedia_2d_overrides(self):
+        cfg = ConfigLoader.load_template("wikipedia_2d")
         assert cfg.scale == 40.0
         assert cfg.bond_length == 50.0
         assert cfg.min_font_size == 40
@@ -341,20 +341,16 @@ class TestConfigLoaderLoadTemplate:
         assert cfg.render.sphere_scale == 0.28
         assert cfg.render.ray_trace_mode == 1
 
-    def test_web_optimized_2d(self):
-        cfg = ConfigLoader.load_template("web_optimized_2d")
+    def test_compact_2d(self):
+        cfg = ConfigLoader.load_template("compact_2d")
         assert isinstance(cfg, Config2D)
         assert cfg.scale == 25.0
 
-    def test_web_preview_3d(self):
-        cfg = ConfigLoader.load_template("web_preview_3d")
+    def test_wikipedia_3d(self):
+        cfg = ConfigLoader.load_template("wikipedia_3d")
         assert isinstance(cfg, Config3D)
         assert cfg.render.antialias == 2
-
-    def test_dramatic_3d(self):
-        cfg = ConfigLoader.load_template("dramatic_3d")
-        assert isinstance(cfg, Config3D)
-        assert cfg.render.bg_color == "black"
+        assert cfg.render.ray_shadows == 0
 
     def test_minimal_clean_3d(self):
         cfg = ConfigLoader.load_template("minimal_clean_3d")
@@ -630,7 +626,7 @@ class TestConfigLoaderExportDefaultTemplate:
         with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
             path = f.name
         try:
-            ConfigLoader.export_default_template("publication_2d", path)
+            ConfigLoader.export_default_template("wikipedia_2d", path)
             reloaded = ConfigLoader.load_from_file(path)
             assert isinstance(reloaded, Config2D)
             assert reloaded.scale == 40.0
