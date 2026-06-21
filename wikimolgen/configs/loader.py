@@ -111,22 +111,22 @@ class Config2D:
     use_bw_palette: bool = True
     transparent_background: bool = True
     auto_orient_amines: bool = True
-    amine_target_angle: float = 0.0
+    amine_target_angle: float = 90.0
     phenethylamine_target: float = 90.0
     additional_atom_label_padding: float = 0.1
     bond_line_width: float = 1.0
-    add_stereo_annotation: bool = False
+    add_stereo_annotation: bool = True
     include_radicals: bool = False
     explicit_methyl: bool = False
     scaling_factor: float = 1.0
     no_atom_labels: bool = False
     multiple_bond_offset: float = 0.15
     include_atom_tags: bool = False
-    include_chiral_flag: bool = False
+    include_chiral_flag: bool = True
     comic_mode: bool = False
     fixed_font_size: int = -1
     strip_annotation_markers: bool = True
-    use_coord_gen: bool = False
+    use_coord_gen: bool = True
     legend_font_size: int = 12
     max_font_size: int = 40
     dots_per_angstrom: int = 100
@@ -222,7 +222,7 @@ class ProteinConfig:
 
 
 _BUILTIN_TEMPLATES = {
-    "publication_2d": {
+    "wikipedia_2d": {
         "type": "2d",
         "settings": {
             "scale": 40.0,
@@ -233,7 +233,7 @@ _BUILTIN_TEMPLATES = {
             "auto_orient_2d": False,
         },
     },
-    "web_optimized_2d": {
+    "compact_2d": {
         "type": "2d",
         "settings": {
             "scale": 25.0,
@@ -244,6 +244,21 @@ _BUILTIN_TEMPLATES = {
             "auto_orient_2d": False,
         },
     },
+    "wikipedia_3d": {
+        "type": "3d",
+        "settings": {
+            "render_stick_radius": 0.2,
+            "render_sphere_scale": 0.3,
+            "render_antialias": 2,
+            "render_ray_trace_mode": 0,
+            "render_ray_shadows": 0,
+            "render_ambient": 0.3,
+            "render_specular": 0.5,
+            "render_direct": 0.5,
+            "render_reflect": 0.3,
+            "render_shininess": 30,
+        },
+    },
     "high_quality_3d": {
         "type": "3d",
         "settings": {
@@ -252,32 +267,6 @@ _BUILTIN_TEMPLATES = {
             "render_antialias": 4,
             "render_ray_trace_mode": 1,
             "render_ray_shadows": 1,
-        },
-    },
-    "web_preview_3d": {
-        "type": "3d",
-        "settings": {
-            "render_stick_radius": 0.2,
-            "render_sphere_scale": 0.3,
-            "render_antialias": 2,
-            "render_ray_trace_mode": 0,
-        },
-    },
-    "dramatic_3d": {
-        "type": "3d",
-        "settings": {
-            "render_stick_radius": 0.2,
-            "render_sphere_scale": 0.3,
-            "render_antialias": 3,
-            "render_ambient": 0.1,
-            "render_specular": 1.5,
-            "render_direct": 0.7,
-            "render_reflect": 0.3,
-            "render_shininess": 50,
-            "render_ray_trace_mode": 1,
-            "render_ray_shadows": 1,
-            "render_depth_cue": 1,
-            "render_bg_color": "black",
         },
     },
     "minimal_clean_3d": {

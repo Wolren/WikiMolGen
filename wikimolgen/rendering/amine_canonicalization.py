@@ -125,6 +125,60 @@ def _is_amide(nitrogen_atom: Chem.Atom) -> bool:
     return False
 
 
+def _compute_rotation_delta(
+    mol: Chem.Mol, amine_n_idx: int, target_angle_deg: float, conf_id: int = 0
+) -> float | None:
+    """Compute rotation delta (radians) to orient amine toward target angle."""
+    if mol.GetNumConformers() == 0:
+        return None
+
+    conf = mol.GetConformer(conf_id)
+    n_atom = mol.GetAtomWithIdx(amine_n_idx)
+
+    neighbors = n_atom.GetNeighbors()
+    if not neighbors:
+        return None
+
+    reference_neighbor = None
+    for neighbor in neighbors:
+        if not neighbor.GetIsAromatic():
+            reference_neighbor = neighbor
+            break
+
+    if reference_neighbor is None:
+        reference_neighbor = neighbors[0]
+
+    n_pos = conf.GetAtomPosition(amine_n_idx)
+    ref_pos = conf.GetAtomPosition(reference_neighbor.GetIdx())
+
+    vx = n_pos.x - ref_pos.x
+    vy = n_pos.y - ref_pos.y
+
+    current_angle = math.atan2(vy, vx)
+    target_angle_rad = math.radians(target_angle_deg)
+
+    return target_angle_rad - current_angle
+
+
+def _rotate_all_atoms(mol: Chem.Mol, delta: float, conf_id: int = 0) -> None:
+    """Rotate all atoms in molecule by delta radians around center."""
+    conf = mol.GetConformer(conf_id)
+
+    center_x = sum(conf.GetAtomPosition(i).x for i in range(mol.GetNumAtoms())) / mol.GetNumAtoms()
+    center_y = sum(conf.GetAtomPosition(i).y for i in range(mol.GetNumAtoms())) / mol.GetNumAtoms()
+
+    cos_d = math.cos(delta)
+    sin_d = math.sin(delta)
+
+    for i in range(mol.GetNumAtoms()):
+        p = conf.GetAtomPosition(i)
+        x = p.x - center_x
+        y = p.y - center_y
+        x_new = x * cos_d - y * sin_d
+        y_new = x * sin_d + y * cos_d
+        conf.SetAtomPosition(i, (x_new + center_x, y_new + center_y, 0.0))
+
+
 def orient_amine_group(
     mol: Chem.Mol, amine_n_idx: int, target_angle_deg: float = 90.0, conf_id: int = 0
 ) -> bool:
@@ -153,71 +207,11 @@ def orient_amine_group(
     -------
     bool
         True if successful, False if no conformer
-
-    Examples
-    --------
-    >>> mol = Chem.MolFromSmiles("CCN")
-    >>> AllChem.Compute2DCoords(mol)
-    >>> orient_amine_group(mol, 2, 90.0)  # Amine points up
-    True
     """
-    if mol.GetNumConformers() == 0:
+    delta = _compute_rotation_delta(mol, amine_n_idx, target_angle_deg, conf_id)
+    if delta is None:
         return False
-
-    conf = mol.GetConformer(conf_id)
-    n_atom = mol.GetAtomWithIdx(amine_n_idx)
-
-    # Find the "outward" direction: N's neighbor that's not aromatic
-    # For primary amines, use the C-N bond direction
-    neighbors = n_atom.GetNeighbors()
-    if not neighbors:
-        return False
-
-    # Prefer non-aromatic neighbors for angle calculation
-    reference_neighbor = None
-    for neighbor in neighbors:
-        if not neighbor.GetIsAromatic():
-            reference_neighbor = neighbor
-            break
-
-    if reference_neighbor is None:
-        reference_neighbor = neighbors[0]
-
-    # Get positions
-    n_pos = conf.GetAtomPosition(amine_n_idx)
-    ref_pos = conf.GetAtomPosition(reference_neighbor.GetIdx())
-
-    # Vector from reference to nitrogen
-    vx = n_pos.x - ref_pos.x
-    vy = n_pos.y - ref_pos.y
-
-    # Current angle
-    current_angle = math.atan2(vy, vx)
-    target_angle_rad = math.radians(target_angle_deg)
-
-    # Rotation needed
-    delta = target_angle_rad - current_angle
-    cos_d = math.cos(delta)
-    sin_d = math.sin(delta)
-
-    # Rotate all atoms around molecule center
-    center_x = sum(conf.GetAtomPosition(i).x for i in range(mol.GetNumAtoms())) / mol.GetNumAtoms()
-    center_y = sum(conf.GetAtomPosition(i).y for i in range(mol.GetNumAtoms())) / mol.GetNumAtoms()
-
-    for i in range(mol.GetNumAtoms()):
-        p = conf.GetAtomPosition(i)
-
-        # Translate to origin
-        x = p.x - center_x
-        y = p.y - center_y
-
-        # Rotate
-        x_new = x * cos_d - y * sin_d
-        y_new = x * sin_d + y * cos_d
-
-        # Translate back
-        conf.SetAtomPosition(i, (x_new + center_x, y_new + center_y, 0.0))
-
+    _rotate_all_atoms(mol, delta, conf_id)
     return True
 
 
@@ -286,7 +280,7 @@ def find_phenethylamine_amine_index(mol: Chem.Mol) -> int | None:
     >>> idx  # Index of N atom
     8
     """
-    pattern = Chem.MolFromSmarts("c1ccccc1CCN")
+    pattern = Chem.MolFromSmarts("[a]CC[NH2,NH]")
     match = mol.GetSubstructMatch(pattern)
 
     if match:
@@ -325,7 +319,11 @@ class AmineCanonicalizer:
         self, phenethylamine_target: float = 90.0, general_target: float = 90.0
     ) -> dict[int, bool]:
         """
-        Automatically orient all amine groups.
+        Automatically orient all amine groups using a consensus rotation.
+
+        For molecules with multiple amine groups, computes a single rotation
+        that best satisfies all targets, avoiding the conflict where each
+        successive rotation would undo the previous one.
 
         Parameters
         ----------
@@ -339,19 +337,28 @@ class AmineCanonicalizer:
         Dict[int, bool]
             {amine_n_idx: success} for each amine
         """
-        results = {}
+        if not self.amines:
+            return {}
 
-        # Check if this is a phenethylamine
         pea_n_idx = find_phenethylamine_amine_index(self.mol)
 
-        for n_idx, amine_type in self.amines:
-            if n_idx == pea_n_idx:
-                success = orient_amine_group(self.mol, n_idx, phenethylamine_target, self.conf_id)
-            else:
-                success = orient_amine_group(self.mol, n_idx, general_target, self.conf_id)
-            results[n_idx] = success
+        deltas = []
+        for n_idx, _ in self.amines:
+            target = phenethylamine_target if n_idx == pea_n_idx else general_target
+            delta = _compute_rotation_delta(self.mol, n_idx, target, self.conf_id)
+            if delta is not None:
+                deltas.append(delta)
 
-        return results
+        if not deltas:
+            return {idx: False for idx, _ in self.amines}
+
+        sin_sum = sum(math.sin(d) for d in deltas)
+        cos_sum = sum(math.cos(d) for d in deltas)
+        avg_delta = math.atan2(sin_sum, cos_sum)
+
+        _rotate_all_atoms(self.mol, avg_delta, self.conf_id)
+
+        return {idx: True for idx, _ in self.amines}
 
     def get_amine_info(self) -> list[dict]:
         """

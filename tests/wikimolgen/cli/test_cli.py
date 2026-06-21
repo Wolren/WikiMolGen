@@ -39,7 +39,7 @@ class TestCreateParser:
                 "--output",
                 "out.svg",
                 "--template",
-                "publication_2d",
+                "wikipedia_2d",
                 "--color-template",
                 "cpk_standard",
                 "--angle",
@@ -53,7 +53,7 @@ class TestCreateParser:
         )
         assert args.compound == "2244"
         assert args.output == "out.svg"
-        assert args.template == "publication_2d"
+        assert args.template == "wikipedia_2d"
         assert args.color_template == "cpk_standard"
         assert args.angle == 90.0
         assert args.auto_orient is True
@@ -162,12 +162,12 @@ class TestRun2D:
                 "--compound",
                 "aspirin",
                 "--template",
-                "publication_2d",
+                "wikipedia_2d",
             ]
         )
         run_2d(args)
 
-        mock_gen.load_settings_template.assert_called_once_with("publication_2d")
+        mock_gen.load_settings_template.assert_called_once_with("wikipedia_2d")
 
     @patch("wikimolgen.cli.cli.ConfigLoader")
     @patch("wikimolgen.cli.cli.MoleculeGenerator2D")

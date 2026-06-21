@@ -30,10 +30,10 @@ Examples:
 
 # 2D SVG generation
   wikimolgen 2d --compound aspirin --output aspirin.svg
-  wikimolgen 2d --compound 24802108 --template publication_2d
+  wikimolgen 2d --compound 24802108 --template wikipedia_2d
 
 # 3D structure with PyMOL rendering
-  wikimolgen 3d --compound DMT --render --template high_quality_3d
+  wikimolgen 3d --compound DMT --render --template wikipedia_3d
   wikimolgen 3d --compound 5284583 --color-template cpk_standard
 
 # Using custom template

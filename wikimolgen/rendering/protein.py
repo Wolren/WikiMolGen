@@ -13,7 +13,6 @@ from pathlib import Path
 
 import biotite.database.rcsb as rcsb
 import biotite.structure.io.pdb as pdb
-import nglview as nv
 
 
 # Element-color mapping shared across rendering paths
@@ -530,112 +529,6 @@ class ProteinGenerator:
         for key, value in kwargs.items():
             if hasattr(self.ligand_config, key):
                 setattr(self.ligand_config, key, value)
-
-
-class ProteinNGLViewRenderer:
-    """Interactive protein visualization using NGLView for Jupyter notebooks."""
-
-    def __init__(self, pdb_id: str):
-        """Initialize NGLView renderer.
-
-        Parameters
-        ----------
-        pdb_id : str
-            PDB identifier
-
-        Raises
-        ------
-        ImportError
-            If NGLView not available
-        """
-
-        self.pdb_id = pdb_id.upper()
-        self.view = None
-
-    def create_view(
-        self,
-        background: str = "black",
-        width: int = 600,
-        height: int = 400,
-    ):
-        """Create interactive NGLView.
-
-        Parameters
-        ----------
-        background : str
-            Background color
-        width : int
-            View width in pixels
-        height : int
-            View height in pixels
-
-        Returns
-        -------
-        nglview.NGLWidget
-            Interactive view widget
-        """
-        pdb_file = f"rcsb://{self.pdb_id}.pdb"
-        self.view = nv.show_structure_file(pdb_file, gui=True)
-        self.view._set_size(width, height)
-        return self.view
-
-    def add_cartoon(self, color_scheme: str = "chainindex", transparency: float = 0.0):
-        """Add cartoon representation.
-
-        Parameters
-        ----------
-        color_scheme : str
-            Color scheme for cartoon
-        transparency : float
-            Transparency level (0-1)
-
-        Returns
-        -------
-        ProteinNGLViewRenderer
-            Self for method chaining
-        """
-        if self.view is None:
-            raise ValueError("Call create_view() first")
-        self.view.add_cartoon(colorScheme=color_scheme)
-        return self
-
-    def add_ligand_sticks(self, color_by: str = "element"):
-        """Add ligand as sticks representation.
-
-        Parameters
-        ----------
-        color_by : str
-            Coloring scheme
-
-        Returns
-        -------
-        ProteinNGLViewRenderer
-            Self for method chaining
-        """
-        if self.view is None:
-            raise ValueError("Call create_view() first")
-        self.view.add_ball_and_stick("organic", colorScheme=color_by)
-        return self
-
-    def add_surface(self, opacity: float = 0.7, surface_type: str = "av"):
-        """Add molecular surface.
-
-        Parameters
-        ----------
-        opacity : float
-            Surface opacity (0-1)
-        surface_type : str
-            Surface type (av, vdw, etc)
-
-        Returns
-        -------
-        ProteinNGLViewRenderer
-            Self for method chaining
-        """
-        if self.view is None:
-            raise ValueError("Call create_view() first")
-        self.view.add_surface(opacity=opacity, surfaceType=surface_type)
-        return self
 
 
 def get_optimal_dynorphin_kor_view() -> dict:

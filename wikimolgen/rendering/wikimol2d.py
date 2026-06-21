@@ -20,6 +20,7 @@ from wikimolgen.rendering.amine_canonicalization import (
     orient_all_amines,
 )
 from wikimolgen.rendering.optimization import (
+    _separate_heavy_substituents,
     find_optimal_2d_rotation,
     is_phenethylamine,
     orient_phenethylamine_sidechain,
@@ -80,7 +81,7 @@ class MoleculeGenerator2D:
     >>> gen.draw("aspirin.svg")
 
     >>> # Using template
-    >>> config = ConfigLoader.load_template("publication_2d")
+    >>> config = ConfigLoader.load_template("wikipedia_2d")
     >>> gen = MoleculeGenerator2D("aspirin", config=config)
     >>> gen.draw("aspirin.svg")
 
@@ -118,6 +119,7 @@ class MoleculeGenerator2D:
         self.smiles, self.compound_name = fetch_compound(identifier)
         self.mol = validate_smiles(self.smiles)
         self.amine_canonicalizer = AmineCanonicalizer(self.mol)
+        self._amines_oriented: bool = False
 
         # Load configuration
         if config is None:
@@ -140,7 +142,7 @@ class MoleculeGenerator2D:
         center = coords.mean(axis=0)
         centered = coords - center
 
-        if self.config.auto_orient_2d:
+        if self.config.auto_orient_2d and not self._amines_oriented:
             self._rotation_angle = find_optimal_2d_rotation(self.mol)
         else:
             self._rotation_angle = self.config.angle_degrees
@@ -154,26 +156,14 @@ class MoleculeGenerator2D:
         return centered @ rotation_matrix.T
 
     def _compute_canvas_size(self, coords: np.ndarray) -> tuple[int, int, float, float]:
-        """
-        Calculate canvas dimensions with margins to prevent clipping.
-
-        Parameters
-        ----------
-        coords : np.ndarray
-            Nx2 array of coordinates
-
-        Returns
-        -------
-        tuple[int, int, float, float]
-            width, height, minx, miny
-        """
         minx, miny = coords.min(axis=0)
         maxx, maxy = coords.max(axis=0)
 
-        minx -= self.config.margin
-        miny -= self.config.margin
-        maxx += self.config.margin
-        maxy += self.config.margin
+        margin = max(self.config.margin, self.config.max_font_size * 2 / self.config.scale)
+        minx -= margin
+        miny -= margin
+        maxx += margin
+        maxy += margin
 
         width = int((maxx - minx) * self.config.scale)
         height = int((maxy - miny) * self.config.scale)
@@ -293,13 +283,14 @@ class MoleculeGenerator2D:
         if self.config.acs_mode:
             svg = self._scale_svg(svg, self.config.svg_min_display_size)
 
-        # Strip RDKit atom annotation markers (tiny red boxes) across all modes
         if self.config.strip_annotation_markers:
             svg = re.sub(
                 r"<path class=\'atom-\d+\'[^>]*stroke:#FF0000[^>]*/>\s*",
                 "",
                 svg,
             )
+
+        svg = self._clean_svg_for_wikipedia(svg)
 
         # Save file
         output_path = Path(output)
@@ -361,11 +352,17 @@ class MoleculeGenerator2D:
         """
         Apply automatic amine orientation based on molecule type.
 
+        When active, sets self._amines_oriented so that PCA auto-rotation
+        in _rotate_coords is skipped — otherwise PCA would undo the
+        deliberate amine orientation.
+
         Returns
         -------
         dict
             Orientation results with information about applied transformations
         """
+        self._amines_oriented = False
+
         if not self.config.auto_orient_amines:
             return {}
 
@@ -373,6 +370,9 @@ class MoleculeGenerator2D:
             success = orient_phenethylamine_sidechain(
                 self.mol, target_angle_deg=self.config.phenethylamine_target
             )
+            if success:
+                _separate_heavy_substituents(self.mol)
+                self._amines_oriented = True
             return {
                 "type": "phenethylamine",
                 "success": success,
@@ -381,6 +381,7 @@ class MoleculeGenerator2D:
 
         amine_count = orient_all_amines(self.mol, target_angle=self.config.amine_target_angle)
         if amine_count > 0:
+            self._amines_oriented = True
             return {
                 "type": "amines",
                 "success": True,
@@ -421,6 +422,13 @@ class MoleculeGenerator2D:
                 print(
                     f"  Amines oriented: {amine_orientation['count']} groups @ {amine_orientation['target_angle']}°"
                 )
+
+    @staticmethod
+    def _clean_svg_for_wikipedia(svg_text: str) -> str:
+        svg_text = re.sub(r"\s+xmlns:rdkit='[^']*'", "", svg_text)
+        svg_text = re.sub(r"<!-- END OF HEADER -->\s*", "", svg_text)
+        svg_text = re.sub(r"\s+class='[^']*'", "", svg_text)
+        return svg_text
 
     @staticmethod
     def _scale_svg(m_svg: str, min_size: int = 600) -> str:
