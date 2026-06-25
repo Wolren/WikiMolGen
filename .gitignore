@@ -12,6 +12,7 @@ dist/
 .eggs/
 pip-wheel-metadata/
 setuptools-wheel-metadata/
+tmp_wheel/
 
 # --- Virtual environments ---
 .venv/

@@ -325,7 +325,7 @@ class ProteinGenerator:
             import pymol2
         except ImportError:
             raise ProteinVisualizationError(
-                "pymol2 not installed. Install with: conda install -c conda-forge pymol-open-source"
+                "pymol2 not installed. Install with: pip install pymol-open-source  or  conda install -c conda-forge pymol-open-source"
             )
 
         output_path = Path(output)
