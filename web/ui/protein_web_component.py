@@ -409,7 +409,7 @@ def render_protein_structure(
         st.error(
             "Protein rendering is unavailable: the pymol backend failed to "
             f"import ({type(_PROTEIN_IMPORT_ERROR).__name__}: "
-            f"{_PROTEIN_IMPORT_ERROR}). Install pymol-open-source to enable it."
+            f"{_PROTEIN_IMPORT_ERROR}). Install: pip install pymol-open-source"
         )
         raise RuntimeError("pymol backend not available") from _PROTEIN_IMPORT_ERROR
 
