@@ -718,7 +718,7 @@ class ConfigLoader:
 def _load_builtin_template(name: str) -> Config2D | Config3D:
     if name not in _BUILTIN_TEMPLATES:
         raise KeyError(f"No builtin template: {name}")
-    template = _BUILTIN_TEMPLATES[name]
+    template: dict[str, Any] = _BUILTIN_TEMPLATES[name]
     config_type = template["type"]
     if config_type == "2d":
         return ConfigLoader.get_2d_config(overrides=template.get("settings", {}))

@@ -16,8 +16,8 @@ try:
     from wikimolgen.core import enrich_compound_data
 except ImportError:
 
-    def enrich_compound_data(data: dict) -> dict:
-        return data
+    def enrich_compound_data(compound_data: dict[Any, Any] | None) -> dict[Any, Any] | None:
+        return compound_data
 
 
 _WIKI_UNSAFE_RE = re.compile(r"[|{}\[\]\n\r]")

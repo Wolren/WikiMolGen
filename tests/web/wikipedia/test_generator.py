@@ -306,7 +306,6 @@ class TestGenerateChemboxCode:
         "ec_number": "200-064-1",
         "un_number": "2811",
         "rtecs": "VO0700000",
-        "unii": "R16CO5Y76E",
         "iuphar_ligand": "1234",
         "niaid_chemdb": "5678",
         "mesh_id": "D001241",

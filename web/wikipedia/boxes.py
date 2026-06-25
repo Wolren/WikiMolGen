@@ -98,7 +98,7 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
 
     # Derive license template and wp param from picker
     pick = st.session_state.get("commons_license_picker", "cc-by-sa-4.0")
-    _LICENSE_MAP = {
+    _license_map = {
         "cc-by-sa-4.0": ("Self|cc-by-sa-4.0", "cc-by-sa-4.0"),
         "cc-zero": ("Self|cc-zero", "cc-zero"),
         "cc-by-4.0": ("Self|cc-by-4.0", "cc-by-4.0"),
@@ -107,7 +107,7 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
         "PD-self": ("PD-self", "pd-self"),
         "Custom": (st.session_state.get("commons_custom_license", "{{Self|cc-by-sa-4.0}}"), ""),
     }
-    license_tmpl, license_wp = _LICENSE_MAP.get(pick, ("Self|cc-by-sa-4.0", "cc-by-sa-4.0"))
+    license_tmpl, license_wp = _license_map.get(pick, ("Self|cc-by-sa-4.0", "cc-by-sa-4.0"))
     st.session_state.commons_license_text = license_tmpl
     st.session_state.commons_license = license_wp
 
