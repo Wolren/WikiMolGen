@@ -330,6 +330,7 @@ class ProteinGenerator:
 
         output_path = Path(output)
         self._ensure_fetched()
+        assert self.metadata is not None
 
         try:
             with pymol2.PyMOL() as pymol:

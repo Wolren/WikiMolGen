@@ -8,11 +8,10 @@ No dependencies on Streamlit or other web packages.
 
 import json
 from pathlib import Path
-from typing import Any
-
 from PIL import Image, ImageEnhance, ImageMath
 
-from wikimolgen.configs import ColorConfig, Config2D, Config3D, ConfigLoader
+from wikimolgen.configs import ColorConfig, Config2D, Config3D
+from wikimolgen.configs.loader import ProteinConfig, ConfigLoader
 
 
 def autocrop_image(
@@ -113,7 +112,7 @@ def load_color_config(template: str | Path | ColorConfig | dict) -> ColorConfig:
     return ColorConfig()
 
 
-def resolve_settings_template(template: str | Path) -> Config2D | Config3D | None:
+def resolve_settings_template(template: str | Path) -> Config2D | Config3D | ProteinConfig | None:
     """Try to resolve a settings template identifier to a config object.
 
     Accepts a built-in template name or a path to a JSON file.
@@ -142,7 +141,7 @@ def hex_to_rgb(hex_color: str) -> tuple[float, float, float]:
     if len(h) == 3:
         h = "".join(c * 2 for c in h)
     try:
-        return tuple(int(h[i : i + 2], 16) / 255.0 for i in (0, 2, 4))
+        return int(h[0:2], 16) / 255.0, int(h[2:4], 16) / 255.0, int(h[4:6], 16) / 255.0
     except (ValueError, IndexError):
         return (1.0, 1.0, 1.0)
 

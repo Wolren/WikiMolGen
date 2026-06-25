@@ -131,6 +131,7 @@ def load_uploaded_preset(uploaded_file) -> dict[str, Any] | None:
     if err:
         st.error(f"Failed to load preset: {err}")
         return None
+    assert parsed is not None
     preset_name = parsed.get("name", f"Custom_{datetime.now().strftime('%H%M%S')}")
     return {"name": preset_name, "data": parsed}
 
