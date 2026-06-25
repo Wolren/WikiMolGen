@@ -23,8 +23,8 @@ try:
 
     _PROTEIN_BACKEND_AVAILABLE = True
 except Exception as _protein_import_error:  # pragma: no cover - import-time guard
-    ColorScheme = None  # type: ignore[assignment]
-    ProteinGenerator = None  # type: ignore[assignment]
+    ColorScheme = None  # type: ignore[assignment, misc]
+    ProteinGenerator = None  # type: ignore[assignment, misc]
     ProteinVisualizationError = Exception  # type: ignore[assignment, misc]
     _PROTEIN_BACKEND_AVAILABLE = False
     _PROTEIN_IMPORT_ERROR: Exception = _protein_import_error
@@ -55,7 +55,7 @@ def render_protein_selector() -> str:
 def render_protein_cartoon_settings() -> dict[str, Any]:
     """Render protein cartoon rendering controls."""
 
-    config = {}
+    config: dict[str, Any] = {}
 
     with st.expander("Cartoon", expanded=False):
         color_scheme = st.selectbox(
@@ -118,7 +118,7 @@ def render_protein_cartoon_settings() -> dict[str, Any]:
 def render_protein_ligand_settings() -> dict[str, Any]:
     """Render ligand/heteroatom rendering controls."""
 
-    config = {}
+    config: dict[str, Any] = {}
 
     with st.expander("Ligand & Heteroatoms", expanded=False):
         col1, col2 = st.columns(2)
@@ -226,7 +226,7 @@ def render_protein_ligand_settings() -> dict[str, Any]:
 def render_protein_canvas_settings() -> dict[str, Any]:
     """Render canvas and rendering quality controls."""
 
-    config = {}
+    config: dict[str, Any] = {}
 
     with st.expander("Canvas", expanded=False):
         col1, col2 = st.columns(2)
@@ -311,7 +311,7 @@ def render_protein_canvas_settings() -> dict[str, Any]:
 def render_protein_effects_settings() -> dict[str, Any]:
     """Render effects controls for protein rendering."""
 
-    config = {}
+    config: dict[str, Any] = {}
 
     with st.expander("Effects", expanded=False):
         col1, col2 = st.columns(2)
@@ -373,7 +373,7 @@ def render_protein_structure(
     ligand_config: dict[str, Any],
     canvas_config: dict[str, Any],
     output_base: Path,
-) -> Path:
+) -> Path | None:
     """Render protein structure and save to file.
 
     Follows the same pattern as MoleculeGenerator2D/3D:
@@ -421,6 +421,7 @@ def render_protein_structure(
             gen = ProteinGenerator(pdb_id)
 
         gen._ensure_fetched()
+        assert gen.metadata is not None
 
         col1, col2, col3, col4 = st.columns(4)
         with col1:

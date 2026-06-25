@@ -434,6 +434,7 @@ class MoleculeGenerator3D:
             )
 
         self._ensure_fetched()
+        assert self.mol is not None
 
         # Generate conformer
         self._embed_conformer()
@@ -600,7 +601,8 @@ class MoleculeGenerator3D:
         return self.config.to_dict()
 
     def __repr__(self) -> str:
+        atoms = self.mol.GetNumAtoms() if self.mol else 0
         return (
             f"MoleculeGenerator3D(identifier='{self.identifier}', "
-            f"compound='{self.compound_name}', atoms={self.mol.GetNumAtoms()})"
+            f"compound='{self.compound_name}', atoms={atoms})"
         )

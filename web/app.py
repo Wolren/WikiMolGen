@@ -292,7 +292,7 @@ def render_protein_structure_dynamic(
             return image_html
         else:
             st.error("Failed to generate protein structure image")
-            return None
+            return ""
 
 
 def _debounce_pass() -> bool:
@@ -411,7 +411,9 @@ def _render_protein_content(protein_inputs: tuple | None) -> None:
         st.info("Configure protein settings in the sidebar to render a structure.")
 
 
-def render_main_content(compound: str, structure_type: str, protein_inputs: tuple = None) -> None:
+def render_main_content(
+    compound: str, structure_type: str, protein_inputs: tuple | None = None
+) -> None:
     """Render main content area."""
     if structure_type != "Protein":
         _render_small_molecule_content(compound, structure_type)
@@ -434,10 +436,7 @@ def render_download_section() -> None:
         mime_type = st.session_state.get("last_file_mime", "image/png")
         # Derive extension from mime type if filename lacks it
         if "." not in file_name:
-            if "svg" in mime_type:
-                file_ext = ".svg"
-            else:
-                file_ext = ".png"
+            file_ext = ".svg" if "svg" in mime_type else ".png"
             file_name += file_ext
 
         file_ext = Path(file_name).suffix
