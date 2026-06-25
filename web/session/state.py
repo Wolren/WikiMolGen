@@ -30,7 +30,7 @@ def get_protein_defaults() -> dict[str, Any]:
 
 
 def get_session_defaults() -> dict[str, Any]:
-    defaults = {
+    defaults: dict[str, Any] = {
         "rendered_structure": False,
         "compound_data": None,
         "last_image_html": None,

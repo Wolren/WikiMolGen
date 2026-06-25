@@ -11,7 +11,7 @@ from pathlib import Path
 
 import numpy as np
 from rdkit.Chem import AllChem
-from rdkit.Chem.Draw import rdMolDraw2D
+from rdkit.Chem.Draw import rdMolDraw2D  # type: ignore[import-untyped]
 
 from wikimolgen.configs import ColorConfig, Config2D, ConfigLoader
 from wikimolgen.core import fetch_compound, validate_smiles
@@ -47,10 +47,10 @@ def _make_highlight_colors(config: Config2D) -> dict[int, tuple[float, float, fl
     if len(raw) != 6:
         return None
     try:
-        rgb = tuple(int(raw[i : i + 2], 16) / 255.0 for i in (0, 2, 4))
+        rgb = (int(raw[0:2], 16) / 255.0, int(raw[2:4], 16) / 255.0, int(raw[4:6], 16) / 255.0)
     except ValueError:
         return None
-    return {a: rgb for a in atoms}
+    return dict.fromkeys(atoms, rgb)
 
 
 class MoleculeGenerator2D:

@@ -2,8 +2,6 @@
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from wikimolgen.cli.cli import create_parser, run_2d, run_3d
 
 

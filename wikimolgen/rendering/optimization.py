@@ -230,9 +230,8 @@ def _separate_heavy_substituents(mol: Chem.Mol, conf_id: int = 0) -> bool:
         atom = mol.GetAtomWithIdx(idx)
         for nbr in atom.GetNeighbors():
             ni = nbr.GetIdx()
-            if ni not in ring_atoms and ni not in sidechain_atoms:
-                if nbr.GetAtomicNum() > 16:
-                    heavy_substituents.append(ni)
+            if ni not in ring_atoms and ni not in sidechain_atoms and nbr.GetAtomicNum() > 16:
+                heavy_substituents.append(ni)
 
     if not heavy_substituents:
         return False

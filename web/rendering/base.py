@@ -163,20 +163,20 @@ def render_structure_3d(compound: str, structure_type: str) -> str | None:
                 if conformer_overrides:
                     gen.configure_conformer(**conformer_overrides)
 
-                sdf_path, png_path = gen.generate(
+                sdf_path, png_path = gen.generate(  # type: ignore[assignment]
                     optimize=True, render=True, output_base=str(output_base)
                 )
 
                 if sdf_path and Path(sdf_path).exists():
-                    with open(sdf_path, encoding="utf-8") as f:
-                        st.session_state.sdf_content = f.read()
+                    with open(sdf_path, encoding="utf-8") as f_sdf:
+                        st.session_state.sdf_content = f_sdf.read()
 
             if png_path and Path(png_path).exists():
                 img_base64, mime_type = encode_image_to_base64(Path(png_path))
                 image_html = _build_image_html(img_base64, mime_type, structure_type)
 
-                with open(png_path, "rb") as f:
-                    file_data = f.read()
+                with open(png_path, "rb") as f_png:
+                    file_data = f_png.read()
 
                 filename = generate_dynamic_filename(compound, "3D")
                 _store_result_in_session(

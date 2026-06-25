@@ -67,7 +67,8 @@ def _s(dim: str, *a: Any, **kw: Any) -> Any:
 
 
 def _cb(dim: str, *a: Any, **kw: Any) -> Any:
-    return st.checkbox(*a, on_change=lambda: save_config_to_session(dim), **kw)
+    kw.pop("on_change", None)
+    return st.checkbox(*a, on_change=lambda: save_config_to_session(dim), **kw)  # type: ignore[call-overload,misc]
 
 
 def _ni(dim: str, *a: Any, **kw: Any) -> Any:
@@ -75,7 +76,8 @@ def _ni(dim: str, *a: Any, **kw: Any) -> Any:
 
 
 def _sb(dim: str, *a: Any, **kw: Any) -> Any:
-    return st.selectbox(*a, on_change=lambda: save_config_to_session(dim), **kw)
+    kw.pop("on_change", None)
+    return st.selectbox(*a, on_change=lambda: save_config_to_session(dim), **kw)  # type: ignore[call-overload,misc]
 
 
 # Shorter aliases for common dimensions
@@ -161,14 +163,13 @@ def render_preset_manager() -> None:
                     _apply_preset_now(preset_choice)
                 st.session_state._prev_preset_sel = preset_choice
 
-            if preset_choice in st.session_state.get("custom_presets", {}):
-                if st.button(
-                    f"Remove '{preset_choice}'",
-                    key="remove_preset",
-                    icon=":material/delete:",
-                ):
-                    del st.session_state.custom_presets[preset_choice]
-                    st.rerun()
+            if preset_choice in st.session_state.get("custom_presets", {}) and st.button(
+                f"Remove '{preset_choice}'",
+                key="remove_preset",
+                icon=":material/delete:",
+            ):
+                del st.session_state.custom_presets[preset_choice]
+                st.rerun()
 
         with tab2:
             st.markdown("**Upload Preset (JSON)**")
@@ -293,6 +294,7 @@ def render_mode_selector() -> str:
     if "_last_active_mode" not in st.session_state:
         st.session_state._last_active_mode = structure_type
     st.session_state.structure_type = structure_type
+    assert structure_type is not None
     return structure_type
 
 
@@ -635,14 +637,13 @@ def render_color_palette() -> None:
             apply_scheme_to_session(new_atom)
 
         current_choice = st.session_state.get("atom_color_choice", "None")
-        if current_choice in st.session_state.get("custom_atom_schemes", {}):
-            if st.button(
-                f"Remove '{current_choice}'",
-                key="remove_atom_scheme",
-                icon=":material/delete:",
-            ):
-                del st.session_state.custom_atom_schemes[current_choice]
-                st.rerun()
+        if current_choice in st.session_state.get("custom_atom_schemes", {}) and st.button(
+            f"Remove '{current_choice}'",
+            key="remove_atom_scheme",
+            icon=":material/delete:",
+        ):
+            del st.session_state.custom_atom_schemes[current_choice]
+            st.rerun()
 
         st.markdown("**Manual Overrides**")
         st.text_input(
