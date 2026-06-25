@@ -6,5 +6,6 @@
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-red?logo=streamlit)](web/app.py)
 [![RDKit](https://img.shields.io/badge/RDKit-2023.09-green)](requirements.txt)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/Wolren/WikiMolGen/badge)](https://securityscorecards.dev/viewer/?uri=github.com/Wolren/WikiMolGen)
+[![Socket](https://img.shields.io/badge/Socket-Supply%20Chain%20Security-333?logo=socketdotdev)](https://socket.dev)
 
 # WikiMolGen
