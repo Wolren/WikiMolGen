@@ -47,13 +47,13 @@ def autocrop_image(
 
     if make_transparent:
         thr = 240
-        mask = ImageMath.eval(
+        mask = ImageMath.unsafe_eval(
             f"((r > {thr}) & (g > {thr}) & (b > {thr})) * 255",
             r=r,
             g=g,
             b=b,
         ).convert("L")
-        a = ImageMath.eval("a & ~mask_int", a=a, mask_int=mask).convert("L")
+        a = ImageMath.unsafe_eval("a & ~mask_int", a=a, mask_int=mask).convert("L")
         img = Image.merge("RGBA", (r, g, b, a))
 
     alpha = img.split()[-1]
