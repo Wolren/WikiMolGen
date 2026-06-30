@@ -47,6 +47,7 @@ def get_session_defaults() -> dict[str, Any]:
         "atom_color_choice": "None",
         "structure_type": "3D",
         "manual_generate": False,
+        "auto_generate": True,
         "save_filename": "",
         "preset_selector": "None",
         "config_manager_2d": None,

@@ -51,7 +51,7 @@ def configure_page() -> None:
 
 
 def _on_auto_change() -> None:
-    st.query_params["auto"] = str(st.session_state.auto_generate).lower()
+    st.query_params["auto"] = str(st.session_state.get("auto_generate", True)).lower()
 
 
 def _on_white_bg_change() -> None:
