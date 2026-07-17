@@ -265,14 +265,15 @@ a:hover { text-decoration: underline !important; }
     box-shadow: 0 1px 4px rgba(0,0,0,0.18);
 }
 
+.compound-preview-container > div {
+    margin: 0;
+}
+
 .compound-preview-container.white-bg {
     background-color: #ffffff;
 }
 
-/* Light mode: transparent by default — white-bg class controls it */
-body.wiki-light .compound-preview-container {
-    background-color: transparent;
-}
+/* ── Theme-aware backgrounds and invert ─────────────────── */
 
 .compound-preview-image {
     max-width: 100%;
@@ -280,7 +281,7 @@ body.wiki-light .compound-preview-container {
     display: block;
 }
 
-/* 2D: transparent by default. Invert in dark mode when white bg is off. */
+/* 2D: transparent by default */
 .compound-preview-container-2d {
     background-color: transparent;
 }
@@ -290,9 +291,39 @@ body.wiki-light .compound-preview-container {
     background-color: #ffffff;
 }
 
-/* Dark mode + no white bg: invert 2D SVG so dark structure is visible */
-body:not(.wiki-light) .compound-preview-container-2d:not(.white-bg) .compound-preview-image {
+/* Dark: transparent bg, invert 2D SVGs */
+.compound-preview-container:not(.white-bg) {
+    background-color: transparent;
+}
+.compound-preview-container-2d:not(.white-bg) .compound-preview-image,
+.preview-history-item img.compound-preview-image[data-type="2D"] {
     filter: invert(1);
+}
+
+/* Light via body class (manual/JS toggle) */
+body.wiki-light .compound-preview-container:not(.white-bg) {
+    background-color: #f0f2f5;
+}
+body.wiki-light .compound-preview-container-2d:not(.white-bg) .compound-preview-image,
+body.wiki-light .preview-history-item img.compound-preview-image[data-type="2D"] {
+    filter: none;
+}
+
+/* Light via prefers-color-scheme (automatic) */
+@media (prefers-color-scheme: light) {
+    .compound-preview-container:not(.white-bg) {
+        background-color: #f0f2f5;
+    }
+    .compound-preview-container-2d:not(.white-bg) .compound-preview-image,
+    .preview-history-item img.compound-preview-image[data-type="2D"] {
+        filter: none;
+    }
+}
+
+/* When white-bg is ON for the main container, reset history thumbnails */
+body:not(.wiki-light) .compound-preview-container-2d.white-bg ~ .preview-history-item img.compound-preview-image,
+body:not(.wiki-light) .white-bg .preview-history-item img.compound-preview-image {
+    filter: none;
 }
 
 .compound-preview-image[data-type="3D"] {
@@ -524,20 +555,22 @@ body.fw-active .main > .block-container {
 
 .preview-history {
     display: flex;
-    gap: 0.35rem;
-    overflow-x: auto;
-    padding: 0.3rem 0;
-    scrollbar-width: thin;
+    flex-wrap: wrap;
+    gap: 0;
+    padding: 0;
 }
 .preview-history-item {
     flex: 0 0 72px;
     border: 1px solid var(--border-color);
     border-radius: 3px;
     cursor: pointer;
-    padding: 2px;
+    padding: 0;
     background: var(--bg-primary);
     transition: border-color 0.15s;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 .preview-history-item:hover {
     border-color: var(--accent-blue);
@@ -556,7 +589,7 @@ body.fw-active .main > .block-container {
     max-height: 48px !important;
     object-fit: contain !important;
     display: block !important;
-    background: #ffffff;
+    background: transparent;
     margin: 0 auto;
 }
 /* Override the rendering wrapper div (inline height:500px, background:transparent) */
@@ -565,16 +598,26 @@ body.fw-active .main > .block-container {
     min-height: unset !important;
     max-height: 48px !important;
     overflow: hidden !important;
-    background: #ffffff !important;
+    background: transparent !important;
 }
 .preview-history-label {
-    font-size: 0.55rem;
+    font-size: 0.75rem;
     color: var(--text-secondary);
     text-align: center;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    padding: 1px 0 0;
+    padding: 0;
+    line-height: 1.2;
+}
+
+/* Recent Previews heading — match app body font, smaller weight */
+.preview-history + h3,
+h3#recent-previews {
+    font-family: var(--body-font) !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    margin: 0.5rem 0 0.25rem !important;
 }
 .preview-history-empty {
     color: var(--text-muted);
