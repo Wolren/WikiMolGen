@@ -142,11 +142,12 @@ class MoleculeGenerator2D:
         center = coords.mean(axis=0)
         centered = coords - center
 
-        if self.config.auto_orient_2d and not self._amines_oriented:
-            self._rotation_angle = find_optimal_2d_rotation(self.mol)
+        if self.config.auto_orient_2d:
+            self._rotation_angle = find_optimal_2d_rotation(self.mol)  # radians
+            angle_rad = self._rotation_angle
         else:
-            self._rotation_angle = self.config.angle_degrees
-        angle_rad = np.radians(self._rotation_angle)
+            self._rotation_angle = self.config.angle_degrees  # degrees
+            angle_rad = np.radians(self._rotation_angle)
 
         # Build rotation matrix
         rotation_matrix = np.array(

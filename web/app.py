@@ -83,7 +83,7 @@ def render_sidebar() -> tuple:
         with col_auto:
             st.toggle(
                 "Auto Update",
-                value=True,
+                value=st.session_state.get("auto_generate", structure_type != "Protein"),
                 key="auto_generate",
                 on_change=_on_auto_change,
             )
@@ -284,6 +284,67 @@ def render_protein_structure_dynamic(
         return ""
 
 
+def _clean_svg_white_bg(image_html: str) -> str:
+    """Remove white background <rect> from SVG data URLs in the image HTML.
+
+    Works on any SVG <rect> with fill:white, fill:#FFFFFF, fill="#FFFFFF",
+    or fill="white" — both attribute and style-attribute variants.
+    Does NOT touch the rendering pipeline; this is a post-processing step
+    applied to the already-generated SVG string.
+    """
+    import re as _re
+    import base64 as _b64
+
+    def _clean_one(m):
+        prefix = m.group(1)
+        b64_data = m.group(2)
+        try:
+            svg_text = _b64.b64decode(b64_data).decode("utf-8", errors="replace")
+        except Exception:
+            return m.group(0)  # can't decode, leave untouched
+
+        # Remove <rect> elements whose sole purpose is a white background fill
+        # Style-attribute variant: <rect style="...fill:white/##FFFFFF..."
+        svg_text = _re.sub(
+            r'<rect\s+style\s*=\s*["\'][^"\']*?'
+            r'fill\s*:\s*(?:white|#FFFFFF|#ffffff)'
+            r'[^"\']*?["\']\s*[^>]*>\s*</rect>',
+            "",
+            svg_text,
+        )
+        # Style-attribute variant, self-closing or space-closed
+        svg_text = _re.sub(
+            r'<rect\s+style\s*=\s*["\'][^"\']*?'
+            r'fill\s*:\s*(?:white|#FFFFFF|#ffffff)'
+            r'[^"\']*?["\']\s*/?\s*>',
+            "",
+            svg_text,
+        )
+        # Attribute variant: <rect fill="white" ...> or fill="#FFFFFF"
+        svg_text = _re.sub(
+            r'<rect\s+[^>]*?fill\s*=\s*["\'](?:white|#FFFFFF|#ffffff)["\'][^>]*>\s*</rect>',
+            "",
+            svg_text,
+        )
+        svg_text = _re.sub(
+            r'<rect\s+[^>]*?fill\s*=\s*["\'](?:white|#FFFFFF|#ffffff)["\'][^>]*/>',
+            "",
+            svg_text,
+        )
+
+        try:
+            new_b64 = _b64.b64encode(svg_text.encode("utf-8")).decode("ascii")
+        except Exception:
+            return m.group(0)
+        return f'{prefix}{new_b64}"'
+
+    return _re.sub(
+        r'(src="data:image/svg\+xml;base64,)([A-Za-z0-9+/=]+)"',
+        _clean_one,
+        image_html,
+    )
+
+
 def _debounce_pass() -> bool:
     """Return True if 500ms have elapsed since last auto-render."""
     now = time.time()
@@ -305,7 +366,7 @@ def _add_to_preview_history() -> None:
        and history[0].get("structure_type") == entry["structure_type"]:
         return
     history.insert(0, entry)
-    st.session_state.preview_history = history[:8]
+    st.session_state.preview_history = history[:10]
 
 
 def _render_history_strip() -> None:
@@ -435,6 +496,11 @@ def _render_small_molecule_content(compound: str, structure_type: str) -> None:
             image_html = render_structure_dynamic(compound, structure_type)
 
         if image_html:
+            # Clean white background from SVG (only when white-bg is OFF)
+            if not st.session_state.get("preview_white_bg", False):
+                image_html = _clean_svg_white_bg(image_html)
+            # Overwrite session state so history thumbnails use clean SVGs too
+            st.session_state.last_image_html = image_html
             st.session_state.last_compound = compound
             _add_to_preview_history()
             container_class = _make_preview_container_class(structure_type)
@@ -565,7 +631,6 @@ def render_main_content(
 
     # Preview history — after download, not inline with preview
     if structure_type != "Protein" and st.session_state.get("preview_history"):
-        st.markdown("### Recent Previews")
         _render_history_strip()
 
     # Inject full-width CSS inline (avoids body-class issue)
