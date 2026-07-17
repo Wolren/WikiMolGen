@@ -7,10 +7,13 @@ template code.
 
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any
 
 import pubchempy as pcp
+
+logger = logging.getLogger(__name__)
 
 try:
     from wikimolgen.core import enrich_compound_data
@@ -144,7 +147,7 @@ def fetch_pubchem_data(identifier: str) -> dict[str, Any] | None:
         return enrich_compound_data(data)
 
     except Exception as e:
-        print(f"Error fetching PubChem data: {e}")
+        logger.error("Error fetching PubChem data: %s", e)
         return None
 
 
@@ -283,7 +286,7 @@ def generate_drugbox_code(compound_data: dict[str, Any], image_filename: str = "
 
     lines = []
     lines.append("{{Infobox drug")
-    lines.append(f"| image = {image_filename if image_filename else 'Example.png'}")
+    lines.append(f"| image = {image_filename or 'Example.png'}")
     lines.append("| image_class = skin-invert-image")
     lines.append("| width = 200px")
 
@@ -471,7 +474,7 @@ def generate_chembox_code(compound_data: dict[str, Any], image_filename: str = "
 
     # Build template — only include sections that have content
     chembox_template = f"""{{{{Chembox
-| ImageFile = {image_filename if image_filename else "Example.png"}
+| ImageFile = {image_filename or "Example.png"}
 | ImageSize = 225px
 | ImageClass = skin-invert-image
 | IUPACName = {_sanitize_wiki(dt.get("iupac_name", "") or "")}"""

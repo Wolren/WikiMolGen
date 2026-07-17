@@ -13,9 +13,9 @@ MOCK_OK = {
             {
                 "qid": {"value": "Q27108473"},
                 "wikipedia": {"value": "https://en.wikipedia.org/wiki/Aspirin"},
-            }
-        ]
-    }
+            },
+        ],
+    },
 }
 
 
@@ -90,8 +90,8 @@ class TestQueryWikidataExtended:
                 resp.status_code = 200
                 resp.json.return_value = {
                     "results": {
-                        "bindings": [{"qid": {"value": "Q42"}, "wikipedia": {"value": url}}]
-                    }
+                        "bindings": [{"qid": {"value": "Q42"}, "wikipedia": {"value": url}}],
+                    },
                 }
                 result = query_wikidata(42)
                 assert result["wikipedia_title"] == expected

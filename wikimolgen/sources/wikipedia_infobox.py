@@ -167,7 +167,7 @@ def _extract_infobox(
         value = re.sub(r"<br\s*/?>", ", ", value, flags=re.IGNORECASE).strip()
         fields[key.lower()] = value
 
-    return fields if fields else None
+    return fields or None
 
 
 def fetch_infobox(

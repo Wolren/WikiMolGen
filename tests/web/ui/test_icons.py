@@ -6,7 +6,7 @@ Covers icon(), header(), and indirect coverage of _svg().
 """
 
 import pytest
-from ui.icons import icon, header, _ICON_DEFS
+from ui.icons import _ICON_DEFS, header, icon
 
 # ═══════════════════════════════════════════════════════════════════
 # icon()

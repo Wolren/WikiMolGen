@@ -76,7 +76,7 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
     synonyms = pubchem_data.get("synonyms", [])
     cid_raw = pubchem_data.get("cid", "NA")
     iupac = pubchem_data.get("iupac_name", "")
-    primary_name = synonyms[0] if synonyms else (iupac if iupac else f"Compound {cid_raw}")
+    primary_name = synonyms[0] if synonyms else (iupac or f"Compound {cid_raw}")
 
     author = st.session_state.get("commons_author", "WikiMolGen")
     license_tmpl = st.session_state.get("commons_license_text", "Self|cc-by-sa-4.0")
@@ -206,12 +206,12 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
 
     with tab3:
         st.session_state.last_drugbox = generate_drugbox_code(
-            pubchem_data, f"{compound}_{structure_type}.png"
+            pubchem_data, f"{compound}_{structure_type}.png",
         )
         st.code(st.session_state.last_drugbox, language="html")
 
     with tab4:
         st.session_state.last_chembox = generate_chembox_code(
-            pubchem_data, f"{compound}_{structure_type}.png"
+            pubchem_data, f"{compound}_{structure_type}.png",
         )
         st.code(st.session_state.last_chembox, language="html")

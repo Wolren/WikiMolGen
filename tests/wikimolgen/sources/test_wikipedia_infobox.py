@@ -6,7 +6,6 @@ import pytest
 
 from wikimolgen.sources.wikipedia_infobox import fetch_infobox
 
-
 _ASPIRIN_WIKITEXT = """{{Infobox drug
 | image = Aspirin structure.png
 | width = 200px
@@ -34,7 +33,7 @@ class TestFetchInfobox:
         with patch("requests.get") as mock_get:
             mock_get.return_value.status_code = 200
             mock_get.return_value.json.return_value = {
-                "parse": {"wikitext": {"*": _ASPIRIN_WIKITEXT}}
+                "parse": {"wikitext": {"*": _ASPIRIN_WIKITEXT}},
             }
             result = fetch_infobox("Aspirin")
             assert result["atc_prefix"] == "N02"
@@ -53,7 +52,7 @@ class TestFetchInfobox:
         with patch("requests.get") as mock_get:
             mock_get.return_value.status_code = 200
             mock_get.return_value.json.return_value = {
-                "parse": {"wikitext": {"*": _CHEMICAL_WIKITEXT}}
+                "parse": {"wikitext": {"*": _CHEMICAL_WIKITEXT}},
             }
             result = fetch_infobox("Sodium chloride")
             assert result == {}
@@ -62,7 +61,7 @@ class TestFetchInfobox:
         with patch("requests.get") as mock_get:
             mock_get.return_value.status_code = 200
             mock_get.return_value.json.return_value = {
-                "parse": {"wikitext": {"*": "Some text without an infobox"}}
+                "parse": {"wikitext": {"*": "Some text without an infobox"}},
             }
             result = fetch_infobox("Nonexistent")
             assert result == {}

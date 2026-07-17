@@ -24,9 +24,9 @@ class TestFetchProperties:
                     "HBondAcceptorCount": 4,
                     "RotatableBondCount": 2,
                     "HeavyAtomCount": 13,
-                }
-            ]
-        }
+                },
+            ],
+        },
     }
 
     def test_successful_fetch(self):
@@ -67,9 +67,9 @@ class TestFetchProperties:
                         "XLogP": None,
                         "ExactMass": None,
                         "HBondDonorCount": 1,
-                    }
-                ]
-            }
+                    },
+                ],
+            },
         }
         with patch("requests.get") as mock_get:
             mock_get.return_value.status_code = 200
@@ -81,7 +81,7 @@ class TestFetchProperties:
 
     def test_empty_string_skipped(self):
         mock_response = {
-            "PropertyTable": {"Properties": [{"MolecularWeight": 180.16, "XLogP": ""}]}
+            "PropertyTable": {"Properties": [{"MolecularWeight": 180.16, "XLogP": ""}]},
         }
         with patch("requests.get") as mock_get:
             mock_get.return_value.status_code = 200

@@ -12,7 +12,7 @@ class TestFetchDailymedId:
         with patch("requests.get") as mock_get:
             mock_get.return_value.status_code = 200
             mock_get.return_value.json.return_value = {
-                "data": [{"setid": "85c02768-7b96-4c48-8e67-6716fccd46fe"}]
+                "data": [{"setid": "85c02768-7b96-4c48-8e67-6716fccd46fe"}],
             }
             result = fetch_dailymed_id("R16CO5Y76E")
             assert result == "85c02768-7b96-4c48-8e67-6716fccd46fe"

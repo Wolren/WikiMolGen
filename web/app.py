@@ -8,6 +8,7 @@ Usage:
     streamlit run web/app.py
 """
 
+import json
 import sys
 import tempfile
 import time
@@ -23,6 +24,8 @@ for p in (_THIS_DIR, _PROJECT_ROOT):
         sys.path.insert(0, str(p))
 from rendering.base import encode_image_to_base64, render_structure_dynamic
 from session.state import initialize_session_state
+from template.theme import apply_theme
+from ui.components_shared import save_config_to_session
 from ui.components import (
     render_2d_settings,
     render_canvas_settings,
@@ -37,7 +40,6 @@ from ui.components import (
 )
 from ui.protein_web_component import render_protein_structure
 from wikipedia.boxes import render_wikipedia_metadata_section
-from template.theme import apply_theme
 
 
 def configure_page() -> None:
@@ -74,28 +76,24 @@ def render_sidebar() -> tuple:
         st.markdown("<div class='sidebar-main-header'>Configuration</div>", unsafe_allow_html=True)
         st.divider()
 
-        # Mode selector + toggles on one line
-        col_mode, col_auto, col_white = st.columns([3, 1, 1], gap="small")
-        with col_mode:
-            structure_type = render_mode_selector()
+        # Mode selector with toggles below
+        structure_type = render_mode_selector()
+
+        col_auto, col_white = st.columns(2, gap="small")
         with col_auto:
             st.toggle(
-                " ",
+                "Auto Update",
                 value=True,
                 key="auto_generate",
                 on_change=_on_auto_change,
-                label_visibility="collapsed",
             )
-            st.caption("Auto Update")
         with col_white:
             st.toggle(
-                " ",
+                "White background",
                 value=False,
                 key="preview_white_bg",
-                label_visibility="collapsed",
                 on_change=_on_white_bg_change,
             )
-            st.caption("White background")
         st.divider()
 
         # Compound/protein input based on mode
@@ -107,28 +105,6 @@ def render_sidebar() -> tuple:
             pdb_id = render_protein_selector()
         else:
             compound = render_compound_input()
-        st.divider()
-
-        # Reset settings — below compound input, resets all
-        def _on_reset_all() -> None:
-            from session.state import reset_to_defaults
-
-            reset_to_defaults("2D")
-            reset_to_defaults("3D")
-            st.session_state.pop("last_compound_fetched", None)
-            st.session_state.pop("pubchem_data", None)
-            from ui.components import save_config_to_session
-
-            save_config_to_session()
-            st.toast("All settings reset to defaults", icon=":material/check_circle:")
-
-        st.button(
-            "Reset settings",
-            use_container_width=True,
-            key="reset_all_btn",
-            icon=":material/restart_alt:",
-            on_click=_on_reset_all,
-        )
         st.divider()
 
         # Preset management
@@ -145,6 +121,7 @@ def render_sidebar() -> tuple:
                 "ACS Mode (overrides custom settings)",
                 value=True,
                 key="acs_mode",
+                on_change=lambda: save_config_to_session("2d"),
                 help="Applies wikipedia compliant settings",
             )
             render_rotation_settings("2d")
@@ -183,7 +160,7 @@ def render_sidebar() -> tuple:
                                         {
                                             k: st.session_state[f"{k}_slider"],
                                             f"{k}_input": st.session_state[f"{k}_slider"],
-                                        }
+                                        },
                                     )
                                     and None
                                 ),
@@ -201,7 +178,7 @@ def render_sidebar() -> tuple:
                                         {
                                             k: st.session_state[f"{k}_input"],
                                             f"{k}_slider": st.session_state[f"{k}_input"],
-                                        }
+                                        },
                                     )
                                     and None
                                 ),
@@ -214,31 +191,44 @@ def render_sidebar() -> tuple:
                 canvas_cfg.update(effects_cfg)
             protein_inputs = (pdb_id, cartoon_cfg, ligand_cfg, canvas_cfg)
 
+        # Reset all settings — at the bottom, away from inputs
+        def _on_reset_all() -> None:
+            from session.state import reset_to_defaults
+
+            reset_to_defaults("2D")
+            reset_to_defaults("3D")
+            st.session_state.pop("last_compound_fetched", None)
+            st.session_state.pop("pubchem_data", None)
+            st.session_state.pop("preview_history", None)
+            from ui.components import save_config_to_session
+
+            save_config_to_session()
+            st.toast("All settings reset to defaults", icon=":material/check_circle:")
+
+        st.divider()
+        st.button(
+            "Reset settings",
+            use_container_width=True,
+            key="reset_all_btn",
+            icon=":material/restart_alt:",
+            on_click=_on_reset_all,
+        )
+
     return compound, structure_type, auto_generate, protein_inputs
 
 
-def apply_2d_styling_to_image(image_html: str) -> str:
-    """
-    Apply 2D-specific styling to SVG image by adding class to img tag.
-
-    Parameters
-    ----------
-    image_html : str
-        HTML string containing <img> tag
-
-    Returns
-    -------
-    str
-        HTML with compound-preview-image-2d class added to img tag
-    """
-    # Add the 2D-specific class to the img tag for color inversion
-    return image_html.replace(
-        'class="compound-preview-image"', 'class="compound-preview-image compound-preview-image-2d"'
-    )
+def _make_preview_container_class(structure_type: str) -> str:
+    """Build the CSS class string for the preview container div."""
+    classes = ["compound-preview-container"]
+    if structure_type == "2D":
+        classes.append("compound-preview-container-2d")
+    if st.session_state.get("preview_white_bg", False):
+        classes.append("white-bg")
+    return " ".join(classes)
 
 
 def render_protein_structure_dynamic(
-    pdb_id: str, cartoon_cfg: dict, ligand_cfg: dict, canvas_cfg: dict
+    pdb_id: str, cartoon_cfg: dict, ligand_cfg: dict, canvas_cfg: dict,
 ) -> str:
     """
     Render protein structure dynamically (same pattern as render_structure_dynamic for 2D/3D).
@@ -290,9 +280,8 @@ def render_protein_structure_dynamic(
             st.session_state.last_protein_file_name = output_path.name
 
             return image_html
-        else:
-            st.error("Failed to generate protein structure image")
-            return ""
+        st.error("Failed to generate protein structure image")
+        return ""
 
 
 def _debounce_pass() -> bool:
@@ -302,8 +291,104 @@ def _debounce_pass() -> bool:
     return now - last >= 0.5
 
 
+def _add_to_preview_history() -> None:
+    """Store the latest rendered preview in history (max 8 entries)."""
+    history: list = st.session_state.get("preview_history", [])
+    entry = {
+        "image_html": st.session_state.get("last_image_html", ""),
+        "compound": st.session_state.get("last_compound", ""),
+        "structure_type": st.session_state.get("structure_type", ""),
+        "timestamp": time.time(),
+    }
+    # Don't duplicate identical compound+type
+    if history and history[0].get("compound") == entry["compound"] \
+       and history[0].get("structure_type") == entry["structure_type"]:
+        return
+    history.insert(0, entry)
+    st.session_state.preview_history = history[:8]
+
+
+def _render_history_strip() -> None:
+    """Render the preview history as a horizontal scrollable strip."""
+    history: list = st.session_state.get("preview_history", [])
+    if not history:
+        return
+
+    active_compound = st.session_state.get("last_compound", "")
+    active_type = st.session_state.get("structure_type", "")
+
+    items_html = ""
+    for i, item in enumerate(history):
+        img_html = item.get("image_html", "")
+        compound = item.get("compound", "")
+        stype = item.get("structure_type", "")
+        is_active = (compound == active_compound and stype == active_type)
+        active_cls = " active" if is_active else ""
+        # Wrap img in a constrained thumbnail container
+        img_html = img_html.replace(
+            'class="compound-preview-image"',
+            'class="compound-preview-image preview-history-thumb"',
+        )
+        items_html += (
+            f'<div class="preview-history-item{active_cls}" onclick="navigate_history({i})">'
+            f'{img_html}'
+            f'<div class="preview-history-label">{compound[:18]}</div>'
+            f"</div>"
+        )
+
+    # JavaScript to restore a history item via session state
+    history_json = json.dumps([
+        {
+            "image_html": h.get("image_html", ""),
+            "compound": h.get("compound", ""),
+            "structure_type": h.get("structure_type", ""),
+        }
+        for h in history
+    ]).replace("</", "<\\/")
+    st.markdown(
+        f"""
+        <div class="preview-history">
+            {items_html}
+        </div>
+        <script>
+        const historyData = {history_json};
+        function navigate_history(idx) {{
+            if (idx < historyData.length) {{
+                const params = new URLSearchParams(window.location.search);
+                params.set('hist_idx', idx);
+                window.history.replaceState({{}}, '', '?' + params.toString());
+                window.location.reload();
+            }}
+        }}
+        </script>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Check if a history item was selected via query param
+    hist_idx = st.query_params.get("hist_idx")
+    if hist_idx is not None and hist_idx.isdigit():
+        idx = int(hist_idx)
+        if 0 <= idx < len(history):
+            item = history[idx]
+            st.session_state.last_image_html = item["image_html"]
+            st.session_state.last_compound = item["compound"]
+            st.session_state.structure_type = item["structure_type"]
+            st.session_state.rendered_structure = True
+            st.query_params.clear()  # Don't re-trigger
+            st.rerun()
+
+
 def _render_small_molecule_content(compound: str, structure_type: str) -> None:
-    """Render the 2D/3D structure preview with auto-update and caching."""
+    """Render the 2D/3D structure preview with auto-update, caching, full-width toggle, and history."""
+
+    # Full-width toggle via query param (client-side button triggers this)
+    if st.query_params.get("fw") == "1":
+        st.session_state.full_width_preview = not st.session_state.get("full_width_preview", False)
+        st.query_params.clear()
+        # No rerun needed -- page already reloaded from the button click
+
+    # Generate button
     if st.button(
         "Generate Now",
         type="primary",
@@ -314,9 +399,24 @@ def _render_small_molecule_content(compound: str, structure_type: str) -> None:
         st.session_state.manual_generate = True
 
     auto_generate = st.session_state.get("auto_generate", True)
-    wb = " white-bg" if st.session_state.get("preview_white_bg", False) else ""
 
     preview_placeholder = st.empty()
+
+    # Build overlay fullscreen button — use addEventListener to avoid React error #231
+    fw_active = st.session_state.get("full_width_preview", False)
+    fw_icon = "✕" if fw_active else "⛶"
+    fw_title = "Exit full-width" if fw_active else "Full-width preview"
+    fs_id = "fs-btn-" + str(id(st.session_state))[-4:]
+    fw_btn = (
+        f'<button id="{fs_id}" class="fullscreen-btn" title="{fw_title}">{fw_icon}</button>'
+    )
+    fw_script = (
+        f'<script>'
+        f'document.getElementById("{fs_id}").addEventListener("click",function(){{'
+        f'var p=new URLSearchParams(window.location.search);p.set("fw","1");'
+        f'window.location.search=p.toString()}});'
+        f'</script>'
+    )
 
     has_pending_config = st.session_state.get("config_changed", False)
     never_rendered = not st.session_state.get("rendered_structure", False)
@@ -335,84 +435,121 @@ def _render_small_molecule_content(compound: str, structure_type: str) -> None:
             image_html = render_structure_dynamic(compound, structure_type)
 
         if image_html:
-            if structure_type == "2D":
-                image_html = apply_2d_styling_to_image(image_html)
-
+            st.session_state.last_compound = compound
+            _add_to_preview_history()
+            container_class = _make_preview_container_class(structure_type)
             with preview_placeholder.container():
                 st.markdown(
-                    f'<div id="preview-wrap" class="compound-preview-container{wb}">{image_html}</div>',
-                    unsafe_allow_html=True,
-                )
-        elif st.session_state.get("last_image_html"):
-            cached_html = st.session_state.last_image_html
-            if st.session_state.get("structure_type") == "2D":
-                cached_html = apply_2d_styling_to_image(cached_html)
-            with preview_placeholder.container():
-                st.markdown(
-                    f'<div id="preview-wrap" class="compound-preview-container{wb}">{cached_html}</div>',
+                    f'<div id="preview-wrap" class="{container_class}">{fw_btn}{image_html}{fw_script}</div>',
                     unsafe_allow_html=True,
                 )
         else:
+            # Render failed — clear cached image so placeholder shows instead
+            # of silently displaying stale data under the error message
+            for key in ("last_image_html", "last_file_data", "last_file_name", "last_file_mime"):
+                st.session_state.pop(key, None)
+            st.session_state.rendered_structure = False
             with preview_placeholder.container():
                 st.markdown(
-                    f'<div id="preview-wrap" class="compound-preview-container{wb}" style="min-height:200px;">'
-                    '<span style="color:var(--text-secondary);font-size:0.9rem;">'
-                    "Enter a compound and adjust settings, then click 'Generate Now' or enable auto-update."
-                    "</span></div>",
+                    '<div id="preview-wrap" class="compound-preview-placeholder">'
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'
+                    '<circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/>'
+                    '<path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5Z"/>'
+                    "</svg>"
+                    "<span>Rendering failed</span>"
+                    '<span class="hint">Check the compound name or try a different format.</span>'
+                    "</div>",
                     unsafe_allow_html=True,
                 )
-    elif st.session_state.get("last_image_html"):
-        cached_html = st.session_state.last_image_html
-        if st.session_state.get("structure_type") == "2D":
-            cached_html = apply_2d_styling_to_image(cached_html)
-
+    elif not has_pending_config and st.session_state.get("last_image_html"):
+        container_class = _make_preview_container_class(
+            st.session_state.get("structure_type", structure_type)
+        )
         with preview_placeholder.container():
             st.markdown(
-                f'<div id="preview-wrap" class="compound-preview-container{wb}">{cached_html}</div>',
+                f'<div id="preview-wrap" class="{container_class}">'
+                f'{fw_btn}{st.session_state.last_image_html}{fw_script}</div>',
                 unsafe_allow_html=True,
             )
     else:
         with preview_placeholder.container():
             st.markdown(
-                f'<div id="preview-wrap" class="compound-preview-container{wb}" style="min-height:200px;">'
-                '<span style="color:var(--text-secondary);font-size:0.9rem;">'
-                "Enter a compound and adjust settings, then click 'Generate Now' or enable auto-update."
-                "</span></div>",
+                '<div id="preview-wrap" class="compound-preview-placeholder">'
+                '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'
+                '<circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5Z"/>'
+                '<path d="M15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5Z"/>'
+                "</svg>"
+                "<span>Enter a compound in the sidebar</span>"
+                '<span class="hint">e.g. aspirin, 2244, or CC(=O)Oc1ccccc1C(=O)O</span>'
+                "</div>",
                 unsafe_allow_html=True,
             )
 
 
 def _render_protein_content(protein_inputs: tuple | None) -> None:
-    """Render the Protein structure preview."""
-    if protein_inputs:
-        pdb_id, cartoon_cfg, ligand_cfg, canvas_cfg = protein_inputs
-
-        if st.button("Generate Protein Structure", use_container_width=True, key="protein_gen_btn"):
-            render_protein_structure_dynamic(pdb_id, cartoon_cfg, ligand_cfg, canvas_cfg)
-
-        if st.session_state.get("last_protein_image_html"):
-            col1, col2, col3, col4 = st.columns(4)
-            if st.session_state.get("last_protein_metadata"):
-                metadata = st.session_state.last_protein_metadata
-                with col1:
-                    st.metric("Chains", len(metadata.get("chains", [])))
-                with col2:
-                    st.metric("Atoms", metadata.get("num_atoms", 0))
-                with col3:
-                    st.metric("Residues", metadata.get("num_residues", 0))
-                with col4:
-                    st.metric("Has Ligand", "✓" if metadata.get("has_ligand", False) else "✗")
-
-            st.markdown(
-                f'<div class="protein-preview-container">{st.session_state.last_protein_image_html}</div>',
-                unsafe_allow_html=True,
-            )
-    else:
+    """Render the Protein structure preview with auto-update."""
+    if not protein_inputs:
         st.info("Configure protein settings in the sidebar to render a structure.")
+        return
+
+    pdb_id, cartoon_cfg, ligand_cfg, canvas_cfg = protein_inputs
+    if not pdb_id:
+        return
+
+    auto_generate = st.session_state.get("auto_generate", True)
+
+    # Determine if we need to re-render
+    has_pending = st.session_state.get("config_changed", False)
+    last_pdb = st.session_state.get("last_protein_pdb", "")
+    prev_cfg = st.session_state.get("_last_protein_cfg", {})
+    cfg_changed = (
+        cartoon_cfg != prev_cfg.get("cartoon")
+        or ligand_cfg != prev_cfg.get("ligand")
+        or canvas_cfg != prev_cfg.get("canvas")
+    )
+    needs_render = (auto_generate and (has_pending or pdb_id != last_pdb or cfg_changed))
+
+    if needs_render:
+        st.session_state.config_changed = False
+        st.session_state._last_protein_cfg = {
+            "cartoon": cartoon_cfg, "ligand": ligand_cfg, "canvas": canvas_cfg,
+        }
+        with st.spinner("Generating protein structure..."):
+            image_html = render_protein_structure_dynamic(pdb_id, cartoon_cfg, ligand_cfg, canvas_cfg)
+        if image_html:
+            st.session_state.rendered_structure = True
+
+    if st.button(
+        "Generate Protein Structure",
+        use_container_width=True,
+        key="protein_gen_btn",
+        disabled=auto_generate,
+    ):
+        st.session_state.config_changed = True
+        st.rerun()
+
+    # Show protein preview if available
+    if st.session_state.get("last_protein_image_html"):
+        col1, col2, col3, col4 = st.columns(4)
+        if st.session_state.get("last_protein_metadata"):
+            metadata = st.session_state.last_protein_metadata
+            with col1:
+                st.metric("Chains", len(metadata.get("chains", [])))
+            with col2:
+                st.metric("Atoms", metadata.get("num_atoms", 0))
+            with col3:
+                st.metric("Residues", metadata.get("num_residues", 0))
+            with col4:
+                st.metric("Has Ligand", "✓" if metadata.get("has_ligand", False) else "✗")
+
+        st.markdown(
+            f'<div class="protein-preview-container">{st.session_state.last_protein_image_html}</div>',
+            unsafe_allow_html=True,
+        )
 
 
 def render_main_content(
-    compound: str, structure_type: str, protein_inputs: tuple | None = None
+    compound: str, structure_type: str, protein_inputs: tuple | None = None,
 ) -> None:
     """Render main content area."""
     if structure_type != "Protein":
@@ -425,6 +562,25 @@ def render_main_content(
         render_download_section()
     else:
         render_protein_download_section()
+
+    # Preview history — after download, not inline with preview
+    if structure_type != "Protein" and st.session_state.get("preview_history"):
+        st.markdown("### Recent Previews")
+        _render_history_strip()
+
+    # Inject full-width CSS inline (avoids body-class issue)
+    if st.session_state.get("full_width_preview", False):
+        st.markdown(
+            """<style>
+            [data-testid="stSidebar"] { display: none !important; }
+            .main > .block-container {
+                max-width: 100% !important;
+                padding-left: 2rem !important;
+                padding-right: 2rem !important;
+            }
+            </style>""",
+            unsafe_allow_html=True,
+        )
 
 
 @st.fragment
@@ -477,7 +633,7 @@ def render_download_section() -> None:
             )
         with col_reset:
             st.button(
-                "Reset", use_container_width=True, key="reset_filename_btn", on_click=on_reset
+                "Reset", use_container_width=True, key="reset_filename_btn", on_click=on_reset,
             )
 
 
@@ -529,7 +685,8 @@ def main() -> None:
     render_main_content(compound, structure_type, protein_inputs)
 
     # Wikipedia boxes section (only for 2D/3D, not for Protein)
-    if compound and structure_type != "Protein":
+    # Hide when config is pending (mode switch with auto-update OFF)
+    if compound and structure_type != "Protein" and not st.session_state.get("config_changed", False):
         render_wikipedia_metadata_section(compound, structure_type)
 
     # Footer

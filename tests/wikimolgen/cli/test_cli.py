@@ -47,7 +47,7 @@ class TestCreateParser:
                 "40",
                 "--use-bw",
                 "--transparent-bg",
-            ]
+            ],
         )
         assert args.compound == "2244"
         assert args.output == "out.svg"
@@ -89,7 +89,7 @@ class TestCreateParser:
                 "20",
                 "--bg-color",
                 "black",
-            ]
+            ],
         )
         assert args.compound == "5284583"
         assert args.output_base == "out"
@@ -120,7 +120,7 @@ class TestCreateParser:
                 "--no-ligand",
                 "--show-water",
                 "--ray-trace",
-            ]
+            ],
         )
         assert args.pdb_id == "8F7W"
         assert args.output == "protein.png"
@@ -161,7 +161,7 @@ class TestRun2D:
                 "aspirin",
                 "--template",
                 "wikipedia_2d",
-            ]
+            ],
         )
         run_2d(args)
 
@@ -181,7 +181,7 @@ class TestRun2D:
                 "aspirin",
                 "--color-template",
                 "cpk_standard",
-            ]
+            ],
         )
         run_2d(args)
 
@@ -227,7 +227,7 @@ class TestRun3D:
                 "--render",
                 "--ray-trace",
                 "--ray-shadows",
-            ]
+            ],
         )
         run_3d(args)
 
@@ -249,7 +249,7 @@ class TestRun3D:
                 "aspirin",
                 "--template",
                 "high_quality_3d",
-            ]
+            ],
         )
         run_3d(args)
 

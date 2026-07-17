@@ -434,43 +434,7 @@ BUILTIN_COLOR_TEMPLATES: dict[str, dict[str, Any]] = {
     "jmol": {
         "element_colors": dict(
             DEFAULT_ELEMENT_COLORS,
-            **{
-                "C": "gray40",
-                "H": "white",
-                "N": "skyblue",
-                "O": "red",
-                "S": "yellow",
-                "P": "orange",
-                "F": "palegreen",
-                "Cl": "green",
-                "Br": "firebrick",
-                "I": "purple",
-                "Li": "violet",
-                "Na": "slate",
-                "K": "violet",
-                "Mg": "forest",
-                "Ca": "forest",
-                "Fe": "darkorange",
-                "Cu": "chocolate",
-                "Zn": "brown",
-                "Ni": "forest",
-                "Co": "salmon",
-                "Mn": "violet",
-                "Cr": "gray50",
-                "Pd": "forest",
-                "Pt": "gray50",
-                "Au": "gold",
-                "Ag": "gray70",
-                "B": "salmon",
-                "Si": "goldenrod",
-                "Se": "orange",
-                "As": "violet",
-                "He": "cyan",
-                "Ne": "cyan",
-                "Ar": "cyan",
-                "Kr": "cyan",
-                "Xe": "cyan",
-            },
+            C="gray40", H="white", N="skyblue", O="red", S="yellow", P="orange", F="palegreen", Cl="green", Br="firebrick", I="purple", Li="violet", Na="slate", K="violet", Mg="forest", Ca="forest", Fe="darkorange", Cu="chocolate", Zn="brown", Ni="forest", Co="salmon", Mn="violet", Cr="gray50", Pd="forest", Pt="gray50", Au="gold", Ag="gray70", B="salmon", Si="goldenrod", Se="orange", As="violet", He="cyan", Ne="cyan", Ar="cyan", Kr="cyan", Xe="cyan",
         ),
         "stick_color": "gray50",
         "bg_color": "white",
@@ -478,38 +442,7 @@ BUILTIN_COLOR_TEMPLATES: dict[str, dict[str, Any]] = {
     "rasmol": {
         "element_colors": dict(
             DEFAULT_ELEMENT_COLORS,
-            **{
-                "C": "gray30",
-                "H": "white",
-                "N": "lightblue",
-                "O": "red",
-                "S": "yellow",
-                "P": "orange",
-                "F": "green",
-                "Cl": "green",
-                "Br": "firebrick",
-                "I": "purple",
-                "Li": "violet",
-                "Na": "slate",
-                "K": "violet",
-                "Mg": "forest",
-                "Ca": "forest",
-                "Fe": "salmon",
-                "Cu": "chocolate",
-                "Zn": "brown",
-                "Ni": "forest",
-                "Co": "salmon",
-                "Mn": "violet",
-                "Cr": "gray50",
-                "Pd": "forest",
-                "Pt": "gray50",
-                "Au": "gold",
-                "Ag": "gray70",
-                "B": "salmon",
-                "Si": "goldenrod",
-                "Se": "orange",
-                "As": "violet",
-            },
+            C="gray30", H="white", N="lightblue", O="red", S="yellow", P="orange", F="green", Cl="green", Br="firebrick", I="purple", Li="violet", Na="slate", K="violet", Mg="forest", Ca="forest", Fe="salmon", Cu="chocolate", Zn="brown", Ni="forest", Co="salmon", Mn="violet", Cr="gray50", Pd="forest", Pt="gray50", Au="gold", Ag="gray70", B="salmon", Si="goldenrod", Se="orange", As="violet",
         ),
         "stick_color": "gray40",
         "bg_color": "white",
@@ -517,22 +450,7 @@ BUILTIN_COLOR_TEMPLATES: dict[str, dict[str, Any]] = {
     "chemdraw": {
         "element_colors": dict(
             DEFAULT_ELEMENT_COLORS,
-            **{
-                "C": "black",
-                "H": "white",
-                "N": "blue",
-                "O": "red",
-                "S": "yellow",
-                "P": "orange",
-                "F": "green",
-                "Cl": "green",
-                "Br": "firebrick",
-                "I": "purple",
-                "B": "salmon",
-                "Si": "goldenrod",
-                "Se": "orange",
-                "As": "violet",
-            },
+            C="black", H="white", N="blue", O="red", S="yellow", P="orange", F="green", Cl="green", Br="firebrick", I="purple", B="salmon", Si="goldenrod", Se="orange", As="violet",
         ),
         "stick_color": "black",
         "bg_color": "white",
@@ -540,25 +458,7 @@ BUILTIN_COLOR_TEMPLATES: dict[str, dict[str, Any]] = {
     "vmd": {
         "element_colors": dict(
             DEFAULT_ELEMENT_COLORS,
-            **{
-                "C": "cyan",
-                "H": "white",
-                "N": "blue",
-                "O": "red",
-                "S": "yellow",
-                "P": "tan",
-                "F": "palegreen",
-                "Cl": "green",
-                "Br": "firebrick",
-                "I": "purple",
-                "Fe": "darkorange",
-                "Cu": "chocolate",
-                "Zn": "brown",
-                "Mg": "forest",
-                "Ca": "forest",
-                "Na": "slate",
-                "K": "violet",
-            },
+            C="cyan", H="white", N="blue", O="red", S="yellow", P="tan", F="palegreen", Cl="green", Br="firebrick", I="purple", Fe="darkorange", Cu="chocolate", Zn="brown", Mg="forest", Ca="forest", Na="slate", K="violet",
         ),
         "stick_color": "gray50",
         "bg_color": "black",
@@ -596,13 +496,13 @@ COLOR_TEMPLATE_META: dict[str, dict[str, str]] = {
 class _TemplateSerializer:
     @staticmethod
     def template_to_dict(
-        config: Config2D | Config3D | ProteinConfig, name: str = "custom"
+        config: Config2D | Config3D | ProteinConfig, name: str = "custom",
     ) -> dict[str, Any]:
         if isinstance(config, Config2D):
             return {"type": "2d", "name": name, "settings": config.to_dict()}
-        elif isinstance(config, Config3D):
+        if isinstance(config, Config3D):
             return {"type": "3d", "name": name, "settings": config.to_dict()}
-        elif isinstance(config, ProteinConfig):
+        if isinstance(config, ProteinConfig):
             return {"type": "protein", "name": name, "settings": config.to_dict()}
         raise TypeError(f"Unknown config type: {type(config)}")
 
@@ -612,9 +512,9 @@ class _TemplateSerializer:
         overrides = data.get("settings", {})
         if config_type == "2d":
             return ConfigLoader.get_2d_config(overrides=overrides)
-        elif config_type == "3d":
+        if config_type == "3d":
             return ConfigLoader.get_3d_config(overrides=overrides)
-        elif config_type == "protein":
+        if config_type == "protein":
             return ConfigLoader.get_protein_config(overrides=overrides)
         raise ValueError(f"Unknown config type: {config_type}")
 
@@ -666,7 +566,7 @@ class ConfigLoader:
         if template_name in _BUILTIN_TEMPLATES:
             return _load_builtin_template(template_name)
         raise ValueError(
-            f"Unknown template: {template_name}. Available: {list(_BUILTIN_TEMPLATES.keys())}"
+            f"Unknown template: {template_name}. Available: {list(_BUILTIN_TEMPLATES.keys())}",
         )
 
     @staticmethod
@@ -676,7 +576,7 @@ class ConfigLoader:
             return ColorConfig(**data)
         raise ValueError(
             f"Unknown color template: {template_name}. "
-            f"Available: {list(BUILTIN_COLOR_TEMPLATES.keys())}"
+            f"Available: {list(BUILTIN_COLOR_TEMPLATES.keys())}",
         )
 
     @staticmethod
@@ -722,6 +622,6 @@ def _load_builtin_template(name: str) -> Config2D | Config3D:
     config_type = template["type"]
     if config_type == "2d":
         return ConfigLoader.get_2d_config(overrides=template.get("settings", {}))
-    elif config_type == "3d":
+    if config_type == "3d":
         return ConfigLoader.get_3d_config(overrides=template.get("settings", {}))
     raise ValueError(f"Unknown template type: {config_type}")

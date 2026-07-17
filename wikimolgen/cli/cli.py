@@ -13,7 +13,6 @@ from wikimolgen.configs import Config2D, ConfigLoader, RenderConfig3D
 from wikimolgen.rendering.wikimol2d import MoleculeGenerator2D
 from wikimolgen.rendering.wikimol3d import MoleculeGenerator3D
 
-
 _2D_DEFAULTS = Config2D()
 _3D_RENDER_DEFAULTS = RenderConfig3D()
 
@@ -53,29 +52,29 @@ Examples:
     parser_2d = subparsers.add_parser("2d", help="Generate 2D SVG structures")
 
     parser_2d.add_argument(
-        "--compound", required=True, help="PubChem CID, compound name, or SMILES string"
+        "--compound", required=True, help="PubChem CID, compound name, or SMILES string",
     )
     parser_2d.add_argument(
-        "--output", default="molecule_2d.svg", help="Output SVG filename (default: molecule_2d.svg)"
+        "--output", default="molecule_2d.svg", help="Output SVG filename (default: molecule_2d.svg)",
     )
     parser_2d.add_argument(
-        "--template", help="Settings template (predefined name or JSON file path)"
+        "--template", help="Settings template (predefined name or JSON file path)",
     )
     parser_2d.add_argument(
-        "--color-template", help="Color template (predefined name or JSON file path)"
+        "--color-template", help="Color template (predefined name or JSON file path)",
     )
 
     # 2D Display Settings
     parser_2d.add_argument(
-        "--angle", type=float, default=180, help="Rotation angle in degrees (default: 180)"
+        "--angle", type=float, default=180, help="Rotation angle in degrees (default: 180)",
     )
     parser_2d.add_argument(
-        "--auto-orient", action="store_true", help="Automatically optimize viewing angle using PCA"
+        "--auto-orient", action="store_true", help="Automatically optimize viewing angle using PCA",
     )
 
     # 2D Advanced Settings
     parser_2d.add_argument(
-        "--scale", type=float, default=30.0, help="Pixels per coordinate unit (default: 30.0)"
+        "--scale", type=float, default=30.0, help="Pixels per coordinate unit (default: 30.0)",
     )
     parser_2d.add_argument(
         "--margin",
@@ -96,29 +95,29 @@ Examples:
         help=f"Minimum font size for atom labels (default: {_2D_DEFAULTS.min_font_size})",
     )
     parser_2d.add_argument(
-        "--padding", type=float, default=0.03, help="Padding around drawing (default: 0.03)"
+        "--padding", type=float, default=0.03, help="Padding around drawing (default: 0.03)",
     )
     parser_2d.add_argument("--use-bw", action="store_true", help="Use black and white atom palette")
     parser_2d.add_argument(
-        "--transparent-bg", action="store_true", help="Use transparent background"
+        "--transparent-bg", action="store_true", help="Use transparent background",
     )
 
     # ===== 3D SUBCOMMAND =====
     parser_3d = subparsers.add_parser(
-        "3d", help="Generate 3D structures with optional PyMOL rendering"
+        "3d", help="Generate 3D structures with optional PyMOL rendering",
     )
 
     parser_3d.add_argument(
-        "--compound", required=True, help="PubChem CID, compound name, or SMILES string"
+        "--compound", required=True, help="PubChem CID, compound name, or SMILES string",
     )
     parser_3d.add_argument(
-        "--output-base", help="Base name for output files (default: compound name)"
+        "--output-base", help="Base name for output files (default: compound name)",
     )
     parser_3d.add_argument(
-        "--template", help="Settings template (predefined name or JSON file path)"
+        "--template", help="Settings template (predefined name or JSON file path)",
     )
     parser_3d.add_argument(
-        "--color-template", help="Color template (predefined name or JSON file path)"
+        "--color-template", help="Color template (predefined name or JSON file path)",
     )
 
     # 3D Generation Options
@@ -135,12 +134,12 @@ Examples:
         help="Force field for optimization (default: MMFF94)",
     )
     parser_3d.add_argument(
-        "--render", action="store_true", help="Render molecule with PyMOL (generates PNG)"
+        "--render", action="store_true", help="Render molecule with PyMOL (generates PNG)",
     )
 
     # 3D Display - Orientation (as sliders in CLI context)
     parser_3d.add_argument(
-        "--auto-orient", action="store_true", help="Automatically optimize 3D orientation"
+        "--auto-orient", action="store_true", help="Automatically optimize 3D orientation",
     )
     parser_3d.add_argument(
         "--x-rotation",
@@ -163,7 +162,7 @@ Examples:
 
     # 3D Rendering Settings
     parser_3d.add_argument(
-        "--stick-radius", type=float, default=0.2, help="Stick radius (0.1-0.5, default: 0.2)"
+        "--stick-radius", type=float, default=0.2, help="Stick radius (0.1-0.5, default: 0.2)",
     )
     parser_3d.add_argument(
         "--sphere-scale",
@@ -179,7 +178,7 @@ Examples:
     )
     parser_3d.add_argument("--ray-trace", action="store_true", help="Enable ray tracing mode")
     parser_3d.add_argument(
-        "--ray-shadows", action="store_true", help="Enable ray tracing shadows (slower)"
+        "--ray-shadows", action="store_true", help="Enable ray tracing shadows (slower)",
     )
     parser_3d.add_argument(
         "--antialias",
@@ -191,10 +190,10 @@ Examples:
 
     # 3D Lighting Settings
     parser_3d.add_argument(
-        "--ambient", type=float, default=0.25, help="Ambient lighting (0.0-1.0, default: 0.25)"
+        "--ambient", type=float, default=0.25, help="Ambient lighting (0.0-1.0, default: 0.25)",
     )
     parser_3d.add_argument(
-        "--specular", type=float, default=1.0, help="Specular lighting (0.0-2.0, default: 1.0)"
+        "--specular", type=float, default=1.0, help="Specular lighting (0.0-2.0, default: 1.0)",
     )
     parser_3d.add_argument(
         "--direct",
@@ -203,10 +202,10 @@ Examples:
         help="Direct lighting intensity (0.0-1.0, default: 0.45)",
     )
     parser_3d.add_argument(
-        "--reflect", type=float, default=0.45, help="Reflection intensity (0.0-1.0, default: 0.45)"
+        "--reflect", type=float, default=0.45, help="Reflection intensity (0.0-1.0, default: 0.45)",
     )
     parser_3d.add_argument(
-        "--shininess", type=int, default=30, help="Surface shininess (10-100, default: 30)"
+        "--shininess", type=int, default=30, help="Surface shininess (10-100, default: 30)",
     )
 
     # 3D Effects Settings
@@ -223,15 +222,15 @@ Examples:
         help="Sphere transparency (0.0-1.0, default: 0.0)",
     )
     parser_3d.add_argument(
-        "--valence", type=float, default=0.0, help="Valence visibility (0.0-0.3, default: 0.0)"
+        "--valence", type=float, default=0.0, help="Valence visibility (0.0-0.3, default: 0.0)",
     )
     parser_3d.add_argument(
-        "--depth-cue", action="store_true", help="Enable depth cueing (fog effect)"
+        "--depth-cue", action="store_true", help="Enable depth cueing (fog effect)",
     )
 
     # 3D Canvas Settings
     parser_3d.add_argument(
-        "--width", type=int, default=1800, help="Render width in pixels (default: 1800)"
+        "--width", type=int, default=1800, help="Render width in pixels (default: 1800)",
     )
     parser_3d.add_argument(
         "--height",
@@ -246,7 +245,7 @@ Examples:
         help="Background color (default: white)",
     )
     parser_3d.add_argument(
-        "--crop-margin", type=int, default=10, help="Auto-crop margin in pixels (default: 10)"
+        "--crop-margin", type=int, default=10, help="Auto-crop margin in pixels (default: 10)",
     )
 
     # ===== PROTEIN SUBCOMMAND =====
@@ -267,19 +266,19 @@ Examples:
         help="Show ligand/heteroatoms (default: True)",
     )
     parser_protein.add_argument(
-        "--no-ligand", action="store_false", dest="show_ligand", help="Hide ligand/heteroatoms"
+        "--no-ligand", action="store_false", dest="show_ligand", help="Hide ligand/heteroatoms",
     )
     parser_protein.add_argument(
-        "--show-water", action="store_true", default=False, help="Show water molecules"
+        "--show-water", action="store_true", default=False, help="Show water molecules",
     )
     parser_protein.add_argument(
-        "--width", type=int, default=1920, help="Image width (default: 1920)"
+        "--width", type=int, default=1920, help="Image width (default: 1920)",
     )
     parser_protein.add_argument(
-        "--height", type=int, default=1080, help="Image height (default: 1080)"
+        "--height", type=int, default=1080, help="Image height (default: 1080)",
     )
     parser_protein.add_argument(
-        "--ray-trace", action="store_true", default=False, help="Enable ray tracing"
+        "--ray-trace", action="store_true", default=False, help="Enable ray tracing",
     )
 
     return parser

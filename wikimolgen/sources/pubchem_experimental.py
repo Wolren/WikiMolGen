@@ -134,7 +134,7 @@ def _extract_ghs_data(sections: list) -> dict[str, Any]:
     """Extract GHS Classification data from Safety and Hazards section."""
     result: dict[str, Any] = {}
     ghs_section = _find_leaf_section(
-        sections, "Safety and Hazards", "Hazards Identification", "GHS Classification"
+        sections, "Safety and Hazards", "Hazards Identification", "GHS Classification",
     )
     if ghs_section is None:
         return result
@@ -180,7 +180,7 @@ def _extract_toxicity_data(sections: list) -> dict[str, Any]:
     """Extract toxicity data (LD50, LC50) from Toxicity section."""
     result: dict[str, Any] = {}
     tox_section = _find_leaf_section(
-        sections, "Toxicity", "Toxicological Information", "Toxicity Data"
+        sections, "Toxicity", "Toxicological Information", "Toxicity Data",
     )
     if tox_section is None:
         return result

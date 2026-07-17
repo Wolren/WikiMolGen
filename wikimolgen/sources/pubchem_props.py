@@ -20,9 +20,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-logger = logging.getLogger(__name__)
-
 from wikimolgen.sources._client import PUG_BASE
+
+logger = logging.getLogger(__name__)
 
 # Properties we request from PubChem PUG REST
 # Only computed/predicted properties are available here.

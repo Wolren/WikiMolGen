@@ -26,13 +26,11 @@ logger = logging.getLogger(__name__)
 class CompoundFetchError(Exception):
     """Raised when compound data cannot be fetched from PubChem."""
 
-    pass
 
 
 class SMILESValidationError(Exception):
     """Raised when SMILES string is invalid."""
 
-    pass
 
 
 def fetch_compound(identifier: str) -> tuple[str, str]:
@@ -66,7 +64,7 @@ def fetch_compound(identifier: str) -> tuple[str, str]:
             smiles = getattr(compound, "smiles", None) or compound.canonical_smiles
             return smiles, compound.iupac_name or f"CID_{identifier}"
         except Exception as e:
-            raise CompoundFetchError(f"Failed to fetch PubChem CID {identifier}: {e}")
+            raise CompoundFetchError(f"Failed to fetch PubChem CID {identifier}: {e}") from e
 
     # Strategy 2: Try PubChem compound name lookup
     try:
@@ -87,7 +85,7 @@ def fetch_compound(identifier: str) -> tuple[str, str]:
 
     # All strategies failed
     raise CompoundFetchError(
-        f"Could not interpret '{identifier}' as PubChem CID, compound name, or valid SMILES"
+        f"Could not interpret '{identifier}' as PubChem CID, compound name, or valid SMILES",
     )
 
 

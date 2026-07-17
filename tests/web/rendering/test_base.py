@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # ═══════════════════════════════════════════════════════════════════
 # Fixtures
 # ═══════════════════════════════════════════════════════════════════
@@ -106,6 +105,7 @@ def session_with_3d_defaults(mock_st):
 class TestSessionOverrides:
     def test_returns_matching_fields(self, mock_st):
         from rendering.base import _session_overrides
+
         from wikimolgen.configs import Config2D
 
         ss = mock_st.session_state
@@ -117,6 +117,7 @@ class TestSessionOverrides:
 
     def test_skips_absent_keys(self, mock_st):
         from rendering.base import _session_overrides
+
         from wikimolgen.configs import Config2D
 
         result = _session_overrides(Config2D)
@@ -124,6 +125,7 @@ class TestSessionOverrides:
 
     def test_with_prefix(self, mock_st):
         from rendering.base import _session_overrides
+
         from wikimolgen.configs import RenderConfig3D
 
         ss = mock_st.session_state

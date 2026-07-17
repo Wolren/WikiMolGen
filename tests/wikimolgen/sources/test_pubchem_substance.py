@@ -12,7 +12,7 @@ class TestFetchSubstances:
         with patch("requests.get") as mock_get:
             mock_get.return_value.status_code = 200
             mock_get.return_value.json.return_value = {
-                "IdentifierList": {"CID": [2244], "SID": [135398660, 153484647]}
+                "IdentifierList": {"CID": [2244], "SID": [135398660, 153484647]},
             }
             result = fetch_substances(2244)
             assert result["pubchem_substance"] == "135398660"
@@ -42,7 +42,7 @@ class TestFetchSubstances:
         with patch("requests.get") as mock_get:
             mock_get.return_value.status_code = 200
             mock_get.return_value.json.return_value = {
-                "IdentifierList": {"CID": [2244], "SID": [135398660]}
+                "IdentifierList": {"CID": [2244], "SID": [135398660]},
             }
             result = fetch_substances("2244")
             assert result["pubchem_substance"] == "135398660"

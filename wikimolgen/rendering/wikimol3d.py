@@ -7,6 +7,7 @@ Extended element colors and RDKit configuration options.
 Uses split Config3D structure (render + conformer) from ConfigLoader.
 """
 
+import logging
 from pathlib import Path
 from typing import Literal
 
@@ -21,6 +22,8 @@ from wikimolgen.rendering.optimization import (
     optimize_zoom_buffer,
 )
 from wikimolgen.rendering.utils import load_color_config, resolve_settings_template
+
+logger = logging.getLogger(__name__)
 
 ForceFieldType = Literal["MMFF94", "UFF"]
 
@@ -106,7 +109,7 @@ class MoleculeGenerator3D:
     """
 
     def __init__(
-        self, identifier: str, config: Config3D | None = None, random_seed: int = 1, **kwargs
+        self, identifier: str, config: Config3D | None = None, random_seed: int = 1, **kwargs,
     ):
         """
         Initialize 3D molecule generator with config-driven setup.
@@ -172,7 +175,7 @@ class MoleculeGenerator3D:
         else:
             # Multi-conformer generation
             result = AllChem.EmbedMultipleConfs(
-                self.mol, numConfs=self.config.conformer.num_conformers, params=params
+                self.mol, numConfs=self.config.conformer.num_conformers, params=params,
             )
             if len(result) == 0:
                 raise ValueError("Failed to generate 3D conformers")
@@ -199,7 +202,7 @@ class MoleculeGenerator3D:
                     self.energy = ff.CalcEnergy()
             else:
                 results = rdForceFieldHelpers.MMFFOptimizeMoleculeConfs(
-                    self.mol, maxIters=max_iters
+                    self.mol, maxIters=max_iters,
                 )
                 energies = [r[1] for r in results]
                 self.energy = min(energies)
@@ -236,7 +239,7 @@ class MoleculeGenerator3D:
         return output_path
 
     def _auto_crop_image(
-        self, image_path: Path, margin: int = 10, contrast_factor: float = 1.15
+        self, image_path: Path, margin: int = 10, contrast_factor: float = 1.15,
     ) -> None:
         from wikimolgen.rendering.utils import autocrop_image as _shared_crop
 
@@ -262,8 +265,8 @@ class MoleculeGenerator3D:
             import pymol2
         except ImportError:
             raise ImportError(
-                "pymol2 not installed. Install with: pip install pymol-open-source  or  conda install -c conda-forge pymol-open-source"
-            )
+                "pymol2 not installed. Install with: pip install pymol-open-source  or  conda install -c conda-forge pymol-open-source",
+            ) from None
 
         cfg = self.config.render
         output_path = Path(output)
@@ -354,7 +357,7 @@ class MoleculeGenerator3D:
             # Position and orientation
             if cfg.pymol_view is not None:
                 cmd.set_view(cfg.pymol_view)
-                print(f" [pymol] Used captured view: {len(cfg.pymol_view)} floats")
+                logger.info(" [pymol] Used captured view: %d floats", len(cfg.pymol_view))
             elif cfg.auto_orient_3d:
                 x_opt, y_opt, z_opt = find_optimal_3d_orientation(self.mol)
                 zoom_opt = optimize_zoom_buffer(
@@ -368,18 +371,20 @@ class MoleculeGenerator3D:
                 cmd.turn("y", y_opt + cfg.auto_orient_tilt_y)
                 cmd.turn("z", z_opt)
                 cmd.zoom("all", buffer=zoom_opt)
-                print(
-                    f" [pymol] Auto-oriented: x={x_opt:.1f}+{cfg.auto_orient_tilt_x:.0f}°, y={y_opt:.1f}+{cfg.auto_orient_tilt_y:.0f}°, z={z_opt:.1f}°"
+                logger.info(
+                    " [pymol] Auto-oriented: x=%.1f+%.0f°, y=%.1f+%.0f°, z=%.1f°",
+                    x_opt, cfg.auto_orient_tilt_x, y_opt, cfg.auto_orient_tilt_y, z_opt,
                 )
-                print(f" Auto-zoom: {zoom_opt:.2f}")
+                logger.info(" Auto-zoom: %.2f", zoom_opt)
             else:
                 cmd.orient("all")
                 cmd.turn("x", cfg.x_rotation)
                 cmd.turn("y", cfg.y_rotation)
                 cmd.turn("z", cfg.z_rotation)
                 cmd.zoom("all", buffer=cfg.zoom_buffer)
-                print(
-                    f" [pymol] Manual: x={cfg.x_rotation:.1f}° y={cfg.y_rotation:.1f}° z={cfg.z_rotation:.1f}°"
+                logger.info(
+                    " [pymol] Manual: x=%.1f° y=%.1f° z=%.1f°",
+                    cfg.x_rotation, cfg.y_rotation, cfg.z_rotation,
                 )
 
             # Render
@@ -445,25 +450,25 @@ class MoleculeGenerator3D:
 
         # Save SDF
         sdf_path = self._save_sdf(f"{output_base}.sdf")
-        print(f"[OK] 3D structure saved: {sdf_path}")
-        print(f"  Compound: {self.compound_name}")
-        print(f"  Atoms: {self.mol.GetNumAtoms()}, Bonds: {self.mol.GetNumBonds()}")
+        logger.info("[OK] 3D structure saved: %s", sdf_path)
+        logger.info("  Compound: %s", self.compound_name)
+        logger.info("  Atoms: %d, Bonds: %d", self.mol.GetNumAtoms(), self.mol.GetNumBonds())
 
         if self.config.conformer.num_conformers > 1:
-            print(f"  Conformers: {self.mol.GetNumConformers()}")
+            logger.info("  Conformers: %d", self.mol.GetNumConformers())
 
         if optimize and self.energy is not None:
-            print(f"  Energy: {self.energy:.2f} kcal/mol ({force_field})")
+            logger.info("  Energy: %.2f kcal/mol (%s)", self.energy, force_field)
 
         # Render with PyMOL
         png_path = None
         if render:
             png_path = self._render_pymol(sdf_path, f"{output_base}.png")
-            print(f"[OK] Rendered image saved: {png_path}")
+            logger.info("[OK] Rendered image saved: %s", png_path)
             if self.config.render.auto_crop:
-                print(f" Auto-cropped with {self.config.render.crop_margin}px margin")
+                logger.info(" Auto-cropped with %dpx margin", self.config.render.crop_margin)
             else:
-                print(f" Dimensions: {self.config.render.width}×{self.config.render.height} px")
+                logger.info(" Dimensions: %d×%d px", self.config.render.width, self.config.render.height)
 
         return sdf_path, png_path
 
@@ -525,7 +530,7 @@ class MoleculeGenerator3D:
             else:
                 raise ValueError(
                     f"Unknown rendering parameter: {key}\n"
-                    f"Valid parameters: {', '.join(sorted(valid_render_params))}"
+                    f"Valid parameters: {', '.join(sorted(valid_render_params))}",
                 )
 
     def configure_conformer(self, **kwargs) -> None:
@@ -555,13 +560,13 @@ class MoleculeGenerator3D:
             else:
                 raise ValueError(
                     f"Unknown conformer parameter: {key}\n"
-                    f"Valid parameters: {', '.join(sorted(valid_conformer_params))}"
+                    f"Valid parameters: {', '.join(sorted(valid_conformer_params))}",
                 )
 
     def load_color_template(self, template: str | Path | dict | ColorConfig) -> None:
         if isinstance(template, dict):
             self.config.render.stick_color = template.get(
-                "stick_color", self.config.render.stick_color
+                "stick_color", self.config.render.stick_color,
             )
             self.config.render.bg_color = template.get("bg_color", self.config.render.bg_color)
             ec = template.get("element_colors")
