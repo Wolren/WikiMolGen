@@ -27,30 +27,30 @@ try:
     _CA_BUNDLE = certifi.where()
 
     def _patched_create_default_context(
-        purpose=ssl.Purpose.SERVER_AUTH, *, cafile=None, capath=None, cadata=None
+        purpose=ssl.Purpose.SERVER_AUTH, *, cafile=None, capath=None, cadata=None,
     ):
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        ctx.load_verify_locations(_CA_BUNDLE)
+        ctx.load_verify_locations(cafile or _CA_BUNDLE)
         return ctx
 
     logger.info("SSL: using certifi CA bundle from %s", _CA_BUNDLE)
 
 except ImportError:
     logger.warning(
-        "certifi not installed; Windows cert store may crash, install: pip install certifi"
+        "certifi not installed; Windows cert store may crash, install: pip install certifi",
     )
 
     _original_create_default_context = ssl.create_default_context
 
     def _patched_create_default_context(
-        purpose=ssl.Purpose.SERVER_AUTH, *, cafile=None, capath=None, cadata=None
+        purpose=ssl.Purpose.SERVER_AUTH, *, cafile=None, capath=None, cadata=None,
     ):
         try:
             return _original_create_default_context(
-                purpose, cafile=cafile, capath=capath, cadata=cadata
+                purpose, cafile=cafile, capath=capath, cadata=cadata,
             )
         except ssl.SSLError:
-            logger.warning("Windows certificate store corrupted — SSL verification DISABLED")
+            logger.warning("Windows certificate store corrupted - SSL verification DISABLED")
             ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
             ctx.check_hostname = False
             ctx.verify_mode = ssl.CERT_NONE

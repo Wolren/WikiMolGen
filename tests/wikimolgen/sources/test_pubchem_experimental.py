@@ -6,7 +6,6 @@ import pytest
 
 from wikimolgen.sources.pubchem_experimental import fetch_experimental_data
 
-
 # ── helpers to build PUG View JSON structures ──────────────────────────
 
 
@@ -102,13 +101,13 @@ def _mock_record(
                     {
                         "Type": "Icon",
                         "URL": f"https://pubchem.ncbi.nlm.nih.gov/images/ghs/{pic}.svg",
-                    }
+                    },
                 )
             ghs_information.append(
                 {
                     "Name": "Pictogram(s)",
                     "Value": {"StringWithMarkup": [{"String": "", "Markup": markup}]},
-                }
+                },
             )
 
         if include_ghs.get("signal"):
@@ -116,7 +115,7 @@ def _mock_record(
                 {
                     "Name": "Signal",
                     "Value": {"StringWithMarkup": [{"String": include_ghs["signal"]}]},
-                }
+                },
             )
 
         if include_ghs.get("h_statements"):
@@ -124,7 +123,7 @@ def _mock_record(
                 {
                     "Name": "GHS Hazard Statements",
                     "Value": {"StringWithMarkup": [{"String": include_ghs["h_statements"]}]},
-                }
+                },
             )
 
         if include_ghs.get("p_statements"):
@@ -132,7 +131,7 @@ def _mock_record(
                 {
                     "Name": "Precautionary Statement Codes",
                     "Value": {"StringWithMarkup": [{"String": include_ghs["p_statements"]}]},
-                }
+                },
             )
 
         if ghs_information:
@@ -142,7 +141,7 @@ def _mock_record(
                     {
                         "TOCHeading": "GHS Classification",
                         "Information": ghs_information,
-                    }
+                    },
                 ],
             )
             safety = _container_section("Safety and Hazards", [hazard_id_section])
@@ -156,7 +155,7 @@ def _mock_record(
                 {
                     "TOCHeading": "Toxicity Data",
                     "Information": [{"Value": {"StringWithMarkup": [{"String": line}]}}],
-                }
+                },
             )
         toxicity_section = _container_section(
             "Toxicity",
@@ -164,7 +163,7 @@ def _mock_record(
                 _container_section(
                     "Toxicological Information",
                     tox_data,
-                )
+                ),
             ],
         )
         sections.append(toxicity_section)

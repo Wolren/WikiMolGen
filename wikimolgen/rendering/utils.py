@@ -8,10 +8,11 @@ No dependencies on Streamlit or other web packages.
 
 import json
 from pathlib import Path
+
 from PIL import Image, ImageEnhance, ImageMath
 
 from wikimolgen.configs import ColorConfig, Config2D, Config3D
-from wikimolgen.configs.loader import ProteinConfig, ConfigLoader
+from wikimolgen.configs.loader import ConfigLoader, ProteinConfig
 
 
 def autocrop_image(

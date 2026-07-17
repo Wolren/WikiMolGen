@@ -10,11 +10,11 @@ from __future__ import annotations
 
 try:
     import requests as _requests
-except ImportError:
+except ImportError as e:
     raise ImportError(
         "The 'requests' library is required for external source lookups. "
-        "Install with: pip install requests"
-    )
+        "Install with: pip install requests",
+    ) from e
 
 USER_AGENT = "WikiMolGen/0.1 (chemical structure generator)"
 PUG_BASE = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound"
@@ -35,6 +35,4 @@ def make_headers(*, description: str = "chemical structure generator") -> dict[s
     return {"User-Agent": f"WikiMolGen/0.1 ({description})"}
 
 
-# Re-export so source modules can write:
-#   from wikimolgen.sources._client import requests
 requests = _requests

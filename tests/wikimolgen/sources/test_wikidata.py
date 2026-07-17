@@ -3,6 +3,7 @@
 from unittest.mock import patch
 
 import pytest
+
 from wikimolgen.sources.wikidata import query_wikidata
 
 
@@ -24,9 +25,9 @@ class TestQueryWikidata:
                         "pdb_ligand": {"value": "AIN"},
                         "niaid_chemdb": {"value": "000001"},
                         "inn": {"value": "Aspirin"},
-                    }
-                ]
-            }
+                    },
+                ],
+            },
         }
         with patch("requests.get") as mock_get:
             mock_get.return_value.status_code = 200
@@ -58,9 +59,9 @@ class TestQueryWikidata:
                     {
                         "qid": {"value": "Q42"},
                         "wikipedia": {"value": "https://en.wikipedia.org/wiki/Test"},
-                    }
-                ]
-            }
+                    },
+                ],
+            },
         }
         with patch("requests.get") as mock_get:
             mock_get.return_value.status_code = 200
@@ -80,6 +81,6 @@ class TestQueryWikidata:
         with patch("requests.get") as mock_get:
             mock_get.return_value.status_code = 200
             mock_get.return_value.json.return_value = {
-                "results": {"bindings": [{"qid": {"value": "Q1"}}]}
+                "results": {"bindings": [{"qid": {"value": "Q1"}}]},
             }
             assert query_wikidata("2244")["wikidata_qid"] == "Q1"

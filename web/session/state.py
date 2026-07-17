@@ -1,111 +1,154 @@
+"""
+web/session/state.py
+====================
+Session state initialization and default values for the WikiMolGen Streamlit app.
+"""
+
 import logging
-from dataclasses import asdict
 from typing import Any
 
 import streamlit as st
-
-from wikimolgen.configs.loader import ConfigLoader, ProteinConfig
 
 logger = logging.getLogger(__name__)
 
 
 def get_2d_defaults() -> dict[str, Any]:
-    cfg = ConfigLoader.get_2d_config()
-    return cfg.to_dict()
+    return {
+        "scale": 30.0,
+        "bond_length": 50.0,
+        "margin": 0.8,
+        "padding": 0.07,
+        "min_font_size": 32,
+        "additional_atom_label_padding": 0.1,
+        "fixed_font_size": -1,
+        "use_bw_palette": True,
+        "transparent_background": True,
+        "auto_orient_2d": True,
+        "angle_degrees": 0.0,
+        "bond_line_width": 1.0,
+        "scaling_factor": 1.0,
+        "multiple_bond_offset": 0.15,
+        "add_stereo_annotation": False,
+        "include_radicals": False,
+        "include_chiral_flag": False,
+        "no_atom_labels": False,
+        "explicit_methyl": False,
+        "include_atom_tags": False,
+        "comic_mode": False,
+        "legend": "",
+        "highlight_atoms": "",
+        "highlight_bonds": "",
+        "highlight_color": "#FF8888",
+        "auto_orient_amines": True,
+        "amine_target_angle": 0,
+        "phenethylamine_target": 90,
+    }
 
 
 def get_3d_defaults() -> dict[str, Any]:
-    cfg = ConfigLoader.get_3d_config()
-    d = asdict(cfg.render) if hasattr(cfg, "render") else {}
-    conf = asdict(cfg.conformer) if hasattr(cfg, "conformer") else {}
-    d.update(conf)
-    d["ray_shadows"] = bool(getattr(cfg.render, "ray_shadows", 0))
-    d["depth_cue"] = bool(getattr(cfg.render, "depth_cue", 0))
-    d["ambient_occlusion"] = bool(getattr(cfg.render, "ambient_occlusion", False))
-    return d
+    return {
+        "width": 1800,
+        "height": 1600,
+        "crop_margin": 10,
+        "auto_crop": True,
+        "representation": "sticks+spheres",
+        "ray_trace_mode": 0,
+        "ray_shadows": False,
+        "antialias": 4,
+        "stick_radius": 0.2,
+        "sphere_scale": 0.3,
+        "stick_ball_ratio": 1.8,
+        "stick_quality": 64,
+        "sphere_quality": 6,
+        "stick_ball": True,
+        "opaque_background": False,
+        "two_sided_lighting": True,
+        "transparency_mode": 1,
+        "bg_color": "white",
+        "atom_color_choice": "None",
+        "stick_color": "gray50",
+        "ambient": 0.25,
+        "specular": 1.0,
+        "shininess": 30,
+        "direct": 0.45,
+        "reflect": 0.45,
+        "stick_transparency": 0.0,
+        "sphere_transparency": 0.0,
+        "valence": 0.0,
+        "depth_cue": False,
+        "fog_start": 1.0,
+        "ambient_occlusion": False,
+        "ambient_occlusion_scale": 20.0,
+        "ray_trace_fog": 0.0,
+        "zoom_buffer": 2.0,
+        "auto_orient_3d": True,
+        "x_rotation": 0.0,
+        "y_rotation": 0.0,
+        "z_rotation": 0.0,
+        "num_conformers": 50,
+        "max_iterations": 500,
+        "prune_rms_thresh": 0.1,
+        "use_random_coords": False,
+        "use_basic_knowledge": True,
+        "enforce_chirality": True,
+        "use_small_ring_torsions": True,
+        "use_macrocycle_torsions": False,
+        "use_exp_torsion_prefs": True,
+    }
 
 
 def get_protein_defaults() -> dict[str, Any]:
-    return asdict(ProteinConfig())
-
-
-def get_session_defaults() -> dict[str, Any]:
-    defaults: dict[str, Any] = {
-        "rendered_structure": False,
-        "compound_data": None,
-        "last_image_html": None,
-        "last_output_path": None,
-        "last_compound": None,
-        "last_compound_fetched": None,
-        "last_file_data": None,
-        "last_file_name": None,
-        "last_file_mime": None,
-        "download_filename_input": "molecule",
-        "pubchem_data": None,
-        "custom_atom_schemes": {},
-        "custom_presets": {},
-        "atom_color_choice": "None",
-        "structure_type": "3D",
-        "manual_generate": False,
-        "auto_generate": True,
-        "save_filename": "",
-        "preset_selector": "None",
-        "config_manager_2d": None,
-        "config_manager_3d": None,
-        "sdf_content": None,
+    return {
+        "protein_cartoon": True,
+        "protein_color_scheme": "chain",
+        "protein_water": False,
+        "protein_ligand": True,
+        "pdb_path": "",
     }
 
-    defaults.update(get_2d_defaults())
-    defaults.update(get_3d_defaults())
-    defaults.update(get_protein_defaults())
 
-    return defaults
+def get_mode_keys(mode: str) -> list[str]:
+    if mode == "2D":
+        return list(get_2d_defaults().keys()) + ["mode_selector", "structure_type"]
+    if mode == "3D":
+        return list(get_3d_defaults().keys()) + ["mode_selector", "structure_type"]
+    return list(get_protein_defaults().keys()) + ["mode_selector", "structure_type"]
 
 
 def initialize_session_state() -> None:
-    defaults = get_session_defaults()
-
+    """Ensure all required session state defaults are set."""
+    defaults: dict[str, Any] = {
+        **get_2d_defaults(),
+        **get_3d_defaults(),
+        **get_protein_defaults(),
+        "smiles": "",
+        "cid": "",
+        "compound_name": "",
+        "last_search_query": "",
+        "last_changed_dimension": "2d",
+        "config_changed": False,
+        "manual_generate": False,
+        "mode_selector": "3D",
+        "structure_type": "3D",
+        "_last_active_mode": "3D",
+    }
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
 
-    if "last_structure_type" not in st.session_state:
-        st.session_state.last_structure_type = "3D"
-
-    if "config_changed" not in st.session_state:
-        st.session_state.config_changed = False
-
-    logger.info(f"Session state initialized with {len(defaults)} keys")
-
 
 def reset_to_defaults(dimension: str = "all") -> None:
-    if dimension == "2D" or dimension == "all":
+    """Reset settings for a given dimension to factory defaults."""
+    if dimension in {"2D", "all"}:
         for key in get_2d_defaults():
             st.session_state.pop(key, None)
 
-    if dimension == "3D" or dimension == "all":
+    if dimension in {"3D", "all"}:
         for key in get_3d_defaults():
             st.session_state.pop(key, None)
 
-    if dimension == "Protein" or dimension == "all":
+    if dimension in {"Protein", "all"}:
         for key in get_protein_defaults():
             st.session_state.pop(key, None)
 
-    if dimension == "all":
-        st.session_state.pop("atom_color_choice", None)
-        st.session_state.pop("custom_atom_schemes", None)
-        st.session_state.pop("custom_presets", None)
-        st.session_state.config_changed = True
-
-    logger.info(f"Reset session state to defaults: {dimension}")
-
-
-def get_mode_keys(mode: str) -> set[str]:
-    """Return the set of setting keys that belong to a given mode."""
-    if mode == "2D":
-        return set(get_2d_defaults().keys())
-    elif mode == "3D":
-        return set(get_3d_defaults().keys())
-    elif mode == "Protein":
-        return set(get_protein_defaults().keys())
-    return set()
+    initialize_session_state()

@@ -17,6 +17,7 @@ from template.utils import (
     export_current_as_preset,
     export_protein_preset,
 )
+
 from wikimolgen.configs import (
     Config2D,
     ConformerConfig,

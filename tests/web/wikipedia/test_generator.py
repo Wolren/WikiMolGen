@@ -79,35 +79,34 @@ class TestFetchPubchemData:
         mock_compound.cid = 2244
         mock_compound.synonyms = ["Aspirin", "Acetylsalicylic acid", "2-Acetoxybenzoic acid"]
 
-        with patch("pubchempy.get_compounds", return_value=[mock_compound]):
-            with patch(
-                "web.wikipedia.generator.enrich_compound_data",
-                return_value={
-                    "iupac_name": "Aspirin",
-                    "cid": 2244,
-                    "chembl_id": "CHEMBL123",
-                    "drugbank_id": "DB00945",
-                    "wikidata_qid": "Q18216",
-                    "cas_number": "50-78-2",
-                    "chebi_id": "15365",
-                    "kegg_id": "D00109",
-                    "unii": "R16CO5Y76E",
-                    "chemspider_id": "2157",
-                },
-            ) as mock_enrich:
-                result = fetch_pubchem_data("2244")
-                assert result is not None
-                assert result["iupac_name"] == "Aspirin"
-                assert result["cid"] == 2244
-                assert result["chembl_id"] == "CHEMBL123"
-                assert result["drugbank_id"] == "DB00945"
-                assert result["wikidata_qid"] == "Q18216"
-                assert result["cas_number"] == "50-78-2"
-                assert result["chebi_id"] == "15365"
-                assert result["kegg_id"] == "D00109"
-                assert result["unii"] == "R16CO5Y76E"
-                assert result["chemspider_id"] == "2157"
-                mock_enrich.assert_called_once()
+        with patch("pubchempy.get_compounds", return_value=[mock_compound]), patch(
+            "web.wikipedia.generator.enrich_compound_data",
+            return_value={
+                "iupac_name": "Aspirin",
+                "cid": 2244,
+                "chembl_id": "CHEMBL123",
+                "drugbank_id": "DB00945",
+                "wikidata_qid": "Q18216",
+                "cas_number": "50-78-2",
+                "chebi_id": "15365",
+                "kegg_id": "D00109",
+                "unii": "R16CO5Y76E",
+                "chemspider_id": "2157",
+            },
+        ) as mock_enrich:
+            result = fetch_pubchem_data("2244")
+            assert result is not None
+            assert result["iupac_name"] == "Aspirin"
+            assert result["cid"] == 2244
+            assert result["chembl_id"] == "CHEMBL123"
+            assert result["drugbank_id"] == "DB00945"
+            assert result["wikidata_qid"] == "Q18216"
+            assert result["cas_number"] == "50-78-2"
+            assert result["chebi_id"] == "15365"
+            assert result["kegg_id"] == "D00109"
+            assert result["unii"] == "R16CO5Y76E"
+            assert result["chemspider_id"] == "2157"
+            mock_enrich.assert_called_once()
 
     def test_name_lookup_success(self):
         mock_compound = MagicMock()
@@ -121,12 +120,14 @@ class TestFetchPubchemData:
         mock_compound.cid = 2519
         mock_compound.synonyms = ["Caffeine", "Theine"]
 
-        with patch("pubchempy.get_compounds", return_value=[mock_compound]):
-            with patch("web.wikipedia.generator.enrich_compound_data", side_effect=lambda x: x):
-                result = fetch_pubchem_data("caffeine")
-                assert result is not None
-                assert result["iupac_name"] == "Caffeine"
-                assert result["cid"] == 2519
+        with (
+            patch("pubchempy.get_compounds", return_value=[mock_compound]),
+            patch("web.wikipedia.generator.enrich_compound_data", side_effect=lambda x: x),
+        ):
+            result = fetch_pubchem_data("caffeine")
+            assert result is not None
+            assert result["iupac_name"] == "Caffeine"
+            assert result["cid"] == 2519
 
     def test_smiles_lookup_fallback(self):
         mock_compound = MagicMock()
@@ -146,11 +147,10 @@ class TestFetchPubchemData:
                 [],
                 [mock_compound],
             ],
-        ):
-            with patch("web.wikipedia.generator.enrich_compound_data", side_effect=lambda x: x):
-                result = fetch_pubchem_data("CCO")
-                assert result is not None
-                assert result["iupac_name"] == "Ethanol"
+        ), patch("web.wikipedia.generator.enrich_compound_data", side_effect=lambda x: x):
+            result = fetch_pubchem_data("CCO")
+            assert result is not None
+            assert result["iupac_name"] == "Ethanol"
 
     def test_no_results(self):
         with patch("pubchempy.get_compounds", return_value=[]):
@@ -174,10 +174,12 @@ class TestFetchPubchemData:
         mock_compound.cid = 1
         mock_compound.synonyms = [f"synonym_{i}" for i in range(20)]
 
-        with patch("pubchempy.get_compounds", return_value=[mock_compound]):
-            with patch("web.wikipedia.generator.enrich_compound_data", side_effect=lambda x: x):
-                result = fetch_pubchem_data("1")
-                assert len(result["synonyms"]) == 10
+        with (
+            patch("pubchempy.get_compounds", return_value=[mock_compound]),
+            patch("web.wikipedia.generator.enrich_compound_data", side_effect=lambda x: x),
+        ):
+            result = fetch_pubchem_data("1")
+            assert len(result["synonyms"]) == 10
 
     def test_no_synonyms(self):
         mock_compound = MagicMock()
@@ -191,10 +193,12 @@ class TestFetchPubchemData:
         mock_compound.cid = 1
         mock_compound.synonyms = None
 
-        with patch("pubchempy.get_compounds", return_value=[mock_compound]):
-            with patch("web.wikipedia.generator.enrich_compound_data", side_effect=lambda x: x):
-                result = fetch_pubchem_data("1")
-                assert result["synonyms"] == []
+        with (
+            patch("pubchempy.get_compounds", return_value=[mock_compound]),
+            patch("web.wikipedia.generator.enrich_compound_data", side_effect=lambda x: x),
+        ):
+            result = fetch_pubchem_data("1")
+            assert result["synonyms"] == []
 
 
 class TestGenerateDrugboxCode:

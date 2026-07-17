@@ -55,7 +55,7 @@ def is_phenethylamine(mol: Chem.Mol) -> bool:
 
 
 def orient_phenethylamine_sidechain(
-    mol: Chem.Mol, target_angle_deg: float = 90.0, conf_id: int = 0
+    mol: Chem.Mol, target_angle_deg: float = 90.0, conf_id: int = 0,
 ) -> bool:
     """
     Rotate molecule so phenethylamine sidechain points at target angle.
@@ -271,7 +271,7 @@ def calculate_principal_axes(mol: Chem.Mol, conf_id: int = 0) -> tuple[np.ndarra
         [
             [conf.GetAtomPosition(i).x, conf.GetAtomPosition(i).y, conf.GetAtomPosition(i).z]
             for i in range(mol.GetNumAtoms())
-        ]
+        ],
     )
 
     # Center coordinates
@@ -280,8 +280,8 @@ def calculate_principal_axes(mol: Chem.Mol, conf_id: int = 0) -> tuple[np.ndarra
     # Calculate covariance matrix
     cov = np.cov(centered.T)
 
-    # Get eigenvalues and eigenvectors
-    eigenvalues, eigenvectors = np.linalg.eig(cov)
+    # Get eigenvalues and eigenvectors (symmetric — use eigh for real-only output)
+    eigenvalues, eigenvectors = np.linalg.eigh(cov)
 
     # Sort by eigenvalue (descending)
     idx = eigenvalues.argsort()[::-1]
@@ -313,15 +313,15 @@ def find_optimal_2d_rotation(mol: Chem.Mol) -> float:
 
     conf = mol.GetConformer()
     coords = np.array(
-        [[conf.GetAtomPosition(i).x, conf.GetAtomPosition(i).y] for i in range(mol.GetNumAtoms())]
+        [[conf.GetAtomPosition(i).x, conf.GetAtomPosition(i).y] for i in range(mol.GetNumAtoms())],
     )
 
     # Center coordinates
     centered = coords - coords.mean(axis=0)
 
-    # Calculate principal axis via PCA
+    # Calculate principal axis via PCA (symmetric — use eigh for real-only output)
     cov = np.cov(centered.T)
-    eigenvalues, eigenvectors = np.linalg.eig(cov)
+    eigenvalues, eigenvectors = np.linalg.eigh(cov)
 
     # Get angle of principal axis
     principal_axis = eigenvectors[:, eigenvalues.argmax()]
@@ -439,7 +439,6 @@ def optimize_zoom_buffer(
 
     if aspect_ratio > threshold_linear:
         return buffer_linear
-    elif aspect_ratio > threshold_elongated:
+    if aspect_ratio > threshold_elongated:
         return buffer_elongated
-    else:
-        return buffer_compact
+    return buffer_compact

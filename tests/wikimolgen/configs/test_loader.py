@@ -8,8 +8,8 @@ from wikimolgen.configs.loader import (
     ColorConfig,
     Config2D,
     Config3D,
-    ConformerConfig,
     ConfigLoader,
+    ConformerConfig,
     ProteinConfig,
     RenderConfig3D,
 )
@@ -215,7 +215,7 @@ class TestConfigLoaderGet2D:
 
     def test_full_overrides(self):
         cfg = ConfigLoader.get_2d_config(
-            overrides={"scale": 10.0, "bond_length": 20.0, "margin": 0.1}
+            overrides={"scale": 10.0, "bond_length": 20.0, "margin": 0.1},
         )
         assert cfg.scale == 10.0
         assert cfg.bond_length == 20.0
@@ -239,14 +239,14 @@ class TestConfigLoaderGet3D:
 
     def test_render_overrides(self):
         cfg = ConfigLoader.get_3d_config(
-            overrides={"render_stick_radius": 0.5, "render_antialias": 8}
+            overrides={"render_stick_radius": 0.5, "render_antialias": 8},
         )
         assert cfg.render.stick_radius == 0.5
         assert cfg.render.antialias == 8
 
     def test_conformer_overrides(self):
         cfg = ConfigLoader.get_3d_config(
-            overrides={"conformer_max_iterations": 500, "conformer_num_conformers": 10}
+            overrides={"conformer_max_iterations": 500, "conformer_num_conformers": 10},
         )
         assert cfg.conformer.max_iterations == 500
         assert cfg.conformer.num_conformers == 10
@@ -256,7 +256,7 @@ class TestConfigLoaderGet3D:
             overrides={
                 "render_stick_radius": 0.5,
                 "conformer_max_iterations": 500,
-            }
+            },
         )
         assert cfg.render.stick_radius == 0.5
         assert cfg.conformer.max_iterations == 500
@@ -270,7 +270,7 @@ class TestConfigLoaderGet3D:
 
     def test_nested_render_dict(self):
         cfg = ConfigLoader.get_3d_config(
-            overrides={"render": {"stick_radius": 0.5, "antialias": 8}}
+            overrides={"render": {"stick_radius": 0.5, "antialias": 8}},
         )
         assert cfg.render.stick_radius == 0.5
         assert cfg.render.antialias == 8
@@ -278,7 +278,7 @@ class TestConfigLoaderGet3D:
 
     def test_nested_conformer_dict(self):
         cfg = ConfigLoader.get_3d_config(
-            overrides={"conformer": {"max_iterations": 100, "num_conformers": 10}}
+            overrides={"conformer": {"max_iterations": 100, "num_conformers": 10}},
         )
         assert cfg.conformer.max_iterations == 100
         assert cfg.conformer.num_conformers == 10
@@ -289,7 +289,7 @@ class TestConfigLoaderGet3D:
             overrides={
                 "render": {"stick_radius": 0.99},
                 "conformer": {"num_conformers": 5},
-            }
+            },
         )
         assert cfg.render.stick_radius == 0.99
         assert cfg.conformer.num_conformers == 5
@@ -613,7 +613,7 @@ class TestConfigLoaderGetProtein:
                 "protein_height": 600,
                 "show_ligand": True,
                 "protein_ray_trace": True,
-            }
+            },
         )
         assert cfg.protein_width == 800
         assert cfg.protein_height == 600

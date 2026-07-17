@@ -269,8 +269,9 @@ a:hover { text-decoration: underline !important; }
     background-color: #ffffff;
 }
 
+/* Light mode: transparent by default — white-bg class controls it */
 body.wiki-light .compound-preview-container {
-    background-color: #ffffff;
+    background-color: transparent;
 }
 
 .compound-preview-image {
@@ -279,9 +280,20 @@ body.wiki-light .compound-preview-container {
     display: block;
 }
 
-.compound-preview-image[data-type="2D"] { filter: brightness(0.9); }
-body:not(.wiki-light) .compound-preview-image-2d { filter: invert(1); }
-.compound-preview-container.white-bg .compound-preview-image-2d { filter: none; }
+/* 2D: transparent by default. Invert in dark mode when white bg is off. */
+.compound-preview-container-2d {
+    background-color: transparent;
+}
+
+/* White-bg toggle: add white background behind the image */
+.compound-preview-container.white-bg {
+    background-color: #ffffff;
+}
+
+/* Dark mode + no white bg: invert 2D SVG so dark structure is visible */
+body:not(.wiki-light) .compound-preview-container-2d:not(.white-bg) .compound-preview-image {
+    filter: invert(1);
+}
 
 .compound-preview-image[data-type="3D"] {
     width: auto;
@@ -455,6 +467,158 @@ a.commons-upload-btn:hover {
     [data-testid="column"] {
         min-width: 100%;
     }
+}
+
+/* ── Full-width preview ─────────────────────────────────── */
+
+/* Fix: directly target sidebar — no body class needed */
+body:has(#preview-wrap.fw-active) [data-testid="stSidebar"],
+body.fw-active [data-testid="stSidebar"] {
+    display: none !important;
+}
+body:has(#preview-wrap.fw-active) .main > .block-container,
+body.fw-active .main > .block-container {
+    max-width: 100% !important;
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+}
+
+/* Overlay fullscreen button inside preview container */
+#preview-wrap {
+    position: relative;
+    overflow: hidden;
+}
+.fullscreen-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    z-index: 100;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 2px;
+    background: rgba(32, 33, 36, 0.85);
+    color: #e8eaed;
+    cursor: pointer;
+    font-size: 0.85rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.4;
+    transition: opacity 0.15s;
+    pointer-events: auto;
+}
+.fullscreen-btn:hover {
+    opacity: 1;
+    border-color: var(--accent-blue);
+}
+.fullscreen-btn.active {
+    opacity: 1;
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+}
+
+/* ── Preview history ────────────────────────────────────── */
+
+.preview-history {
+    display: flex;
+    gap: 0.35rem;
+    overflow-x: auto;
+    padding: 0.3rem 0;
+    scrollbar-width: thin;
+}
+.preview-history-item {
+    flex: 0 0 72px;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    cursor: pointer;
+    padding: 2px;
+    background: var(--bg-primary);
+    transition: border-color 0.15s;
+    overflow: hidden;
+}
+.preview-history-item:hover {
+    border-color: var(--accent-blue);
+}
+.preview-history-item.active {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 1px var(--accent-blue);
+}
+/* Force thumbnail images to be small */
+.preview-history-item .preview-history-thumb,
+.preview-history-item img {
+    width: 68px !important;
+    height: 48px !important;
+    min-width: 68px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+    object-fit: contain !important;
+    display: block !important;
+    background: #ffffff;
+    margin: 0 auto;
+}
+/* Override the rendering wrapper div (inline height:500px, background:transparent) */
+.preview-history-item > div {
+    height: 48px !important;
+    min-height: unset !important;
+    max-height: 48px !important;
+    overflow: hidden !important;
+    background: #ffffff !important;
+}
+.preview-history-label {
+    font-size: 0.55rem;
+    color: var(--text-secondary);
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 1px 0 0;
+}
+.preview-history-empty {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    padding: 0.5rem 0;
+}
+
+/* ── Compound input feedback ────────────────────────────── */
+
+.compound-feedback {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    padding: 0.15rem 0 0.15rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.compound-feedback .resolved {
+    color: var(--success-border);
+}
+.compound-feedback .error {
+    color: var(--error-border);
+}
+
+/* ── Placeholder ────────────────────────────────────────── */
+
+.compound-preview-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    gap: 0.6rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 2rem;
+}
+.compound-preview-placeholder svg {
+    opacity: 0.35;
+}
+.compound-preview-placeholder .hint {
+    color: var(--text-secondary);
+    font-size: 0.78rem;
 }
 
 

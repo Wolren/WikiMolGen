@@ -59,7 +59,7 @@ class TestEnrichCompoundData:
     )
     @patch("wikimolgen.core.fetch_properties", return_value={"logp": 1.1})
     def test_all_sources_succeed(
-        self, mock_props, mock_wd, mock_exp, mock_infobox, mock_dm, mock_sub
+        self, mock_props, mock_wd, mock_exp, mock_infobox, mock_dm, mock_sub,
     ):
         data = {"cid": 2244, "name": "aspirin", "molecular_formula": "C9H8O4"}
         result = enrich_compound_data(data)
@@ -82,7 +82,7 @@ class TestEnrichCompoundData:
     @patch("wikimolgen.core.query_wikidata", return_value={"wikidata_qid": "Q42"})
     @patch("wikimolgen.core.fetch_properties", side_effect=Exception("PubChem down"))
     def test_partial_failures_graceful(
-        self, mock_props, mock_wd, mock_exp, mock_infobox, mock_dm, mock_sub
+        self, mock_props, mock_wd, mock_exp, mock_infobox, mock_dm, mock_sub,
     ):
         data = {"cid": 2244}
         result = enrich_compound_data(data)
@@ -113,7 +113,7 @@ class TestEnrichPriority:
     @patch("wikimolgen.core.query_wikidata", return_value={"medlineplus": "wd_val"})
     @patch("wikimolgen.core.fetch_properties", return_value={})
     def test_wikidata_overrides_infobox(
-        self, mock_props, mock_wd, mock_exp, mock_infobox, mock_dm, mock_sub
+        self, mock_props, mock_wd, mock_exp, mock_infobox, mock_dm, mock_sub,
     ):
         """Wikidata wins over Wikipedia infobox for overlapping keys."""
         result = enrich_compound_data({"cid": 2244, "molecular_formula": "C9H8O4"})
@@ -143,7 +143,7 @@ class TestEnrichPriority:
     )
     @patch("wikimolgen.core.fetch_properties", return_value={})
     def test_wikidata_wins_all_overlaps(
-        self, mock_props, mock_wd, mock_exp, mock_infobox, mock_dm, mock_sub
+        self, mock_props, mock_wd, mock_exp, mock_infobox, mock_dm, mock_sub,
     ):
         """All Wikidata overlapping keys beat infobox."""
         result = enrich_compound_data({"cid": 2244, "molecular_formula": "C9H8O4"})
@@ -172,7 +172,7 @@ class TestEnrichPriority:
     )
     @patch("wikimolgen.core.fetch_properties", return_value={})
     def test_substances_overrides_infobox(
-        self, mock_props, mock_wd, mock_exp, mock_infobox, mock_dm, mock_sub
+        self, mock_props, mock_wd, mock_exp, mock_infobox, mock_dm, mock_sub,
     ):
         """PubChem Substances beats infobox; infobox fills only missing."""
         result = enrich_compound_data({"cid": 2244})
@@ -185,7 +185,7 @@ class TestEnrichPriority:
     @patch("wikimolgen.core.query_wikidata", return_value={"wikipedia_title": "Aspirin"})
     @patch("wikimolgen.core.fetch_properties", return_value={})
     def test_infobox_fills_missing_keys(
-        self, mock_props, mock_wd, mock_exp, mock_infobox, mock_dm, mock_sub
+        self, mock_props, mock_wd, mock_exp, mock_infobox, mock_dm, mock_sub,
     ):
         """Infobox-only keys (drugs_com) appear when no other source has them."""
         result = enrich_compound_data({"cid": 2244})
@@ -198,7 +198,7 @@ class TestEnrichPriority:
     @patch("wikimolgen.core.query_wikidata", return_value={"wikipedia_title": "Aspirin"})
     @patch("wikimolgen.core.fetch_properties", return_value={"molecular_weight": 999.99})
     def test_base_data_overrides_props(
-        self, mock_props, mock_wd, mock_exp, mock_infobox, mock_dm, mock_sub
+        self, mock_props, mock_wd, mock_exp, mock_infobox, mock_dm, mock_sub,
     ):
         """Base PubChemPy molecular_weight beats Properties."""
         result = enrich_compound_data({"cid": 2244, "molecular_weight": 180.16})
@@ -211,7 +211,7 @@ class TestEnrichPriority:
     @patch("wikimolgen.core.query_wikidata", return_value={"wikipedia_title": "Aspirin"})
     @patch("wikimolgen.core.fetch_properties", return_value={})
     def test_infobox_never_overwrites_existing_keys(
-        self, mock_props, mock_wd, mock_exp, mock_infobox, mock_dm, mock_sub
+        self, mock_props, mock_wd, mock_exp, mock_infobox, mock_dm, mock_sub,
     ):
         """Infobox does not clobber keys already set by any higher-priority source."""
         result = enrich_compound_data({"cid": 2244, "medlineplus": "base_val"})
@@ -282,12 +282,11 @@ class TestFetchCompound:
     def test_name_lookup_failure_then_smiles_failure(self, mock_get_compounds):
         mock_get_compounds.return_value = []
 
-        with patch("rdkit.Chem.MolFromSmiles", return_value=None):
-            with pytest.raises(
-                CompoundFetchError,
-                match="Could not interpret 'xyzzy' as PubChem CID, compound name, or valid SMILES",
-            ):
-                fetch_compound("xyzzy")
+        with patch("rdkit.Chem.MolFromSmiles", return_value=None), pytest.raises(
+            CompoundFetchError,
+            match="Could not interpret 'xyzzy' as PubChem CID, compound name, or valid SMILES",
+        ):
+            fetch_compound("xyzzy")
 
 
 class TestValidateSmiles:

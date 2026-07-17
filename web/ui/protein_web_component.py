@@ -101,15 +101,15 @@ def render_protein_cartoon_settings() -> dict[str, Any]:
 
         with col1:
             config["cartoon_transparency"] = st.slider(
-                "Transparency", 0.0, 1.0, 0.0, 0.1, key="cartoon_transparency"
+                "Transparency", 0.0, 1.0, 0.0, 0.1, key="cartoon_transparency",
             )
             config["cartoon_fancy_helices"] = st.checkbox(
-                "Fancy Helices", value=True, key="cartoon_fancy"
+                "Fancy Helices", value=True, key="cartoon_fancy",
             )
 
         with col2:
             config["cartoon_flat_sheets"] = st.checkbox(
-                "Flat Sheets", value=True, key="cartoon_sheets"
+                "Flat Sheets", value=True, key="cartoon_sheets",
             )
 
         return config
@@ -133,7 +133,7 @@ def render_protein_ligand_settings() -> dict[str, Any]:
 
         with col2:
             config["show_water"] = st.checkbox(
-                "Show Water", value=False, key="show_water", help="Display water molecules"
+                "Show Water", value=False, key="show_water", help="Display water molecules",
             )
 
         if config["show_ligand"]:
@@ -146,22 +146,22 @@ def render_protein_ligand_settings() -> dict[str, Any]:
                 )
             with col2:
                 config["ligand_transparency"] = st.slider(
-                    "Transparency", 0.0, 1.0, 0.0, 0.05, key="ligand_transparency"
+                    "Transparency", 0.0, 1.0, 0.0, 0.05, key="ligand_transparency",
                 )
 
             col1, col2 = st.columns(2)
             with col1:
                 config["ligand_color"] = st.selectbox(
-                    "Coloring", ["element", "single", "chain"], key="ligand_color"
+                    "Coloring", ["element", "single", "chain"], key="ligand_color",
                 )
             with col2:
                 config["stick_radius"] = st.slider(
-                    "Stick Radius", 0.1, 1.0, 0.25, 0.05, key="ligand_stick_radius"
+                    "Stick Radius", 0.1, 1.0, 0.25, 0.05, key="ligand_stick_radius",
                 )
 
             if config["ligand_color"] == "single":
                 config["ligand_single_color"] = st.color_picker(
-                    "Ligand Color", "#FF6B6B", key="ligand_single_color"
+                    "Ligand Color", "#FF6B6B", key="ligand_single_color",
                 )
 
             col1, col2 = st.columns(2)
@@ -206,7 +206,7 @@ def render_protein_ligand_settings() -> dict[str, Any]:
                     )
                 with col2:
                     config["binding_site_color"] = st.color_picker(
-                        "Site Color", "yellow", key="protein_bind_color"
+                        "Site Color", "yellow", key="protein_bind_color",
                     )
 
             config["show_residue_labels"] = st.checkbox(
@@ -217,7 +217,7 @@ def render_protein_ligand_settings() -> dict[str, Any]:
             )
             if config["show_residue_labels"]:
                 config["label_size"] = st.slider(
-                    "Label Size", 8, 30, 14, 1, key="protein_label_size"
+                    "Label Size", 8, 30, 14, 1, key="protein_label_size",
                 )
 
         return config
@@ -260,11 +260,11 @@ def render_protein_canvas_settings() -> dict[str, Any]:
 
         with col2:
             config["ambient"] = st.slider(
-                "Ambient Light", 0.0, 1.0, 0.30, 0.05, key="protein_ambient"
+                "Ambient Light", 0.0, 1.0, 0.30, 0.05, key="protein_ambient",
             )
 
             config["bg_color"] = st.selectbox(
-                "Background", ["transparent", "white", "black", "gray"], key="protein_bg"
+                "Background", ["transparent", "white", "black", "gray"], key="protein_bg",
             )
 
             config["shininess"] = st.slider(
@@ -302,7 +302,7 @@ def render_protein_canvas_settings() -> dict[str, Any]:
 
         if config["autocrop"]:
             config["crop_margin"] = st.slider(
-                "Crop Margin (px)", 0, 50, 10, 1, key="protein_crop_margin"
+                "Crop Margin (px)", 0, 50, 10, 1, key="protein_crop_margin",
             )
 
         return config
@@ -409,7 +409,7 @@ def render_protein_structure(
         st.error(
             "Protein rendering is unavailable: the pymol backend failed to "
             f"import ({type(_PROTEIN_IMPORT_ERROR).__name__}: "
-            f"{_PROTEIN_IMPORT_ERROR}). Install: pip install pymol-open-source"
+            f"{_PROTEIN_IMPORT_ERROR}). Install: pip install pymol-open-source",
         )
         raise RuntimeError("pymol backend not available") from _PROTEIN_IMPORT_ERROR
 
@@ -487,7 +487,7 @@ def render_protein_structure(
                 show_water=ligand_config.get("show_water", False),
             )
 
-        print(f"[ok] Rendered to {output_path}")
+        st.info(f"[ok] Rendered to {output_path}")
         return output_path
 
     except ProteinVisualizationError as e:

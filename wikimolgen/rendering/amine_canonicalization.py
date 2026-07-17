@@ -126,7 +126,7 @@ def _is_amide(nitrogen_atom: Chem.Atom) -> bool:
 
 
 def _compute_rotation_delta(
-    mol: Chem.Mol, amine_n_idx: int, target_angle_deg: float, conf_id: int = 0
+    mol: Chem.Mol, amine_n_idx: int, target_angle_deg: float, conf_id: int = 0,
 ) -> float | None:
     """Compute rotation delta (radians) to orient amine toward target angle."""
     if mol.GetNumConformers() == 0:
@@ -180,7 +180,7 @@ def _rotate_all_atoms(mol: Chem.Mol, delta: float, conf_id: int = 0) -> None:
 
 
 def orient_amine_group(
-    mol: Chem.Mol, amine_n_idx: int, target_angle_deg: float = 90.0, conf_id: int = 0
+    mol: Chem.Mol, amine_n_idx: int, target_angle_deg: float = 90.0, conf_id: int = 0,
 ) -> bool:
     """
     Rotate molecule so amine group points in target direction.
@@ -245,16 +245,15 @@ def get_amine_display_name(amine_type: AmineType, methyl_on_heteroatom: bool = F
     """
     if amine_type == AmineType.PRIMARY:
         return "NH2"
-    elif amine_type == AmineType.SECONDARY:
+    if amine_type == AmineType.SECONDARY:
         return "NMe2" if methyl_on_heteroatom else "NHR"
-    elif amine_type == AmineType.TERTIARY:
+    if amine_type == AmineType.TERTIARY:
         return "NMe3" if methyl_on_heteroatom else "NR3"
-    elif amine_type == AmineType.ANILINE:
+    if amine_type == AmineType.ANILINE:
         return "NH2"
-    elif amine_type == AmineType.AROMATIC:
+    if amine_type == AmineType.AROMATIC:
         return "NMe2" if methyl_on_heteroatom else "NR2"
-    else:
-        return "N"
+    return "N"
 
 
 def find_phenethylamine_amine_index(mol: Chem.Mol) -> int | None:
@@ -316,7 +315,7 @@ class AmineCanonicalizer:
         self.amines = detect_amine_groups(mol)
 
     def auto_orient_amines(
-        self, phenethylamine_target: float = 90.0, general_target: float = 90.0
+        self, phenethylamine_target: float = 90.0, general_target: float = 90.0,
     ) -> dict[int, bool]:
         """
         Automatically orient all amine groups using a consensus rotation.
@@ -377,7 +376,7 @@ class AmineCanonicalizer:
                     "type": amine_type,
                     "display_name": get_amine_display_name(amine_type),
                     "is_phenethylamine": n_idx == find_phenethylamine_amine_index(self.mol),
-                }
+                },
             )
         return info
 
@@ -411,7 +410,7 @@ def orient_all_amines(mol: Chem.Mol, target_angle: float = 90.0) -> int:
     """
     canonicalizer = AmineCanonicalizer(mol)
     results = canonicalizer.auto_orient_amines(
-        phenethylamine_target=target_angle, general_target=target_angle
+        phenethylamine_target=target_angle, general_target=target_angle,
     )
     return sum(1 for success in results.values() if success)
 

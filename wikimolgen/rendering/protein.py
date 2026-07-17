@@ -6,6 +6,8 @@ Protein structure fetching and visualization using Biotite, PyMOL, and NGLView.
 Supports PDB structures, protein-ligand complexes, and publication-quality rendering.
 """
 
+import contextlib
+import logging
 import tempfile
 from dataclasses import dataclass, field
 from enum import Enum
@@ -13,7 +15,9 @@ from pathlib import Path
 
 import biotite.database.rcsb as rcsb
 import biotite.structure.io.pdb as pdb
+from wikimolgen.rendering.utils import autocrop_image, hex_to_rgb
 
+logger = logging.getLogger(__name__)
 
 # Element-color mapping shared across rendering paths
 _ELEMENT_COLORS: tuple[tuple[str, str], ...] = (
@@ -29,22 +33,14 @@ _ELEMENT_COLORS: tuple[tuple[str, str], ...] = (
 )
 
 
-from wikimolgen.rendering.utils import hex_to_rgb
-
-
-from wikimolgen.rendering.utils import autocrop_image
-
-
 class ProteinVisualizationError(Exception):
     """Raised when protein visualization fails."""
 
-    pass
 
 
 class ProteinFetchError(Exception):
     """Raised when protein structure cannot be fetched."""
 
-    pass
 
 
 class SecondaryStructureType(str, Enum):
@@ -204,7 +200,7 @@ class BiotiteStructureProvider:
             return Path(pdb_path), metadata
 
         except Exception as e:
-            raise ProteinFetchError(f"Failed to fetch PDB {pdb_id}: {type(e).__name__}: {e}")
+            raise ProteinFetchError(f"Failed to fetch PDB {pdb_id}: {type(e).__name__}: {e}") from e
 
     @staticmethod
     def _has_hetatm(structure) -> bool:
@@ -282,13 +278,13 @@ class ProteinGenerator:
             return
         self.pdb_path, self.metadata = self.provider.fetch_structure(self.pdb_id)
         self._fetched = True
-        print(f"[OK] Fetched {self.pdb_id}")
-        print(f"  Chains: {', '.join(self.metadata.chains)}")
-        print(f"  Atoms: {self.metadata.num_atoms} | Residues: {self.metadata.num_residues}")
+        logger.info("[OK] Fetched %s", self.pdb_id)
+        logger.info("  Chains: %s", ", ".join(self.metadata.chains))
+        logger.info("  Atoms: %d | Residues: %d", self.metadata.num_atoms, self.metadata.num_residues)
         if self.metadata.has_ligand:
-            print("  Has ligand/heteroatoms")
+            logger.info("  Has ligand/heteroatoms")
         if self.metadata.has_water:
-            print("  Contains water molecules")
+            logger.info("  Contains water molecules")
 
     def generate(
         self,
@@ -325,8 +321,8 @@ class ProteinGenerator:
             import pymol2
         except ImportError:
             raise ProteinVisualizationError(
-                "pymol2 not installed. Install with: pip install pymol-open-source  or  conda install -c conda-forge pymol-open-source"
-            )
+                "pymol2 not installed. Install with: pip install pymol-open-source  or  conda install -c conda-forge pymol-open-source",
+            ) from None
 
         output_path = Path(output)
         self._ensure_fetched()
@@ -373,18 +369,14 @@ class ProteinGenerator:
                     )
                     for i, cid in enumerate(sorted(set(chain_ids))):
                         color = chain_colors[i % len(chain_colors)]
-                        try:
+                        with contextlib.suppress(Exception):
                             cmd.color(color, f"(polymer.protein and chain {cid})", quiet=1)
-                        except Exception:
-                            pass
                 elif color_scheme == ColorScheme.HYDROPHOBICITY:
                     cmd.spectrum("count", "density", selection="polymer.protein")
                 elif color_scheme == ColorScheme.ELEMENT:
                     for elem, color in _ELEMENT_COLORS:
-                        try:
+                        with contextlib.suppress(Exception):
                             cmd.color(color, f"(polymer.protein and elem {elem})", quiet=1)
-                        except Exception:
-                            pass
                 elif color_scheme == ColorScheme.BFACTOR:
                     cmd.spectrum("b", "rainbow", selection="polymer.protein")
                 elif color_scheme == ColorScheme.OCCUPANCY:
@@ -423,10 +415,8 @@ class ProteinGenerator:
                     cmd.show(self.ligand_config.ligand_style, "organic")
                     if self.ligand_config.ligand_color_scheme == "element":
                         for elem, color in _ELEMENT_COLORS:
-                            try:
+                            with contextlib.suppress(Exception):
                                 cmd.color(color, f"(organic and elem {elem})", quiet=1)
-                            except Exception:
-                                pass
                     elif self.ligand_config.ligand_color_scheme == "single":
                         ligand_rgb = hex_to_rgb(self.ligand_config.ligand_single_color or "#FF6B6B")
                         cmd.set_color("custom_ligand", ligand_rgb)
@@ -450,10 +440,8 @@ class ProteinGenerator:
                         )
                         for i, cid in enumerate(sorted(set(lig_chain_ids))):
                             c = lig_chain_colors[i % len(lig_chain_colors)]
-                            try:
+                            with contextlib.suppress(Exception):
                                 cmd.color(c, f"(organic and chain {cid})", quiet=1)
-                            except Exception:
-                                pass
                     cmd.set("stick_transparency", self.ligand_config.ligand_transparency, "organic")
                     cmd.set("stick_radius", self.ligand_config.stick_radius, "organic")
                     cmd.set("stick_quality", self.ligand_config.stick_quality)
@@ -501,11 +489,11 @@ class ProteinGenerator:
                     make_transparent=(bg == "transparent"),
                 )
 
-            print(f"[OK] Rendered: {output_path}")
+            logger.info("[OK] Rendered: %s", output_path)
             return output_path
 
         except Exception as e:
-            raise ProteinVisualizationError(f"Failed to render: {type(e).__name__}: {e}")
+            raise ProteinVisualizationError(f"Failed to render: {type(e).__name__}: {e}") from e
 
     def configure_cartoon(self, **kwargs) -> None:
         """Update cartoon rendering configuration.
@@ -567,5 +555,5 @@ def get_optimal_dynorphin_kor_view() -> dict:
 
 
 if __name__ == "__main__":
-    print("WikiMolGen Protein Visualization Module")
-    print("=" * 50)
+    logger.info("WikiMolGen Protein Visualization Module")
+    logger.info("=" * 50)
