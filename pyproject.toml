@@ -132,3 +132,5 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "tests/*.py" = ["ARG001", "T20", "F841"]
+# RDKit's rdMolDescriptors is mixedCase by library convention
+"wikimolgen/validation.py" = ["N816"]

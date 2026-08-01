@@ -102,6 +102,49 @@ class TestEnrichCompoundData:
         result = enrich_compound_data(data)
         assert result == {"cid": 2244, "name": "test"}
 
+    @patch("wikimolgen.core.fetch_substances", return_value={})
+    @patch("wikimolgen.core.fetch_dailymed_id", return_value=None)
+    @patch("wikimolgen.core.fetch_infobox", return_value={})
+    @patch("wikimolgen.core.fetch_experimental_data", return_value={})
+    @patch("wikimolgen.core.query_wikidata", return_value={"cas_number": "not-a-cas"})
+    @patch("wikimolgen.core.fetch_properties", return_value={})
+    def test_bad_source_data_flagged_in_data_quality(
+        self, mock_props, mock_wd, mock_exp, mock_infobox, mock_dm, mock_sub,
+    ):
+        """Identifier format violations and RDKit consistency mismatches are
+        collected under data_quality instead of silently flowing to output."""
+        data = {
+            "cid": 2244,
+            "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+            "molecular_formula": "WRONG",
+            "molecular_weight": 999.0,
+        }
+        result = enrich_compound_data(data)
+        assert "data_quality" in result
+        fields = {issue["field"] for issue in result["data_quality"]["issues"]}
+        assert "cas_number" in fields
+        assert "molecular_formula" in fields
+        assert "molecular_weight" in fields
+
+    @patch("wikimolgen.core.fetch_substances", return_value={})
+    @patch("wikimolgen.core.fetch_dailymed_id", return_value=None)
+    @patch("wikimolgen.core.fetch_infobox", return_value={})
+    @patch("wikimolgen.core.fetch_experimental_data", return_value={})
+    @patch("wikimolgen.core.query_wikidata", return_value={})
+    @patch("wikimolgen.core.fetch_properties", return_value={})
+    def test_clean_data_has_no_quality_flag(
+        self, mock_props, mock_wd, mock_exp, mock_infobox, mock_dm, mock_sub,
+    ):
+        data = {
+            "cid": 2244,
+            "smiles": "CC(=O)Oc1ccccc1C(=O)O",
+            "molecular_formula": "C9H8O4",
+            "molecular_weight": 180.16,
+            "inchikey": "BSFYZMDRMSNJQR-UHFFFAOYSA-N",
+        }
+        result = enrich_compound_data(data)
+        assert "data_quality" not in result
+
 
 class TestEnrichPriority:
     """Priority: base > props > experimental > wikidata > substances > infobox"""

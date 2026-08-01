@@ -80,13 +80,13 @@ def fetch_properties(pubchem_cid: int | str, timeout: float = 10) -> dict[str, A
     requests.RequestException
         On network or API errors.
     """
-    from wikimolgen.sources._client import make_headers, requests
+    from wikimolgen.sources._client import get_with_retry, make_headers
 
     cid = str(int(pubchem_cid))
     prop_list = ",".join(_PROPERTY_NAMES)
     url = f"{PUG_BASE}/cid/{cid}/property/{prop_list}/JSON"
 
-    resp = requests.get(
+    resp = get_with_retry(
         url,
         headers=make_headers(description="chemical property fetcher"),
         timeout=timeout,

@@ -73,14 +73,14 @@ def query_wikidata(pubchem_cid: int | str, timeout: float = 30) -> dict[str, Any
     requests.RequestException
         On network or API errors.
     """
-    from wikimolgen.sources._client import make_headers, requests
+    from wikimolgen.sources._client import get_with_retry, make_headers
 
     cid = int(pubchem_cid)
     if cid < 1 or cid > 999_999_999:
         raise ValueError(f"PubChem CID out of valid range (1-999999999): {cid}")
     query = _WIKIDATA_QUERY.replace("{cid}", str(cid))
 
-    resp = requests.get(
+    resp = get_with_retry(
         SPARQL_ENDPOINT,
         params={"format": "json", "query": query},
         headers=make_headers(),

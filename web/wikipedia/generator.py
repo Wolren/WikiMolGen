@@ -142,6 +142,14 @@ def fetch_pubchem_data(identifier: str) -> dict[str, Any] | None:
             "inchikey": compound.inchikey,
             "cid": compound.cid,
             "synonyms": compound.synonyms[:10] if compound.synonyms else [],
+            # The actual record that PubChem matched - drives the
+            # resolved-name feedback in the sidebar so the user can verify
+            # the intended compound was found (name search is a token search).
+            "title": (
+                compound.iupac_name
+                or (compound.synonyms[0] if compound.synonyms else None)
+                or identifier
+            ),
         }
 
         return enrich_compound_data(data)

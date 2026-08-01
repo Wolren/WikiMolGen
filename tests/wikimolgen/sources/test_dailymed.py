@@ -36,3 +36,18 @@ class TestFetchDailymedId:
             mock_get.side_effect = Exception("DailyMed API error")
             with pytest.raises(Exception, match="DailyMed API error"):
                 fetch_dailymed_id("R16CO5Y76E")
+
+    def test_invalid_unii_skipped_without_request(self):
+        with patch("requests.get") as mock_get:
+            result = fetch_dailymed_id("NOT-A-UNII!!!")
+            assert result is None
+            mock_get.assert_not_called()
+
+    def test_malformed_setid_rejected(self):
+        with patch("requests.get") as mock_get:
+            mock_get.return_value.status_code = 200
+            mock_get.return_value.json.return_value = {
+                "data": [{"setid": "not-a-uuid"}],
+            }
+            result = fetch_dailymed_id("R16CO5Y76E")
+            assert result is None

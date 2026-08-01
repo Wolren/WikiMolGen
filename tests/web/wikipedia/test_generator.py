@@ -128,6 +128,26 @@ class TestFetchPubchemData:
             assert result is not None
             assert result["iupac_name"] == "Caffeine"
             assert result["cid"] == 2519
+            assert result["title"] == "Caffeine"
+
+    def test_title_falls_back_to_identifier(self):
+        mock_compound = MagicMock()
+        mock_compound.iupac_name = None
+        mock_compound.molecular_formula = "C8H10N4O2"
+        mock_compound.molecular_weight = 194.19
+        mock_compound.smiles = "CN1C=NC2=C1C(=O)N(C(=O)N2C)C"
+        mock_compound.canonical_smiles = "CN1C=NC2=C1C(=O)N(C(=O)N2C)C"
+        mock_compound.inchi = "InChI=1S/C8H10N4O2/c1-..."
+        mock_compound.inchikey = "RYYVLZVUVIJVGH-UHFFFAOYSA-N"
+        mock_compound.cid = 2519
+        mock_compound.synonyms = None
+
+        with (
+            patch("pubchempy.get_compounds", return_value=[mock_compound]),
+            patch("web.wikipedia.generator.enrich_compound_data", side_effect=lambda x: x),
+        ):
+            result = fetch_pubchem_data("2244")
+            assert result["title"] == "2244"
 
     def test_smiles_lookup_fallback(self):
         mock_compound = MagicMock()

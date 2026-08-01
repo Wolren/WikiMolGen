@@ -6,6 +6,7 @@ for the WikiMolGen Streamlit UI.
 """
 
 import logging
+import re
 from typing import Any
 
 import streamlit as st
@@ -18,6 +19,11 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 
+# Named colors and hex codes accepted in atom color schemes.  PyMOL named
+# colors like ``gray50`` are alphanumeric; hex is ``#RGB`` / ``#RRGGBB``.
+_COLOR_VALUE_RE = re.compile(r"^(?:#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?|[A-Za-z0-9]+)$")
+
+
 def _validate_atom_scheme(data: dict) -> str | None:
     """Validate uploaded scheme data, return error message or ``None`` on success."""
     ec = data.get("element_colors")
@@ -27,8 +33,8 @@ def _validate_atom_scheme(data: dict) -> str | None:
         for k, v in ec.items():
             if not isinstance(k, str) or not k.isascii() or len(k) > 2:
                 return f"Invalid element symbol: {k!r}"
-            if not isinstance(v, str):
-                return f"Color for element {k!r} must be a string"
+            if not isinstance(v, str) or not _COLOR_VALUE_RE.match(v.strip()):
+                return f"Invalid color for element {k!r}: {v!r} (use #RGB/#RRGGBB or a named color)"
     name = data.get("name")
     if name is not None and (not isinstance(name, str) or len(name) > 100):
         return "Scheme name must be a string under 100 characters"

@@ -95,3 +95,29 @@ class TestFetchInfobox:
             assert result["atc_prefix"] == "N02"
             assert result["drug_class"] == "NSAID"
             assert "legal_status" not in result
+
+    def test_redirect_flagged_in_log(self, caplog):
+        """action=parse follows redirects; a resolved title differing from the
+        requested page must be flagged so the caller knows the infobox data
+        belongs to a different article."""
+        with patch("requests.get") as mock_get, caplog.at_level("WARNING"):
+            mock_get.return_value.status_code = 200
+            mock_get.return_value.json.return_value = {
+                "parse": {
+                    "title": "Acetylsalicylic acid",
+                    "redirects": [{"from": "Aspirin", "to": "Acetylsalicylic acid"}],
+                    "wikitext": {"*": _ASPIRIN_WIKITEXT},
+                },
+            }
+            result = fetch_infobox("Aspirin")
+            assert result["atc_prefix"] == "N02"
+            assert any("redirect" in r.message for r in caplog.records)
+
+    def test_no_redirect_no_warning(self, caplog):
+        with patch("requests.get") as mock_get, caplog.at_level("WARNING"):
+            mock_get.return_value.status_code = 200
+            mock_get.return_value.json.return_value = {
+                "parse": {"title": "Aspirin", "wikitext": {"*": _ASPIRIN_WIKITEXT}},
+            }
+            fetch_infobox("Aspirin")
+            assert not any("redirect" in r.message for r in caplog.records)
