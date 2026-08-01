@@ -180,7 +180,7 @@ class MoleculeGenerator3D:
             if len(result) == 0:
                 raise ValueError("Failed to generate 3D conformers")
 
-    def _optimize_geometry(self, force_field: ForceFieldType, max_iterations: int = 200) -> None:
+    def _optimize_geometry(self, force_field: ForceFieldType, max_iterations: int | None = None) -> None:
         """
         Optimize molecular geometry using force field.
 
@@ -406,7 +406,7 @@ class MoleculeGenerator3D:
         self,
         optimize: bool = True,
         force_field: ForceFieldType = "MMFF94",
-        max_iterations: int = 200,
+        max_iterations: int | None = None,
         render: bool = False,
         output_base: str | None = None,
     ) -> tuple[Path, Path | None]:
@@ -420,7 +420,8 @@ class MoleculeGenerator3D:
         force_field : ForceFieldType, optional
             "MMFF94" or "UFF" (default: "MMFF94")
         max_iterations : int, optional
-            Maximum optimization iterations (default: 200)
+            Maximum optimization iterations. None (default) uses
+            config.conformer.max_iterations.
         render : bool, optional
             Render with PyMOL (default: False)
         output_base : str, optional
@@ -431,15 +432,15 @@ class MoleculeGenerator3D:
         tuple[Path, Optional[Path]]
             (sdf_path, png_path) - PNG path is None if render=False
         """
+        self._ensure_fetched()
+        assert self.mol is not None
+
         if output_base is None:
             output_base = (
                 self.compound_name.replace(" ", "_")
-                if self.compound_name != "custom_smiles"
+                if self.compound_name not in ("", "custom_smiles")
                 else "molecule_3d"
             )
-
-        self._ensure_fetched()
-        assert self.mol is not None
 
         # Generate conformer
         self._embed_conformer()

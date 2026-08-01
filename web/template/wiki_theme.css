@@ -204,10 +204,15 @@ a:hover { text-decoration: underline !important; }
     background-color: var(--accent-blue) !important;
     color: #ffffff !important;
     font-weight: 600;
+    transition: filter 0.15s ease;
 }
 
 .stButton > button:hover {
     filter: brightness(1.1);
+}
+
+.stButton > button:active {
+    filter: brightness(0.95);
 }
 
 /* ── Expanders ──────────────────────────────────────────── */
@@ -221,6 +226,11 @@ a:hover { text-decoration: underline !important; }
     border: 1px solid var(--border-color);
     border-radius: 2px;
     padding: 0.3rem 0.6rem !important;
+    transition: border-color 0.12s ease;
+}
+
+.streamlit-expanderHeader:hover {
+    border-color: var(--accent-blue);
 }
 
 .streamlit-expanderContent {
@@ -229,6 +239,18 @@ a:hover { text-decoration: underline !important; }
     border-radius: 0 0 2px 2px;
     padding: 0.5rem 0.8rem !important;
     background-color: var(--bg-primary);
+    animation: expandIn 0.2s ease-out;
+}
+
+@keyframes expandIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* ── Tabs ───────────────────────────────────────────────── */
@@ -244,6 +266,11 @@ a:hover { text-decoration: underline !important; }
     color: var(--text-secondary);
     padding: 0.4rem 0.8rem;
     border-bottom: 2px solid transparent;
+    transition: color 0.12s ease, border-color 0.12s ease;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    color: var(--text-primary);
 }
 
 .stTabs [data-baseweb="tab"][aria-selected="true"] {
@@ -293,7 +320,7 @@ a:hover { text-decoration: underline !important; }
 
 /* Dark: transparent bg, invert 2D SVGs */
 .compound-preview-container:not(.white-bg) {
-    background-color: transparent;
+    background-color: #101418;
 }
 .compound-preview-container-2d:not(.white-bg) .compound-preview-image,
 .preview-history-item img.compound-preview-image[data-type="2D"] {
@@ -465,6 +492,7 @@ a.commons-upload-btn {
     font-size: 0.9rem;
     border-radius: 2px;
     text-decoration: none !important;
+    transition: filter 0.12s ease;
 }
 a.commons-upload-btn:hover {
     filter: brightness(1.1);
@@ -625,7 +653,7 @@ h3#recent-previews {
     padding: 0.5rem 0;
 }
 
-/* ── Compound input feedback ────────────────────────────── */
+/* ── Compound input feedback ─────────────────────────────── */
 
 .compound-feedback {
     font-size: 0.78rem;
@@ -662,6 +690,31 @@ h3#recent-previews {
 .compound-preview-placeholder .hint {
     color: var(--text-secondary);
     font-size: 0.78rem;
+}
+
+/* ── Reduced motion ──────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
 }
 
 

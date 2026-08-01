@@ -103,7 +103,7 @@ def render_color_palette() -> None:
     """Render color palette with Predefined/Upload/Save tabs (like presets)."""
     st.markdown(header("palette", "Colors"), unsafe_allow_html=True)
 
-    _sb3("Background", ["white", "black", "gray", "transparent"], key="bg_color",
+    _sb3("Background", ["white", "black", "gray"], key="bg_color",
          help="Set the background color behind the molecule render")
 
     tab1, tab2, tab3 = st.tabs(["Predefined", "Upload", "Save"])

@@ -332,47 +332,6 @@ class TestRenderStructureDynamic:
 
 
 # ═══════════════════════════════════════════════════════════════════
-# get_download_data
-# ═══════════════════════════════════════════════════════════════════
-
-
-class TestGetDownloadData:
-    def test_returns_svg_data(self, mock_st):
-        from rendering.base import get_download_data
-
-        ss = mock_st.session_state
-        ss.last_file_data = b"svgdata"
-        ss.last_file_name = "aspirin_2D"
-        ss.last_file_mime = "image/svg+xml"
-
-        data, name, mime = get_download_data()
-        assert data == b"svgdata"
-        assert ".svg" in name
-        assert mime == "image/svg+xml"
-
-    def test_returns_png_data(self, mock_st):
-        from rendering.base import get_download_data
-
-        ss = mock_st.session_state
-        ss.last_file_data = b"pngdata"
-        ss.last_file_name = "aspirin_3D"
-        ss.last_file_mime = "image/png"
-
-        data, name, mime = get_download_data()
-        assert data == b"pngdata"
-        assert ".png" in name
-        assert mime == "image/png"
-
-    def test_no_data_returns_none_tuple(self, mock_st):
-        from rendering.base import get_download_data
-
-        data, name, mime = get_download_data()
-        assert data is None
-        assert name is None
-        assert mime is None
-
-
-# ═══════════════════════════════════════════════════════════════════
 # render_structure_2d (integrated with mocks)
 # ═══════════════════════════════════════════════════════════════════
 

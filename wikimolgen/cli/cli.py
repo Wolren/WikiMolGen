@@ -336,6 +336,9 @@ def run_3d(args: argparse.Namespace) -> None:
             "height": args.height,
             "bg_color": args.bg_color,
             "crop_margin": args.crop_margin,
+            "x_rotation": args.x_rotation,
+            "y_rotation": args.y_rotation,
+            "z_rotation": args.z_rotation,
         }
         if args.ray_trace:
             overrides["ray_trace_mode"] = 1

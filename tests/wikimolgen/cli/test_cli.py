@@ -1,8 +1,12 @@
 """Tests for wikimolgen/cli/cli.py — parser creation and run functions."""
 
+import os
+import tempfile
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from wikimolgen.cli.cli import create_parser, run_2d, run_3d
+from wikimolgen.rendering.wikimol3d import MoleculeGenerator3D
 
 
 class TestCreateParser:
@@ -237,6 +241,36 @@ class TestRun3D:
 
     @patch("wikimolgen.cli.cli.ConfigLoader")
     @patch("wikimolgen.cli.cli.MoleculeGenerator3D")
+    def test_with_rotations(self, MockGen3D, MockConfigLoader):
+        """--x/--y/--z-rotation must reach the ConfigLoader overrides dict."""
+        mock_config = MagicMock()
+        MockConfigLoader.get_3d_config.return_value = mock_config
+        mock_gen = MagicMock()
+        MockGen3D.return_value = mock_gen
+
+        parser = create_parser()
+        args = parser.parse_args(
+            [
+                "3d",
+                "--compound",
+                "aspirin",
+                "--x-rotation",
+                "10",
+                "--y-rotation",
+                "45",
+                "--z-rotation",
+                "90",
+            ],
+        )
+        run_3d(args)
+
+        overrides = MockConfigLoader.get_3d_config.call_args[1]["overrides"]
+        assert overrides["x_rotation"] == 10.0
+        assert overrides["y_rotation"] == 45.0
+        assert overrides["z_rotation"] == 90.0
+
+    @patch("wikimolgen.cli.cli.ConfigLoader")
+    @patch("wikimolgen.cli.cli.MoleculeGenerator3D")
     def test_with_template(self, MockGen3D, MockConfigLoader):
         mock_gen = MagicMock()
         MockGen3D.return_value = mock_gen
@@ -254,3 +288,30 @@ class TestRun3D:
         run_3d(args)
 
         mock_gen.load_settings_template.assert_called_once_with("high_quality_3d")
+
+
+class TestGenerate3DOutputBase:
+    @patch("wikimolgen.rendering.wikimol3d.fetch_compound")
+    def test_default_output_base_after_fetch(self, mock_fetch):
+        """generate() must compute the default output_base AFTER fetching,
+        so compound_name is populated (regression: wrote a literal '.sdf')."""
+        mock_fetch.return_value = ("CC", "custom_smiles")
+
+        cwd = os.getcwd()
+        try:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                os.chdir(tmpdir)
+                try:
+                    gen = MoleculeGenerator3D("CC")
+                    sdf_path, png_path = gen.generate(optimize=False, render=False)
+                    assert png_path is None
+                    assert sdf_path != Path(".sdf")
+                    assert sdf_path.name != ".sdf"
+                    assert sdf_path.name == "molecule_3d.sdf"
+                    assert sdf_path.exists()
+                finally:
+                    # Restore cwd BEFORE TemporaryDirectory cleanup runs,
+                    # otherwise Windows cannot rmdir the process's cwd.
+                    os.chdir(cwd)
+        finally:
+            os.chdir(cwd)

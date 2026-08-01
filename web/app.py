@@ -8,7 +8,6 @@ Usage:
     streamlit run web/app.py
 """
 
-import json
 import sys
 import tempfile
 import time
@@ -355,16 +354,33 @@ def _debounce_pass() -> bool:
 def _add_to_preview_history() -> None:
     """Store the latest rendered preview in history (max 8 entries)."""
     history: list = st.session_state.get("preview_history", [])
+    compound = st.session_state.get("last_compound", "")
+    stype = st.session_state.get("structure_type", "")
+    if not compound:
+        return
+
     entry = {
         "image_html": st.session_state.get("last_image_html", ""),
-        "compound": st.session_state.get("last_compound", ""),
-        "structure_type": st.session_state.get("structure_type", ""),
+        "compound": compound,
+        "structure_type": stype,
         "timestamp": time.time(),
     }
-    # Don't duplicate identical compound+type
-    if history and history[0].get("compound") == entry["compound"] \
-       and history[0].get("structure_type") == entry["structure_type"]:
-        return
+
+    # If compound+type already exists in history, move it to the front
+    for i, item in enumerate(history):
+        if item.get("compound") == compound and item.get("structure_type") == stype:
+            if i == 0:
+                # Already at front, just update the image
+                history[0]["image_html"] = entry["image_html"]
+                history[0]["timestamp"] = entry["timestamp"]
+            else:
+                # Remove from current position and insert at front
+                history.pop(i)
+                history.insert(0, entry)
+            st.session_state.preview_history = history[:10]
+            return
+
+    # New entry, add to front
     history.insert(0, entry)
     st.session_state.preview_history = history[:10]
 
@@ -378,8 +394,11 @@ def _render_history_strip() -> None:
     active_compound = st.session_state.get("last_compound", "")
     active_type = st.session_state.get("structure_type", "")
 
+    # On page reload with hist_compound param, main() restores state before widgets render
+    # so the text input picks up the correct compound name on first render.
+
     items_html = ""
-    for i, item in enumerate(history):
+    for item in history:
         img_html = item.get("image_html", "")
         compound = item.get("compound", "")
         stype = item.get("structure_type", "")
@@ -391,53 +410,34 @@ def _render_history_strip() -> None:
             'class="compound-preview-image preview-history-thumb"',
         )
         items_html += (
-            f'<div class="preview-history-item{active_cls}" onclick="navigate_history({i})">'
+            f'<div class="preview-history-item{active_cls}"'
+            f' data-compound="{compound}" data-type="{stype}">'
             f'{img_html}'
             f'<div class="preview-history-label">{compound[:18]}</div>'
             f"</div>"
         )
 
-    # JavaScript to restore a history item via session state
-    history_json = json.dumps([
-        {
-            "image_html": h.get("image_html", ""),
-            "compound": h.get("compound", ""),
-            "structure_type": h.get("structure_type", ""),
-        }
-        for h in history
-    ]).replace("</", "<\\/")
     st.markdown(
         f"""
         <div class="preview-history">
             {items_html}
         </div>
         <script>
-        const historyData = {history_json};
-        function navigate_history(idx) {{
-            if (idx < historyData.length) {{
+        document.querySelectorAll(".preview-history-item").forEach(function(el) {{
+            el.addEventListener("click", function(e) {{
+                // Normal click: navigate to compound
+                const compound = this.getAttribute("data-compound");
+                const stype = this.getAttribute("data-type");
                 const params = new URLSearchParams(window.location.search);
-                params.set('hist_idx', idx);
-                window.history.replaceState({{}}, '', '?' + params.toString());
-                window.location.reload();
-            }}
-        }}
+                params.set("hist_compound", compound);
+                params.set("hist_type", stype);
+                window.location.search = params.toString();
+            }});
+        }});
         </script>
         """,
         unsafe_allow_html=True,
     )
-
-    # Check if a history item was selected via query param
-    hist_idx = st.query_params.get("hist_idx")
-    if hist_idx is not None and hist_idx.isdigit():
-        idx = int(hist_idx)
-        if 0 <= idx < len(history):
-            item = history[idx]
-            st.session_state.last_image_html = item["image_html"]
-            st.session_state.last_compound = item["compound"]
-            st.session_state.structure_type = item["structure_type"]
-            st.session_state.rendered_structure = True
-            st.query_params.clear()  # Don't re-trigger
-            st.rerun()
 
 
 def _render_small_molecule_content(compound: str, structure_type: str) -> None:
@@ -527,7 +527,7 @@ def _render_small_molecule_content(compound: str, structure_type: str) -> None:
                     "</div>",
                     unsafe_allow_html=True,
                 )
-    elif not has_pending_config and st.session_state.get("last_image_html"):
+    elif st.session_state.get("last_image_html"):
         container_class = _make_preview_container_class(
             st.session_state.get("structure_type", structure_type)
         )
@@ -596,18 +596,6 @@ def _render_protein_content(protein_inputs: tuple | None) -> None:
 
     # Show protein preview if available
     if st.session_state.get("last_protein_image_html"):
-        col1, col2, col3, col4 = st.columns(4)
-        if st.session_state.get("last_protein_metadata"):
-            metadata = st.session_state.last_protein_metadata
-            with col1:
-                st.metric("Chains", len(metadata.get("chains", [])))
-            with col2:
-                st.metric("Atoms", metadata.get("num_atoms", 0))
-            with col3:
-                st.metric("Residues", metadata.get("num_residues", 0))
-            with col4:
-                st.metric("Has Ligand", "✓" if metadata.get("has_ligand", False) else "✗")
-
         st.markdown(
             f'<div class="protein-preview-container">{st.session_state.last_protein_image_html}</div>',
             unsafe_allow_html=True,
@@ -736,6 +724,18 @@ def main() -> None:
     auto_param = st.query_params.get("auto")
     if auto_param is not None:
         st.session_state.auto_generate = auto_param.lower() == "true"
+
+    # Handle history navigation from URL params (before widgets render)
+    hist_compound = st.query_params.get("hist_compound", "")
+    if hist_compound:
+        st.session_state.last_compound = hist_compound
+        st.session_state.structure_type = st.query_params.get("hist_type", "3D")
+        st.session_state.mode_selector = st.session_state.structure_type
+        st.session_state._last_active_mode = st.session_state.structure_type
+        st.session_state.rendered_structure = False
+        st.session_state.config_changed = True
+        st.session_state._last_render_ts = 0.0
+        st.query_params.clear()
 
     # Configure page
     configure_page()

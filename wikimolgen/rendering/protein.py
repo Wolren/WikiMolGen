@@ -82,7 +82,7 @@ class CartoonRenderConfig:
     sheet_color: str = "#FFCC00"
     loop_color: str = "#99AABB"
 
-    ray_trace_mode: int = 1
+    ray_trace_mode: int = 0
     antialias: int = 2
     ambient: float = 0.30
     specular: int = 0
@@ -446,6 +446,28 @@ class ProteinGenerator:
                     cmd.set("stick_radius", self.ligand_config.stick_radius, "organic")
                     cmd.set("stick_quality", self.ligand_config.stick_quality)
                     cmd.set("stick_ball_ratio", self.ligand_config.stick_ball_ratio)
+
+                # Show binding-site residues around the ligand
+                if show_ligand and self.ligand_config.show_bindsites:
+                    with contextlib.suppress(Exception):
+                        cmd.select(
+                            "bindsite",
+                            f"byres (organic within {self.ligand_config.binding_site_radius} of polymer.protein)",
+                        )
+                    with contextlib.suppress(Exception):
+                        cmd.show("sticks", "bindsite")
+                    with contextlib.suppress(Exception):
+                        if self.ligand_config.binding_site_color.startswith("#"):
+                            bindsite_rgb = hex_to_rgb(self.ligand_config.binding_site_color)
+                            cmd.set_color("custom_bindsite", bindsite_rgb)
+                            cmd.color("custom_bindsite", "bindsite")
+                        else:
+                            cmd.color(self.ligand_config.binding_site_color, "bindsite")
+                    if self.ligand_config.show_residue_labels:
+                        with contextlib.suppress(Exception):
+                            cmd.label("bindsite and name CA", "resn + str(resi)")
+                        with contextlib.suppress(Exception):
+                            cmd.set("label_size", self.ligand_config.label_size)
 
                 # Show water
                 if show_water and self.metadata.has_water:
