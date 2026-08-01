@@ -71,6 +71,7 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
         and compound not in st.session_state.pubchem_cache
     ):
         st.session_state.last_compound_fetched = compound
+        st.session_state.last_search_query = compound
         with st.spinner("Fetching compound data from PubChem..."):
             try:
                 data = fetch_pubchem_data(compound)

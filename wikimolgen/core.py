@@ -19,6 +19,11 @@ from wikimolgen.sources import (
     fetch_substances,
     query_wikidata,
 )
+from wikimolgen.validation import (
+    check_compound_consistency,
+    check_numeric_ranges,
+    validate_identifier_fields,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -220,6 +225,33 @@ def enrich_compound_data(compound_data: dict | None) -> dict | None:
                 result["dailymed_id"] = dailymed_id
         except Exception as e:
             logger.warning("DailyMed lookup failed for UNII %s: %s", unii, e)
+
+    # Phase 5: Source data quality gate - identifier format validation,
+    # numeric sanity ranges, and cross-source consistency against the
+    # RDKit ground truth computed from the molecule itself.
+    violations: list[tuple[str, str]] = []
+    try:
+        violations += validate_identifier_fields(result)
+        violations += check_numeric_ranges(result)
+        smiles = result.get("smiles")
+        if smiles:
+            mol = Chem.MolFromSmiles(str(smiles))
+            if mol is not None:
+                violations += check_compound_consistency(str(smiles), result, mol)
+    except Exception as e:
+        logger.warning("Data quality validation failed for CID %s: %s", cid, e)
+
+    if violations:
+        logger.warning(
+            "Data quality issues for CID %s (%s):",
+            cid,
+            result.get("iupac_name") or result.get("cid"),
+        )
+        for field, message in violations:
+            logger.warning("  [%s] %s", field, message)
+        result["data_quality"] = {
+            "issues": [{"field": field, "message": message} for field, message in violations],
+        }
 
     return result
 

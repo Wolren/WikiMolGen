@@ -47,12 +47,12 @@ def fetch_substances(
     requests.RequestException
         On network or API errors.
     """
-    from wikimolgen.sources._client import make_headers, requests
+    from wikimolgen.sources._client import get_with_retry, make_headers
 
     cid = str(int(pubchem_cid))
     url = f"{PUG_BASE}/cid/{cid}/sids/JSON"
 
-    resp = requests.get(
+    resp = get_with_retry(
         url,
         headers=make_headers(description="substance fetcher"),
         timeout=timeout,

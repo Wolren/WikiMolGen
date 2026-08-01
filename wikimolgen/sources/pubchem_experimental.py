@@ -253,12 +253,12 @@ def fetch_experimental_data(
     requests.RequestException
         On network or API errors.
     """
-    from wikimolgen.sources._client import make_headers, requests
+    from wikimolgen.sources._client import get_with_retry, make_headers
 
     cid = str(int(pubchem_cid))
     url = f"{PUGVIEW_BASE}/{cid}/JSON"
 
-    resp = requests.get(
+    resp = get_with_retry(
         url,
         headers=make_headers(description="experimental data fetcher"),
         timeout=timeout,

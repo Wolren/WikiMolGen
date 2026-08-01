@@ -45,10 +45,17 @@ def fetch_dailymed_id(
     requests.RequestException
         On network or API errors.
     """
-    from wikimolgen.sources._client import make_headers, requests
+    from wikimolgen.sources._client import get_with_retry, make_headers
+    from wikimolgen.validation import is_valid_setid, is_valid_unii
+
+    # Format-check the UNII before hitting the API: a malformed code is a
+    # caller error, not a lookup miss.
+    if not is_valid_unii(unii):
+        logger.warning("Skipping DailyMed lookup: invalid UNII format %r", unii)
+        return None
 
     url = f"{DAILYMED_BASE}/spls.json?unii={unii}"
-    resp = requests.get(
+    resp = get_with_retry(
         url,
         headers=make_headers(description="dailymed fetcher"),
         timeout=timeout,
@@ -58,6 +65,9 @@ def fetch_dailymed_id(
     spls = data.get("data", [])
     if spls and isinstance(spls, list):
         setid = spls[0].get("setid")
-        if setid:
+        # The search is scoped server-side by UNII, but the returned setid
+        # must still be a well-formed UUID before we propagate it.
+        if setid and is_valid_setid(str(setid)):
             return str(setid)
+        logger.warning("DailyMed returned malformed setid for UNII %s: %r", unii, setid)
     return None

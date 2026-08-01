@@ -84,7 +84,7 @@ _DRUGINFOX_FIELDS: dict[str, str] = {
 
 def _fetch_wikitext(page_title: str, timeout: float = 10) -> str | None:
     """Fetch raw wikitext of a Wikipedia page via the MediaWiki API."""
-    from wikimolgen.sources._client import make_headers, requests
+    from wikimolgen.sources._client import get_with_retry, make_headers
 
     params = {
         "action": "parse",
@@ -92,7 +92,7 @@ def _fetch_wikitext(page_title: str, timeout: float = 10) -> str | None:
         "prop": "wikitext",
         "format": "json",
     }
-    resp = requests.get(
+    resp = get_with_retry(
         API_ENDPOINT,
         params=params,
         headers=make_headers(description="infobox parser"),
@@ -104,6 +104,19 @@ def _fetch_wikitext(page_title: str, timeout: float = 10) -> str | None:
     parse = data.get("parse")
     if parse is None:
         return None
+    # Redirect awareness: action=parse follows redirects server-side, so the
+    # resolved title can differ from the requested page. The infobox data
+    # then belongs to a DIFFERENT article - flag it loudly.
+    requested = page_title
+    resolved = parse.get("title")
+    redirects = parse.get("redirects")
+    if redirects or (resolved and resolved != requested):
+        logger.warning(
+            "Wikipedia redirect: requested %r resolved to %r (redirects=%s)",
+            requested,
+            resolved,
+            redirects,
+        )
     wikitext = parse.get("wikitext", {}).get("*")
     return wikitext
 

@@ -99,7 +99,7 @@ class TestFetchProperties:
                 fetch_properties(999999)
 
     def test_http_429(self):
-        with patch("requests.get") as mock_get:
+        with patch("requests.get") as mock_get, patch("time.sleep"):
             resp = mock_get.return_value
             resp.status_code = 429
             resp.raise_for_status.side_effect = RequestException("429 Too Many Requests")
@@ -107,13 +107,13 @@ class TestFetchProperties:
                 fetch_properties(2244)
 
     def test_timeout(self):
-        with patch("requests.get") as mock_get:
+        with patch("requests.get") as mock_get, patch("time.sleep"):
             mock_get.side_effect = Timeout("Connection timed out")
             with pytest.raises(Timeout, match="Connection timed out"):
                 fetch_properties(2244, timeout=1)
 
     def test_network_error(self):
-        with patch("requests.get") as mock_get:
+        with patch("requests.get") as mock_get, patch("time.sleep"):
             mock_get.side_effect = RequestException("Network is unreachable")
             with pytest.raises(RequestException, match="Network is unreachable"):
                 fetch_properties(2244)
