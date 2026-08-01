@@ -64,21 +64,27 @@ def _sync_number_input(key: str) -> None:
 
 
 def _s(dim: str, *a: Any, **kw: Any) -> Any:
-    return st.slider(*a, on_change=lambda: save_config_to_session(dim), **kw)
+    kw.pop("on_change", None)
+    call_kw = {**kw, "on_change": lambda: save_config_to_session(dim)}
+    return st.slider(*a, **call_kw)
 
 
 def _cb(dim: str, *a: Any, **kw: Any) -> Any:
     kw.pop("on_change", None)
-    return st.checkbox(*a, on_change=lambda: save_config_to_session(dim), **kw)
+    call_kw = {**kw, "on_change": lambda: save_config_to_session(dim)}
+    return st.checkbox(*a, **call_kw)
 
 
 def _ni(dim: str, *a: Any, **kw: Any) -> Any:
-    return st.number_input(*a, on_change=lambda: save_config_to_session(dim), **kw)
+    kw.pop("on_change", None)
+    call_kw = {**kw, "on_change": lambda: save_config_to_session(dim)}
+    return st.number_input(*a, **call_kw)
 
 
 def _sb(dim: str, *a: Any, **kw: Any) -> Any:
     kw.pop("on_change", None)
-    return st.selectbox(*a, on_change=lambda: save_config_to_session(dim), **kw)
+    call_kw = {**kw, "on_change": lambda: save_config_to_session(dim)}
+    return st.selectbox(*a, **call_kw)
 
 
 # Shorter aliases for common dimensions

@@ -88,6 +88,15 @@ packages = [
     "web.wikipedia",
 ]
 
+[tool.setuptools.package-data]
+web = ["template/*.css"]
+wikimolgen = [
+    "rendering/*.csv",
+    "examples/examples/2D/*.svg",
+    "examples/examples/3D/*",
+    "examples/examples/batch/*",
+]
+
 [tool.black]
 line-length = 100
 target-version = ["py312"]

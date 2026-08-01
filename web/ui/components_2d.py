@@ -50,7 +50,7 @@ def render_2d_settings() -> None:
             )
 
             if auto_orient_amines:
-                _s2("Amine target angle (\u00b0)", 0, 360, 0, 5, key="amine_target_angle",
+                _s2("Amine target angle (\u00b0)", 0, 360, 90, 5, key="amine_target_angle",
                     help="Target rotation angle for amine groups")
                 _s2("Phenethylamine angle (\u00b0)", 0, 360, 90, 5, key="phenethylamine_target",
                     help="Target rotation angle for phenethylamine sidechains")

@@ -10,13 +10,21 @@ import logging
 from datetime import datetime
 
 import streamlit as st
-from template.utils import MAX_UPLOAD_SIZE, apply_preset_to_session, export_current_as_preset
+from template.utils import (
+    apply_preset_to_session,
+    export_current_as_preset,
+    load_uploaded_preset,
+    validate_preset,
+)
 from ui.icons import header
-from ui.components_shared import save_config_to_session
+from ui.components_shared import (
+    save_config_to_session,
+    _sync_slider_to_config,
+    _sync_input_to_slider,
+    _sync_number_input,
+)
 
 from wikimolgen.configs import Config3D, ConfigLoader
-
-from ui.components_shared import save_config_to_session, _sync_slider_to_config, _sync_input_to_slider, _sync_number_input
 
 logger = logging.getLogger(__name__)
 
@@ -28,11 +36,14 @@ logger = logging.getLogger(__name__)
 
 def render_compound_input() -> str:
     """Render compound input field with resolved-name feedback."""
+    # Key changes on history click so widget picks up the restored value
+    hist_revision = st.session_state.get("_hist_revision", 0)
     raw = st.text_input(
         "Name/CID/SMILES",
-        "",
+        value=st.session_state.get("last_compound", ""),
         max_chars=1000,
         placeholder="e.g. aspirin, 2244, CC(=O)Oc1ccccc1C(=O)O",
+        key=f"compound_input_{hist_revision}",
     )
     compound = "".join(c for c in raw if c.isprintable()).strip()
 
@@ -126,29 +137,31 @@ def render_preset_manager() -> None:
             )
 
             if uploaded:
-                try:
-                    raw = uploaded.read()
-                    if len(raw) > MAX_UPLOAD_SIZE:
-                        st.error(f"File too large ({len(raw) / 1024:.0f} KB). Maximum: 1 MB.")
+                result = load_uploaded_preset(uploaded)
+                if result is None:
+                    st.stop()
+                name = result["name"]
+                data = result["data"]
+
+                if "type" not in data:
+                    errors = validate_preset(data)
+                    if errors:
+                        st.error(f"Failed to load preset: {'; '.join(errors)}")
                         st.stop()
-                    data = json.loads(raw)
-                    name = data.get("name", f"Custom_{datetime.now().strftime('%H%M%S')}")
 
-                    if "custom_presets" not in st.session_state:
-                        st.session_state.custom_presets = {}
-                    st.session_state.custom_presets[name] = data
+                if "custom_presets" not in st.session_state:
+                    st.session_state.custom_presets = {}
+                st.session_state.custom_presets[name] = data
 
-                    apply_preset_to_session(data.get("settings", data))
+                apply_preset_to_session(data.get("settings", data))
 
-                    st.session_state._pending_preset_name = name
-                    st.session_state._upload_counter = (
-                        st.session_state.get("_upload_counter", 0) + 1
-                    )
-                    save_config_to_session()
-                    st.toast(f"Loaded: {name}", icon=":material/tune:")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Error: {e}")
+                st.session_state._pending_preset_name = name
+                st.session_state._upload_counter = (
+                    st.session_state.get("_upload_counter", 0) + 1
+                )
+                save_config_to_session()
+                st.toast(f"Loaded: {name}", icon=":material/tune:")
+                st.rerun()
 
         with tab3:
             st.markdown("**Save Current Settings as Preset**")
@@ -206,6 +219,7 @@ def _on_mode_change() -> None:
     st.session_state._last_active_mode = new_mode
     st.query_params["mode"] = new_mode
     st.session_state.config_changed = True
+    st.session_state._last_render_ts = 0.0  # Bypass debounce so re-render fires immediately
 
 
 def render_mode_selector() -> str:

@@ -40,7 +40,7 @@ def get_2d_defaults() -> dict[str, Any]:
         "highlight_bonds": "",
         "highlight_color": "#FF8888",
         "auto_orient_amines": True,
-        "amine_target_angle": 0,
+        "amine_target_angle": 90,
         "phenethylamine_target": 90,
     }
 

@@ -200,18 +200,3 @@ def render_structure_dynamic(compound: str, structure_type: str) -> str | None:
     elif structure_type == "3D":
         return render_structure_3d(compound, structure_type)
     return None
-
-
-def get_download_data() -> tuple[bytes | None, str | None, str | None]:
-    file_data = st.session_state.get("last_file_data")
-    file_name = st.session_state.get("last_file_name")
-    file_mime = st.session_state.get("last_file_mime")
-
-    if file_data and file_name:
-        if "svg" in str(file_mime):
-            file_name = f"{file_name}.svg"
-        elif "png" in str(file_mime):
-            file_name = f"{file_name}.png"
-        return file_data, file_name, file_mime
-
-    return None, None, None

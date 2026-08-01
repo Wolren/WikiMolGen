@@ -58,16 +58,31 @@ def render_wikipedia_metadata_section(compound: str, structure_type: str) -> Non
 
     # Derive license template and wp param from picker
 
-    # Fetch data when compound changes
-    if compound != st.session_state.get("last_compound_fetched"):
+    # Per-compound session cache: a compound fetched once this session is never
+    # refetched, even across mode switches.
+    if "pubchem_cache" not in st.session_state:
+        st.session_state.pubchem_cache = {}
+
+    # Only fetch when this compound is the one actually rendered (render_structure_dynamic
+    # sets last_compound after a render completes; rendering already has its own debounce)
+    # and it has not been fetched yet this session.
+    if (
+        compound == st.session_state.get("last_compound")
+        and compound not in st.session_state.pubchem_cache
+    ):
         st.session_state.last_compound_fetched = compound
         with st.spinner("Fetching compound data from PubChem..."):
             try:
                 data = fetch_pubchem_data(compound)
+                st.session_state.pubchem_cache[compound] = data
                 st.session_state.pubchem_data = data
             except Exception as e:
+                st.session_state.pubchem_cache[compound] = None
                 st.session_state.pubchem_data = None
                 st.error(f"Error fetching PubChem data: {e}")
+    elif compound in st.session_state.pubchem_cache:
+        # Serve from session cache so the tabs below still read the right data.
+        st.session_state.pubchem_data = st.session_state.pubchem_cache[compound]
 
     pubchem_data = st.session_state.get("pubchem_data")
     if not pubchem_data:
