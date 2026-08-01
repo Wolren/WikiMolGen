@@ -75,6 +75,7 @@ def autocrop_image(
     bottom = min(height, bottom + margin)
 
     img = img.crop((left, top, right, bottom))
+    img = ImageEnhance.Contrast(img).enhance(contrast_factor)
     img.save(image_path)
 
 
