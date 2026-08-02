@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 208 60" width="208" height="60">
+  <defs>
+    <linearGradient id="brand" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5dade2"/>
+      <stop offset="100%" stop-color="#aed6f1"/>
+    </linearGradient>
+  </defs>
+
+  <text x="52%" y="46%" font-family="'Segoe UI',Arial,Helvetica,sans-serif"
+        font-size="72" font-weight="700" text-anchor="middle"
+        dominant-baseline="central" fill="url(#brand)" letter-spacing="8">WMG</text>
+</svg>

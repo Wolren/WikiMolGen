@@ -1,18 +1,19 @@
 <div align="center">
 
-![WikiMolGen logo](media/wikimolgen_logo.svg)
+![WikiMolGen logo](media/wikimolgen_logo.svg#gh-light-mode-only)
+![WikiMolGen logo](media/wikimolgen_logo_dark.svg#gh-dark-mode-only)
 
 Generate 2D and 3D molecular visualizations from PubChem or SMILES. RDKit and PyMOL based tool.
 
 Originally developed for generating molecular structure images for Wikipedia, WikiMolGen provides a Python API, CLI, and a web interface for creating 2D SVG diagrams and 3D rendered structures.
 
-[![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue)](LICENSE)
-[![Last commit](https://img.shields.io/github/last-commit/Wolren/WikiMolGen)](https://github.com/Wolren/WikiMolGen/commits)
-[![Issues](https://img.shields.io/github/issues/Wolren/WikiMolGen)](https://github.com/Wolren/WikiMolGen/issues)
-[![Repo size](https://img.shields.io/github/repo-size/Wolren/WikiMolGen)](https://github.com/Wolren/WikiMolGen)
-[![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python)](pyproject.toml)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.50+-red?logo=streamlit)](web/app.py)
-[![RDKit](https://img.shields.io/badge/RDKit-2025.3-green)](requirements.txt)
+[![License][license-badge]][license-url]
+[![Last commit][commit-badge]][commits-url]
+[![Issues][issues-badge]][issues-url]
+[![Repo size][size-badge]][repo-url]
+[![Python][python-badge]][pyproject-url]
+[![Streamlit][streamlit-badge]][app-url]
+[![RDKit][rdkit-badge]][requirements-url]
 
 </div>
 
@@ -162,6 +163,29 @@ wikimolgen protein 8F7W --output 8f7w_protein.png --ray-trace
 - Compound metadata and PDB fetching need network access to the PubChem and RCSB APIs.
 - Predefined templates cover common Wikipedia use cases; unusual molecule classes may need a custom JSON template.
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Security
+
+See [SECURITY.md](SECURITY.md).
+
 ## License
 
 PolyForm Noncommercial 1.0.0 - noncommercial use only. Commercial use and monetary gain require explicit written approval from the author. See [LICENSE](LICENSE).
+
+[license-badge]: https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue
+[license-url]: LICENSE
+[commit-badge]: https://img.shields.io/github/last-commit/Wolren/WikiMolGen
+[commits-url]: https://github.com/Wolren/WikiMolGen/commits
+[issues-badge]: https://img.shields.io/github/issues/Wolren/WikiMolGen
+[issues-url]: https://github.com/Wolren/WikiMolGen/issues
+[size-badge]: https://img.shields.io/github/repo-size/Wolren/WikiMolGen
+[repo-url]: https://github.com/Wolren/WikiMolGen
+[python-badge]: https://img.shields.io/badge/Python-3.10+-blue?logo=python
+[pyproject-url]: pyproject.toml
+[streamlit-badge]: https://img.shields.io/badge/Streamlit-1.50+-red?logo=streamlit
+[app-url]: web/app.py
+[rdkit-badge]: https://img.shields.io/badge/RDKit-2025.3-green
+[requirements-url]: requirements.txt
