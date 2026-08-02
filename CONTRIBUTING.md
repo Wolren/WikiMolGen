@@ -18,4 +18,8 @@ Thanks for considering contributing to WikiMolGen!
 ## Code style
 
 - Follow the existing code conventions
-- Keep changes focused — one PR per feature/fix
+- Keep changes focused - one PR per feature/fix
+
+## Licensing
+
+By submitting a contribution, you agree that your contribution is licensed under the project license (PolyForm Noncommercial 1.0.0). Commercial use and monetary gain require explicit written approval from the author.

@@ -6,7 +6,7 @@ Generate 2D and 3D molecular visualizations from PubChem or SMILES. RDKit and Py
 
 Originally developed for generating molecular structure images for Wikipedia, WikiMolGen provides a Python API, CLI, and a web interface for creating 2D SVG diagrams and 3D rendered structures.
 
-[![License](https://img.shields.io/github/license/Wolren/WikiMolGen)](LICENSE)
+[![License](https://img.shields.io/badge/License-PolyForm%20Noncommercial-blue)](LICENSE)
 [![Last commit](https://img.shields.io/github/last-commit/Wolren/WikiMolGen)](https://github.com/Wolren/WikiMolGen/commits)
 [![Issues](https://img.shields.io/github/issues/Wolren/WikiMolGen)](https://github.com/Wolren/WikiMolGen/issues)
 [![Repo size](https://img.shields.io/github/repo-size/Wolren/WikiMolGen)](https://github.com/Wolren/WikiMolGen)
@@ -164,4 +164,4 @@ wikimolgen protein 8F7W --output 8f7w_protein.png --ray-trace
 
 ## License
 
-GNU General Public License v3.0 or later - see [LICENSE](LICENSE)
+PolyForm Noncommercial 1.0.0 - noncommercial use only. Commercial use and monetary gain require explicit written approval from the author. See [LICENSE](LICENSE).
