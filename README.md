@@ -1,3 +1,13 @@
+<div align="center">
+
+![WikiMolGen logo](media/wikimolgen_logo.svg)
+
+# WikiMolGen
+
+Generate 2D and 3D molecular visualizations from PubChem or SMILES. RDKit and PyMOL based tool.
+
+Originally developed for generating molecular structure images for Wikipedia, WikiMolGen provides a Python API, CLI, and a web interface for creating 2D SVG diagrams and 3D rendered structures.
+
 [![License](https://img.shields.io/github/license/Wolren/WikiMolGen)](LICENSE)
 [![Last commit](https://img.shields.io/github/last-commit/Wolren/WikiMolGen)](https://github.com/Wolren/WikiMolGen/commits)
 [![Issues](https://img.shields.io/github/issues/Wolren/WikiMolGen)](https://github.com/Wolren/WikiMolGen/issues)
@@ -6,14 +16,12 @@
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.50+-red?logo=streamlit)](web/app.py)
 [![RDKit](https://img.shields.io/badge/RDKit-2025.3-green)](requirements.txt)
 
-# WikiMolGen
+</div>
 
-Generate 2D and 3D molecular visualizations from PubChem or SMILES — RDKit and PyMOL-based tool
-
-Originally developed for generating molecular structure images for Wikipedia, WikiMolGen provides a Python API, CLI, and a web interface for creating 2D SVG diagrams and 3D rendered structures.
+## How it works
 
 ```mermaid
-flowchart LR
+graph LR
     A["Compound Name"] --> D{Parse}
     B["PubChem CID"] --> D
     C["SMILES"] --> D
@@ -29,6 +37,29 @@ flowchart LR
     style I stroke:#4caf50
     style L stroke:#4caf50
 ```
+
+## Features
+
+- Three generation modes: 2D SVG, 3D ray-traced PNG, and protein cartoons from PDB
+- Input as PubChem CID, compound name, or SMILES string
+- Wikipedia tooling: Infobox drug/chembox templates, compound metadata, and Commons upload links
+- Template and color-template systems for reproducible styling
+- Python API, CLI, and Streamlit web interface
+
+## Examples
+
+| 2D structure (SVG) | 3D render (ray-traced PNG) |
+|---|---|
+| ![Aspirin 2D](media/example_2d_aspirin.svg) | ![Aspirin 3D](media/example_3d_aspirin.png) |
+
+Both images were generated with the tool itself:
+
+```
+wikimolgen 2d --compound aspirin --output aspirin.svg
+wikimolgen 3d --compound aspirin --render --output-base aspirin
+```
+
+---
 
 ## Installation
 
@@ -65,11 +96,13 @@ The Streamlit-based web interface provides an interactive dashboard for generati
 streamlit run web/app.py
 ```
 
+---
+
 ## CLI
 
 The `wikimolgen` command provides three subcommands: `2d`, `3d`, and `protein`.
 
-### `2d` — generate 2D SVG structures
+### `2d`: generate 2D SVG structures
 
 ```
 wikimolgen 2d --compound aspirin --output aspirin.svg
@@ -88,7 +121,7 @@ wikimolgen 2d --compound 24802108 --template wikipedia_2d --color-template cpk_s
 | `--use-bw` | Use black and white atom palette |
 | `--transparent-bg` | Use transparent background |
 
-### `3d` — generate 3D structures with optional PyMOL rendering
+### `3d`: generate 3D structures with optional PyMOL rendering
 
 ```
 wikimolgen 3d --compound 5284583 --render --output-base lsd
@@ -108,7 +141,7 @@ wikimolgen 3d --compound aspirin --render --x-rotation 10 --y-rotation 200 --z-r
 | `--width` / `--height` | Render size in pixels (default: 1800 × 1600) |
 | `--x-rotation` / `--y-rotation` / `--z-rotation` | Rotation around each axis in degrees |
 
-### `protein` — render protein structures from PDB
+### `protein`: render protein structures from PDB
 
 ```
 wikimolgen protein 8F7W --output 8f7w_protein.png --ray-trace
@@ -125,5 +158,23 @@ wikimolgen protein 8F7W --output 8f7w_protein.png --ray-trace
 | `--width` / `--height` | Image size in pixels (default: 1920 × 1080) |
 | `--ray-trace` | Enable ray tracing |
 
+## Tech stack
+
+| Tool | Purpose |
+| --- | --- |
+| RDKit 2025.3+ | 2D structure generation, SMILES parsing, conformers |
+| PyMOL (optional) | 3D rendering and ray tracing |
+| Streamlit 1.50+ | Web interface |
+| PubChemPy | PubChem compound lookup |
+| Biotite | Protein structure parsing (PDB) |
+| NumPy / Pillow / Requests | numerics, image post-processing, HTTP |
+
+## Limitations
+
+- 3D rendering requires the optional PyMOL dependency (`pymol-open-source`); the 2D path works without it.
+- Compound metadata and PDB fetching need network access to the PubChem and RCSB APIs.
+- Predefined templates cover common Wikipedia use cases; unusual molecule classes may need a custom JSON template.
+
 ## License
+
 GNU General Public License v3.0 or later - see [LICENSE](LICENSE)
