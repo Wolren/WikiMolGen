@@ -10,7 +10,7 @@ Originally developed for generating molecular structure images for Wikipedia, Wi
 [![License][license-badge]][license-url]
 [![Last commit][commit-badge]][commits-url]
 [![Issues][issues-badge]][issues-url]
-[![Repo size][size-badge]][repo-url]
+[![Code size][size-badge]][repo-url]
 [![Python][python-badge]][pyproject-url]
 [![Streamlit][streamlit-badge]][app-url]
 [![RDKit][rdkit-badge]][requirements-url]
@@ -181,7 +181,7 @@ PolyForm Noncommercial 1.0.0 - noncommercial use only. Commercial use and moneta
 [commits-url]: https://github.com/Wolren/WikiMolGen/commits
 [issues-badge]: https://img.shields.io/github/issues/Wolren/WikiMolGen
 [issues-url]: https://github.com/Wolren/WikiMolGen/issues
-[size-badge]: https://img.shields.io/github/repo-size/Wolren/WikiMolGen
+[size-badge]: https://img.shields.io/github/languages/code-size/Wolren/WikiMolGen
 [repo-url]: https://github.com/Wolren/WikiMolGen
 [python-badge]: https://img.shields.io/badge/Python-3.10+-blue?logo=python
 [pyproject-url]: pyproject.toml
