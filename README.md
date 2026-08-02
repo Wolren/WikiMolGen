@@ -14,6 +14,7 @@ Originally developed for generating molecular structure images for Wikipedia, Wi
 [![Python][python-badge]][pyproject-url]
 [![Streamlit][streamlit-badge]][app-url]
 [![RDKit][rdkit-badge]][requirements-url]
+[![PyMOL][pymol-badge]][pyproject-url]
 
 </div>
 
@@ -189,3 +190,4 @@ PolyForm Noncommercial 1.0.0 - noncommercial use only. Commercial use and moneta
 [app-url]: web/app.py
 [rdkit-badge]: https://img.shields.io/badge/RDKit-2025.3-green
 [requirements-url]: requirements.txt
+[pymol-badge]: https://img.shields.io/badge/PyMOL-3.2.0+-4DB6AC
