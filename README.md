@@ -2,8 +2,6 @@
 
 ![WikiMolGen logo](media/wikimolgen_logo.svg)
 
-# WikiMolGen
-
 Generate 2D and 3D molecular visualizations from PubChem or SMILES. RDKit and PyMOL based tool.
 
 Originally developed for generating molecular structure images for Wikipedia, WikiMolGen provides a Python API, CLI, and a web interface for creating 2D SVG diagrams and 3D rendered structures.
@@ -17,6 +15,19 @@ Originally developed for generating molecular structure images for Wikipedia, Wi
 [![RDKit](https://img.shields.io/badge/RDKit-2025.3-green)](requirements.txt)
 
 </div>
+
+## Examples
+
+| 2D structure (SVG) | 3D render (ray-traced PNG) |
+|---|---|
+| ![Aspirin 2D](media/example_2d_aspirin.svg) | ![Aspirin 3D](media/example_3d_aspirin.png) |
+
+Both images were generated with the tool itself:
+
+```
+wikimolgen 2d --compound aspirin --output aspirin.svg
+wikimolgen 3d --compound aspirin --render --output-base aspirin
+```
 
 ## How it works
 
@@ -46,19 +57,6 @@ graph LR
 - Template and color-template systems for reproducible styling
 - Python API, CLI, and Streamlit web interface
 
-## Examples
-
-| 2D structure (SVG) | 3D render (ray-traced PNG) |
-|---|---|
-| ![Aspirin 2D](media/example_2d_aspirin.svg) | ![Aspirin 3D](media/example_3d_aspirin.png) |
-
-Both images were generated with the tool itself:
-
-```
-wikimolgen 2d --compound aspirin --output aspirin.svg
-wikimolgen 3d --compound aspirin --render --output-base aspirin
-```
-
 ---
 
 ## Installation
@@ -76,13 +74,6 @@ conda install -c conda-forge rdkit pubchempy pymol-open-source
 pip install wikimolgen
 ```
 
-### Development
-```
-git clone https://github.com/Wolren/wikimolgen.git
-cd wikimolgen
-pip install -e ".[dev]"
-```
-
 ## Web Interface
 
 The Streamlit-based web interface provides an interactive dashboard for generating molecular visualizations with full control over rendering, styling, and Wikipedia metadata.
@@ -91,10 +82,6 @@ The Streamlit-based web interface provides an interactive dashboard for generati
 - **3 modes**: 2D (SVG), 3D (ray-traced PNG), and Protein (PDB cartoon)
 - **Rich controls**: atom coloring, lighting, transparency, ray tracing, conformer generation
 - **Wikipedia tooling**: auto-generated Infobox drug/chembox templates, metadata, and Commons upload links
-
-```
-streamlit run web/app.py
-```
 
 ---
 
