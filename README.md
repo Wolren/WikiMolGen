@@ -15,6 +15,7 @@ Originally developed for generating molecular structure images for Wikipedia, Wi
 [![Streamlit][streamlit-badge]][app-url]
 [![RDKit][rdkit-badge]][requirements-url]
 [![PyMOL][pymol-badge]][pyproject-url]
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20Wolren-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/wolren)
 
 </div>
 
