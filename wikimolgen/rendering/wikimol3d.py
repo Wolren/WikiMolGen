@@ -178,6 +178,11 @@ class MoleculeGenerator3D:
         """
         if not self.config.conformer.use_pubchem_3d:
             return False
+        if self.config.conformer.num_conformers > 1:
+            # One downloaded pose cannot satisfy a multi-conformer request.
+            # That request is only reachable when the user asks for it,
+            # because num_conformers defaults to 1.
+            return False
 
         target = self._pubchem_identifier()
         if target is None:

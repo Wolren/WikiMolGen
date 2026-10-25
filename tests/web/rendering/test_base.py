@@ -85,7 +85,7 @@ def session_with_3d_defaults(mock_st):
     ss.stick_ball = True
     ss.stick_color = "gray50"
     ss.zoom_buffer = 2.0
-    ss.num_conformers = 50
+    ss.num_conformers = 1
     ss.max_iterations = 500
     ss.prune_rms_thresh = 0.1
     ss.use_random_coords = False

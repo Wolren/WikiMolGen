@@ -166,7 +166,10 @@ class TestConformerConfig:
         assert cfg.enforce_chirality is True
         assert cfg.use_small_ring_torsions is True
         assert cfg.max_iterations == 500
-        assert cfg.num_conformers == 50
+        # 1 keeps the PubChem conformer path reachable by default; higher
+        # values fall back to local ETKDG embedding.
+        assert cfg.num_conformers == 1
+        assert cfg.use_pubchem_3d is True
         assert cfg.prune_rms_thresh == 0.1
         assert cfg.use_exp_torsion_prefs is True
 
@@ -261,7 +264,7 @@ class TestConfigLoaderGet3D:
         assert cfg.render.stick_radius == 0.5
         assert cfg.conformer.max_iterations == 500
         assert cfg.render.antialias == 4
-        assert cfg.conformer.num_conformers == 50
+        assert cfg.conformer.num_conformers == 1
 
     def test_partial_render_overrides(self):
         cfg = ConfigLoader.get_3d_config(overrides={"render_stick_radius": 0.1})

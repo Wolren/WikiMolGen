@@ -260,8 +260,10 @@ def render_conformer_settings() -> None:
 
         col1, col2 = st.columns(2)
         with col1:
-            _ni3("Conformers", 1, 200, 50, key="num_conformers",
-                 help="Number of 3D conformers to generate")
+            _ni3("Conformers", 1, 200, 1, key="num_conformers",
+                 help="Number of 3D conformers to generate. Above 1 the "
+                      "PubChem conformer is skipped and ETKDG runs locally, "
+                      "which is much slower for large molecules.")
             _s3("Max Iterations", 100, 5000, 500, 100, key="max_iterations",
                 help="Force field optimization iterations")
             _s3("Prune RMSD", 0.05, 2.0, 0.1, 0.05, key="prune_rms_thresh",

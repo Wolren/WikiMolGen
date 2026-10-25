@@ -20,7 +20,7 @@ class ConformerConfig:
     enforce_chirality: bool = True
     use_small_ring_torsions: bool = True
     max_iterations: int = 500
-    num_conformers: int = 50
+    num_conformers: int = 1
     prune_rms_thresh: float = 0.1
     use_exp_torsion_prefs: bool = True
     use_pubchem_3d: bool = True

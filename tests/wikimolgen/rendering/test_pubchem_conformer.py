@@ -128,14 +128,21 @@ class TestLoadPubchemConformer:
         with patch("wikimolgen.rendering.wikimol3d.fetch_3d_sdf", return_value="not a molblock"):
             assert gen._load_pubchem_conformer() is False
 
-    def test_multi_conformer_request_still_uses_download(self):
-        """num_conformers defaults to 50, yet every consumer reads conf 0.
+    def test_multi_conformer_request_falls_back_to_embedding(self):
+        """One downloaded pose cannot serve a multi-conformer request.
 
-        MolToMolFile writes a single record and both orientation helpers
-        default to conf_id=0, so the shortcut must not be gated on it.
+        The Conformers control must still work, so asking for more than
+        one pose routes to local ETKDG instead of silently returning one.
         """
         gen = _gen("2244")
-        gen.config.conformer.num_conformers = 50
+        gen.config.conformer.num_conformers = 10
+        with patch("wikimolgen.rendering.wikimol3d.fetch_3d_sdf") as mock_sdf:
+            assert gen._load_pubchem_conformer() is False
+            mock_sdf.assert_not_called()
+
+    def test_single_conformer_default_uses_download(self):
+        gen = _gen("2244")
+        assert gen.config.conformer.num_conformers == 1
         with patch("wikimolgen.rendering.wikimol3d.fetch_3d_sdf", return_value=SDF_3D):
             assert gen._load_pubchem_conformer() is True
 

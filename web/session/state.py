@@ -85,7 +85,7 @@ def get_3d_defaults() -> dict[str, Any]:
         "x_rotation": 0.0,
         "y_rotation": 0.0,
         "z_rotation": 0.0,
-        "num_conformers": 50,
+        "num_conformers": 1,
         "max_iterations": 500,
         "prune_rms_thresh": 0.1,
         "use_random_coords": False,
