@@ -23,6 +23,7 @@ class ConformerConfig:
     num_conformers: int = 50
     prune_rms_thresh: float = 0.1
     use_exp_torsion_prefs: bool = True
+    use_pubchem_3d: bool = True
 
 
 @dataclass

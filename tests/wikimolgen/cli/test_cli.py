@@ -292,7 +292,8 @@ class TestRun3D:
 
 class TestGenerate3DOutputBase:
     @patch("wikimolgen.rendering.wikimol3d.fetch_compound")
-    def test_default_output_base_after_fetch(self, mock_fetch):
+    @patch("wikimolgen.rendering.wikimol3d.fetch_3d_sdf", return_value=None)
+    def test_default_output_base_after_fetch(self, mock_sdf, mock_fetch):
         """generate() must compute the default output_base AFTER fetching,
         so compound_name is populated (regression: wrote a literal '.sdf')."""
         mock_fetch.return_value = ("CC", "custom_smiles")

@@ -17,6 +17,7 @@ from rdkit.Chem import AllChem, rdForceFieldHelpers, rdmolfiles
 from wikimolgen.configs import ColorConfig, Config3D, ConfigLoader
 from wikimolgen.configs.loader import DEFAULT_ELEMENT_COLORS
 from wikimolgen.core import fetch_compound, validate_smiles
+from wikimolgen.sources.pubchem_sdf import fetch_3d_sdf
 from wikimolgen.rendering.optimization import (
     find_optimal_3d_orientation,
     optimize_zoom_buffer,
@@ -154,6 +155,58 @@ class MoleculeGenerator3D:
         self.mol = validate_smiles(self.smiles)
         self.mol = Chem.AddHs(self.mol)
         self._fetched = True
+
+    def _pubchem_identifier(self) -> tuple[str, str] | None:
+        """Return ``(identifier, namespace)`` for the PubChem 3D lookup.
+
+        ``fetch_compound`` already classified the input and records
+        ``custom_smiles`` for a raw SMILES, which has no 3D record keyed
+        by name.  Before that fetch there is nothing to look up.
+        """
+        stripped = self.identifier.strip()
+        if stripped.isdigit():
+            return stripped, "cid"
+        if not self._fetched or self.compound_name == "custom_smiles":
+            return None
+        return stripped, "name"
+
+    def _load_pubchem_conformer(self) -> bool:
+        """Replace ``self.mol`` with PubChem's 3D record.
+
+        Returns ``True`` when a 3D SDF was fetched and parsed, ``False``
+        when the caller must embed locally instead.
+        """
+        if not self.config.conformer.use_pubchem_3d:
+            return False
+
+        target = self._pubchem_identifier()
+        if target is None:
+            return False
+
+        sdf = fetch_3d_sdf(target[0], namespace=target[1])
+        if sdf is None:
+            return False
+        mol = Chem.MolFromMolBlock(sdf, removeHs=False)
+        if mol is None or mol.GetNumConformers() == 0:
+            return False
+        if not mol.GetConformer().Is3D():
+            # PubChem writes flat records for some entries; those are 2D
+            # depictions and render as a plane, so they are no better.
+            return False
+        self._keep_smiles_consistent(mol)
+        self.mol = mol
+        return True
+
+    def _keep_smiles_consistent(self, mol: Chem.Mol) -> None:
+        """Make ``self.smiles`` describe the downloaded conformer.
+
+        Downstream code and the session cache read ``smiles``; leaving the
+        PubChem name lookup version could disagree with the SDF atoms.
+        """
+        try:
+            self.smiles = Chem.MolToSmiles(Chem.RemoveHs(mol))
+        except Exception:
+            logger.debug("Could not derive SMILES from the PubChem conformer")
 
     def _embed_conformer(self) -> None:
         """Generate 3D conformer using ETKDG with configurable parameters."""
@@ -442,12 +495,15 @@ class MoleculeGenerator3D:
                 else "molecule_3d"
             )
 
-        # Generate conformer
-        self._embed_conformer()
-
-        # Optimize geometry
-        if optimize:
-            self._optimize_geometry(force_field, max_iterations)
+        # PubChem's conformer is already MMFF-optimised, so both the embed
+        # and the force-field pass are skipped when it loads.
+        used_pubchem = self._load_pubchem_conformer()
+        if used_pubchem:
+            logger.info(" Using PubChem 3D conformer (no local embedding)")
+        else:
+            self._embed_conformer()
+            if optimize:
+                self._optimize_geometry(force_field, max_iterations)
 
         # Save SDF
         sdf_path = self._save_sdf(f"{output_base}.sdf")
@@ -460,6 +516,8 @@ class MoleculeGenerator3D:
 
         if optimize and self.energy is not None:
             logger.info("  Energy: %.2f kcal/mol (%s)", self.energy, force_field)
+        elif used_pubchem:
+            logger.info("  Energy: not computed (PubChem conformer used)")
 
         # Render with PyMOL
         png_path = None
